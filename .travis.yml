@@ -1,0 +1,22 @@
+language: go
+go:
+  - 1.8.x
+  - 1.9.x
+  - 1.10.x
+  - master
+os:
+  - linux
+matrix:
+ fast_finish: true
+ allow_failures:
+   - go: master
+
+sudo: false
+
+notifications:
+  email:
+    recipients:
+      - binet@cern.ch
+    on_success: always
+    on_failure: always
+
