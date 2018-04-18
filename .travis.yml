@@ -13,7 +13,6 @@ matrix:
    - go: master
 
 env:
- - TAGS=""
  - TAGS="-tags czmq4"
 
 addons:
