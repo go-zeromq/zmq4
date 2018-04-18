@@ -1,3 +1,4 @@
+sudo: false
 language: go
 go:
   - 1.8.x
@@ -11,7 +12,23 @@ matrix:
  allow_failures:
    - go: master
 
-sudo: false
+env:
+ - TAGS=""
+ - TAGS="-tags czmq4"
+
+addons:
+  apt:
+    sources:
+    - sourceline: 'deb http://download.opensuse.org/repositories/network:/messaging:/zeromq:/git-draft/xUbuntu_12.04/ ./'
+      key_url: 'http://download.opensuse.org/repositories/network:/messaging:/zeromq:/git-draft/xUbuntu_12.04/Release.key'
+    packages:
+    - libsodium-dev
+    - libczmq-dev
+
+script:
+ - go get -d -t -v $TAGS ./...
+ - go install -v $TAGS ./...
+ - go test -v $TAGS ./...
 
 notifications:
   email:
