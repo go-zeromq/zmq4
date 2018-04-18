@@ -5,7 +5,6 @@
 package zmq4_test
 
 import (
-	"bytes"
 	"context"
 	"net"
 	"os"
@@ -16,8 +15,6 @@ import (
 
 	"github.com/go-zeromq/zmq4"
 	"github.com/pkg/errors"
-	"github.com/zeromq/gomq"
-	gomqzmtp "github.com/zeromq/gomq/zmtp"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -130,90 +127,6 @@ func TestPushPull(t *testing.T) {
 				return err
 			})
 			if err := grp.Wait(); err != nil {
-				t.Fatal(err)
-			}
-		})
-	}
-}
-
-func TestPushPullWithGoMQ(t *testing.T) {
-	for _, tc := range []struct {
-		name     string
-		endpoint string
-		push     *gomq.PushSocket
-		pull     zmq4.Socket
-	}{
-		{
-			name:     "tcp-pull-push",
-			endpoint: "tcp://127.0.0.1",
-			push:     gomq.NewPush(gomqzmtp.NewSecurityNull()),
-			pull:     zmq4.NewPull(),
-		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-
-			port, err := getTCPPort()
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			ep := tc.endpoint + ":" + port
-
-			ctx, timeout := context.WithTimeout(context.Background(), 20*time.Second)
-			defer timeout()
-
-			wg, ctx := errgroup.WithContext(ctx)
-			wg.Go(func() error {
-				defer tc.pull.Close()
-
-				err := tc.pull.Dial(ep)
-				if err != nil {
-					return errors.Wrapf(err, "could not pull-dial")
-				}
-
-				msg, err := tc.pull.Recv()
-				if err != nil {
-					return errors.Wrapf(err, "could not recv HELLO")
-				}
-
-				if want := []byte("HELLO"); !bytes.Equal(msg, want) {
-					t.Fatalf("got %q, want %q", msg, want)
-				}
-
-				msg, err = tc.pull.Recv()
-				if err != nil {
-					return errors.Wrapf(err, "could not recv GOODBYE")
-				}
-
-				if want := []byte("GOODBYE"); !bytes.Equal(msg, want) {
-					t.Fatalf("got %q, want %q", msg, want)
-				}
-
-				return tc.pull.Close()
-			})
-
-			wg.Go(func() error {
-				defer tc.push.Close()
-
-				_, err := tc.push.Bind(ep)
-				if err != nil {
-					return errors.Wrapf(err, "could not push-recv")
-				}
-
-				err = tc.push.Send([]byte("HELLO"))
-				if err != nil {
-					return errors.Wrapf(err, "could not send HELLO")
-				}
-
-				err = tc.push.Send([]byte("GOODBYE"))
-				if err != nil {
-					return errors.Wrapf(err, "could not send GOODBYE")
-				}
-
-				return nil
-			})
-
-			if err := wg.Wait(); err != nil {
 				t.Fatal(err)
 			}
 		})
