@@ -6,6 +6,7 @@ package zmq4
 
 import (
 	"github.com/go-zeromq/zmq4/zmtp"
+	"github.com/pkg/errors"
 )
 
 // NewPush returns a new PUSH ZeroMQ socket.
@@ -17,6 +18,11 @@ func NewPush(opts ...Option) *Push {
 // Push is a PUSH ZeroMQ socket.
 type Push struct {
 	*socket
+}
+
+// Recv receives a complete message.
+func (*Push) Recv() (zmtp.Msg, error) {
+	return zmtp.Msg{}, errors.Errorf("zmq4: PUSH sockets can't recv messages")
 }
 
 var (
