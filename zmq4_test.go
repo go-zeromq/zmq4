@@ -29,22 +29,10 @@ var (
 			pull:     zmq4.NewPull(),
 		},
 		{
-			name:     "tcp-push-pull-inv",
-			endpoint: "tcp://127.0.0.1:55551",
-			pull:     zmq4.NewPush(),
-			push:     zmq4.NewPull(),
-		},
-		{
 			name:     "ipc-push-pull",
 			endpoint: "ipc://ipc-push-pull",
 			push:     zmq4.NewPush(),
 			pull:     zmq4.NewPull(),
-		},
-		{
-			name:     "ipc-push-pull-inv",
-			endpoint: "ipc://ipc-push-pull-inv",
-			push:     zmq4.NewPull(),
-			pull:     zmq4.NewPush(),
 		},
 	}
 )
