@@ -20,10 +20,10 @@ type Socket interface {
 
 	// Send puts the message on the outbound send queue.
 	// Send blocks until the message can be queued or the send deadline expires.
-	Send(data []byte) error
+	Send(msg zmtp.Msg) error
 
 	// Recv receives a complete message.
-	Recv() ([]byte, error)
+	Recv() (zmtp.Msg, error)
 
 	// Listen connects a local endpoint to the Socket.
 	Listen(ep string) error

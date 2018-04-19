@@ -73,14 +73,14 @@ func (sck *csocket) Close() error {
 
 // Send puts the message on the outbound send queue.
 // Send blocks until the message can be queued or the send deadline expires.
-func (sck *csocket) Send(data []byte) error {
-	return sck.sock.SendFrame(data, czmq4.FlagNone)
+func (sck *csocket) Send(msg zmtp.Msg) error {
+	return sck.sock.SendMessage(msg.Frames)
 }
 
 // Recv receives a complete message.
-func (sck *csocket) Recv() ([]byte, error) {
-	msg, _, err := sck.sock.RecvFrame()
-	return msg, err
+func (sck *csocket) Recv() (zmtp.Msg, error) {
+	frames, err := sck.sock.RecvMessage()
+	return zmtp.Msg{Frames: frames}, err
 }
 
 // Listen connects a local endpoint to the Socket.

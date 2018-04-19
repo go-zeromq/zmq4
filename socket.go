@@ -78,13 +78,13 @@ func (sck *socket) Close() error {
 
 // Send puts the message on the outbound send queue.
 // Send blocks until the message can be queued or the send deadline expires.
-func (sck *socket) Send(data []byte) error {
+func (sck *socket) Send(msg zmtp.Msg) error {
 	sck.isReady()
-	return sck.zmtp.SendMsg(data)
+	return sck.zmtp.SendMsg(msg)
 }
 
 // Recv receives a complete message.
-func (sck *socket) Recv() ([]byte, error) {
+func (sck *socket) Recv() (zmtp.Msg, error) {
 	sck.isReady()
 	return sck.zmtp.RecvMsg()
 }

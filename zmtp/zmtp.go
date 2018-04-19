@@ -15,6 +15,31 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Msg is a ZMTP message, possibly composed of multiple frames.
+type Msg struct {
+	Frames [][]byte
+}
+
+func NewMsg(frame []byte) Msg {
+	return Msg{Frames: [][]byte{frame}}
+}
+
+func NewMsgFrom(frames ...[]byte) Msg {
+	return Msg{Frames: frames}
+}
+
+func NewMsgString(frame string) Msg {
+	return NewMsg([]byte(frame))
+}
+
+func NewMsgFromString(frames ...string) Msg {
+	msg := Msg{Frames: make([][]byte, len(frames))}
+	for i, frame := range frames {
+		copy(msg.Frames[i], frame)
+	}
+	return msg
+}
+
 // Conn implements the ZeroMQ Message Transport Protocol as defined
 // in https://rfc.zeromq.org/spec:23/ZMTP/.
 type Conn struct {
@@ -149,7 +174,7 @@ func (c *Conn) sendMD(appMD map[string]string) error {
 }
 
 func (c *Conn) recvMD() (map[string]string, error) {
-	isCommand, body, err := c.read()
+	isCommand, msg, err := c.read()
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +184,7 @@ func (c *Conn) recvMD() (map[string]string, error) {
 	}
 
 	var cmd command
-	err = cmd.unmarshalZMTP(body)
+	err = cmd.unmarshalZMTP(msg.Frames[0])
 	if err != nil {
 		return nil, err
 	}
@@ -205,25 +230,36 @@ func (c *Conn) SendCmd(name string, body []byte) error {
 }
 
 // SendMsg sends a ZMTP message over the wire.
-func (c *Conn) SendMsg(body []byte) error {
-	return c.send(false, body, 0)
+func (c *Conn) SendMsg(msg Msg) error {
+	nframes := len(msg.Frames)
+	for i, frame := range msg.Frames {
+		var flag byte
+		if i < nframes-1 {
+			flag ^= hasMoreBitFlag
+		}
+		err := c.send(false, frame, flag)
+		if err != nil {
+			return errors.Wrapf(err, "zmtp: error sending frame %d/%d", i+1, nframes)
+		}
+	}
+	return nil
 }
 
 // RecvMsg receives a ZMTP message from the wire.
-func (c *Conn) RecvMsg() ([]byte, error) {
-	isCmd, body, err := c.read()
+func (c *Conn) RecvMsg() (Msg, error) {
+	isCmd, msg, err := c.read()
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return msg, errors.WithStack(err)
 	}
 
 	if !isCmd {
-		return body, nil
+		return msg, nil
 	}
 
 	var cmd command
-	err = cmd.unmarshalZMTP(body)
+	err = cmd.unmarshalZMTP(msg.Frames[0])
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return msg, errors.WithStack(err)
 	}
 
 	// FIXME(sbinet)
@@ -232,7 +268,9 @@ func (c *Conn) RecvMsg() ([]byte, error) {
 		panic("got PING")
 	}
 
-	return cmd.Body, nil
+	msg.Frames = msg.Frames[:1]
+	msg.Frames[0] = cmd.Body
+	return msg, nil
 }
 
 func (c *Conn) send(isCommand bool, body []byte, flag byte) error {
@@ -272,58 +310,66 @@ func (c *Conn) send(isCommand bool, body []byte, flag byte) error {
 }
 
 // read returns the isCommand flag, the body of the message, and optionally an error
-func (c *Conn) read() (bool, []byte, error) {
-	var header [2]byte
+func (c *Conn) read() (bool, Msg, error) {
+	var (
+		header  [2]byte
+		longHdr [8]byte
+		msg     Msg
 
-	// Read out the header
-	_, err := io.ReadFull(c.rw, header[:])
-	if err != nil {
-		return false, nil, err
-	}
+		hasMore = true
+		isCmd   = false
+	)
 
-	fl := flag(header[0])
+	for hasMore {
 
-	// FIXME(sbinet): implement MORE commands
-	if fl.hasMore() {
-		return false, nil, errMoreCmd
-	}
-
-	// Determine the actual length of the body
-	size := uint64(header[1])
-	if fl.isLong() {
-		var longHeader [8]byte
-		// We read 2 bytes of the header already
-		// In case of a long message, the length is bytes 2-8 of the header
-		// We already have the first byte, so assign it, and then read the rest
-		longHeader[0] = header[1]
-
-		_, err = io.ReadFull(c.rw, longHeader[1:])
+		// Read out the header
+		_, err := io.ReadFull(c.rw, header[:])
 		if err != nil {
-			return false, nil, err
+			return false, msg, err
 		}
 
-		size = binary.BigEndian.Uint64(longHeader[:])
-	}
+		fl := flag(header[0])
 
-	if size > uint64(maxInt64) {
-		return false, nil, errOverflow
-	}
+		hasMore = fl.hasMore()
+		isCmd = isCmd || fl.isCommand()
 
-	body := make([]byte, size)
-	_, err = io.ReadFull(c.rw, body)
-	if err != nil {
-		return false, nil, err
-	}
+		// Determine the actual length of the body
+		size := uint64(header[1])
+		if fl.isLong() {
+			// We read 2 bytes of the header already
+			// In case of a long message, the length is bytes 2-8 of the header
+			// We already have the first byte, so assign it, and then read the rest
+			longHdr[0] = header[1]
 
-	// fast path for NULL security: we bypass the bytes.Buffer allocation.
-	if c.sec.Type() == NullSecurity {
-		return fl.isCommand(), body, nil
-	}
+			_, err = io.ReadFull(c.rw, longHdr[1:])
+			if err != nil {
+				return false, msg, err
+			}
 
-	buf := new(bytes.Buffer)
-	if _, err := c.sec.Decrypt(buf, body); err != nil {
-		return false, nil, err
-	}
+			size = binary.BigEndian.Uint64(longHdr[:])
+		}
 
-	return fl.isCommand(), buf.Bytes(), nil
+		if size > uint64(maxInt64) {
+			return false, msg, errOverflow
+		}
+
+		body := make([]byte, size)
+		_, err = io.ReadFull(c.rw, body)
+		if err != nil {
+			return false, msg, err
+		}
+
+		// fast path for NULL security: we bypass the bytes.Buffer allocation.
+		if c.sec.Type() == NullSecurity {
+			msg.Frames = append(msg.Frames, body)
+			continue
+		}
+
+		buf := new(bytes.Buffer)
+		if _, err := c.sec.Decrypt(buf, body); err != nil {
+			return false, msg, err
+		}
+		msg.Frames = append(msg.Frames, buf.Bytes())
+	}
+	return isCmd, msg, nil
 }

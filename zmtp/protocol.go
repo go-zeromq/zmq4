@@ -249,6 +249,6 @@ func (md *metaData) Write(data []byte) (n int, err error) {
 
 type flag byte
 
-func (f flag) hasMore() bool    { return f == 0x1 || f == 0x3 }
-func (fl flag) isLong() bool    { return fl == 0x2 || fl == 0x3 || fl == 0x6 }
-func (fl flag) isCommand() bool { return fl == 0x4 || fl == 0x6 }
+func (fl flag) hasMore() bool   { return fl&hasMoreBitFlag == hasMoreBitFlag }
+func (fl flag) isLong() bool    { return fl&isLongBitFlag == isLongBitFlag }
+func (fl flag) isCommand() bool { return fl&isCommandBitFlag == isCommandBitFlag }

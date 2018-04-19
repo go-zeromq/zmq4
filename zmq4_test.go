@@ -8,12 +8,14 @@ import (
 	"context"
 	"net"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/go-zeromq/zmq4"
+	"github.com/go-zeromq/zmq4/zmtp"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
@@ -56,9 +58,9 @@ type testCasePushPull struct {
 }
 
 func TestPushPull(t *testing.T) {
-	const (
-		hello = "HELLO"
-		world = "WORLD"
+	var (
+		hello = zmtp.NewMsg([]byte("HELLO"))
+		world = zmtp.NewMsgString("WORLD")
 	)
 
 	for _, tc := range pushpulls {
@@ -88,14 +90,14 @@ func TestPushPull(t *testing.T) {
 					return errors.Wrapf(err, "could not listen")
 				}
 
-				err = tc.push.Send([]byte(hello))
+				err = tc.push.Send(hello)
 				if err != nil {
-					return errors.Wrapf(err, "could not send %q", hello)
+					return errors.Wrapf(err, "could not send %v", hello)
 				}
 
-				err = tc.push.Send([]byte(world))
+				err = tc.push.Send(world)
 				if err != nil {
-					return errors.Wrapf(err, "could not send %q", world)
+					return errors.Wrapf(err, "could not send %v", world)
 				}
 				return err
 			})
@@ -108,20 +110,20 @@ func TestPushPull(t *testing.T) {
 
 				msg, err := tc.pull.Recv()
 				if err != nil {
-					return errors.Wrapf(err, "could not recv %q", hello)
+					return errors.Wrapf(err, "could not recv %v", hello)
 				}
 
-				if got, want := string(msg), hello; got != want {
-					return errors.Wrapf(err, "got = %q, want= %q", got, want)
+				if got, want := msg, hello; !reflect.DeepEqual(got, want) {
+					return errors.Wrapf(err, "got = %v, want= %v", got, want)
 				}
 
 				msg, err = tc.pull.Recv()
 				if err != nil {
-					return errors.Wrapf(err, "could not recv %q", world)
+					return errors.Wrapf(err, "could not recv %v", world)
 				}
 
-				if got, want := string(msg), world; got != want {
-					return errors.Wrapf(err, "got = %q, want= %q", got, want)
+				if got, want := msg, hello; !reflect.DeepEqual(got, want) {
+					return errors.Wrapf(err, "got = %v, want= %v", got, want)
 				}
 
 				return err
