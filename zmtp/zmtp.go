@@ -256,6 +256,15 @@ func (c *Conn) RecvMsg() (Msg, error) {
 		return msg, nil
 	}
 
+	switch len(msg.Frames) {
+	case 0:
+		return Msg{}, errors.Errorf("zmtp: empty command")
+	case 1:
+		// ok
+	default:
+		return msg, errors.Errorf("zmtp: invalid length command")
+	}
+
 	var cmd command
 	err = cmd.unmarshalZMTP(msg.Frames[0])
 	if err != nil {
@@ -271,8 +280,13 @@ func (c *Conn) RecvMsg() (Msg, error) {
 		}
 	}
 
-	msg.Frames = msg.Frames[:1]
-	msg.Frames[0] = cmd.Body
+	switch len(cmd.Body) {
+	case 0:
+		msg.Frames = nil
+	default:
+		msg.Frames = msg.Frames[:1]
+		msg.Frames[0] = cmd.Body
+	}
 	return msg, nil
 }
 
