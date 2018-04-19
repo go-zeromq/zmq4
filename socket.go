@@ -224,8 +224,8 @@ func (sck *socket) Type() zmtp.SocketType {
 }
 
 // Conn returns the underlying net.Conn the socket is bound to.
-func (s socket) Conn() net.Conn {
-	return s.conn
+func (sck *socket) Conn() net.Conn {
+	return sck.conn
 }
 
 // GetOption is used to retrieve an option for a socket.
