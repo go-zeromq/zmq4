@@ -10,8 +10,8 @@ import (
 
 // NewPush returns a new PUSH ZeroMQ socket.
 // The returned socket value is initially unbound.
-func NewPush() *Push {
-	return &Push{newSocket(zmtp.Push)}
+func NewPush(opts ...Option) *Push {
+	return &Push{newSocket(zmtp.Push, opts...)}
 }
 
 // Push is a PUSH ZeroMQ socket.

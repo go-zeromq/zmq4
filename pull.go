@@ -10,8 +10,8 @@ import (
 
 // NewPull returns a new PULL ZeroMQ socket.
 // The returned socket value is initially unbound.
-func NewPull() *Pull {
-	return &Pull{newSocket(zmtp.Pull)}
+func NewPull(opts ...Option) *Pull {
+	return &Pull{newSocket(zmtp.Pull, opts...)}
 }
 
 // Pull is a PULL ZeroMQ socket.

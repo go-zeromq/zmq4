@@ -10,8 +10,8 @@ import (
 
 // NewRouter returns a new ROUTER ZeroMQ socket.
 // The returned socket value is initially unbound.
-func NewRouter() *Router {
-	return &Router{newSocket(zmtp.Router)}
+func NewRouter(opts ...Option) *Router {
+	return &Router{newSocket(zmtp.Router, opts...)}
 }
 
 // Router is a ROUTER ZeroMQ socket.
