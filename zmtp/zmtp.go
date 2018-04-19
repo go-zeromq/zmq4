@@ -262,10 +262,13 @@ func (c *Conn) RecvMsg() (Msg, error) {
 		return msg, errors.WithStack(err)
 	}
 
-	// FIXME(sbinet)
 	switch cmd.Name {
 	case cmdPing:
-		panic("got PING")
+		// send back a PONG immediately.
+		err := c.SendCmd(cmdPong, nil)
+		if err != nil {
+			return Msg{}, err
+		}
 	}
 
 	msg.Frames = msg.Frames[:1]
