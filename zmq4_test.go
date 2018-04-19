@@ -47,8 +47,8 @@ type testCasePushPull struct {
 
 func TestPushPull(t *testing.T) {
 	var (
-		hello = zmtp.NewMsg([]byte("HELLO"))
-		world = zmtp.NewMsgString("WORLD")
+		hello = zmtp.NewMsg([]byte("HELLO WORLD"))
+		bye   = zmtp.NewMsgFrom([]byte("GOOD"), []byte("BYE"))
 	)
 
 	for _, tc := range pushpulls {
@@ -83,9 +83,9 @@ func TestPushPull(t *testing.T) {
 					return errors.Wrapf(err, "could not send %v", hello)
 				}
 
-				err = tc.push.Send(world)
+				err = tc.push.Send(bye)
 				if err != nil {
-					return errors.Wrapf(err, "could not send %v", world)
+					return errors.Wrapf(err, "could not send %v", bye)
 				}
 				return err
 			})
@@ -107,7 +107,7 @@ func TestPushPull(t *testing.T) {
 
 				msg, err = tc.pull.Recv()
 				if err != nil {
-					return errors.Wrapf(err, "could not recv %v", world)
+					return errors.Wrapf(err, "could not recv %v", bye)
 				}
 
 				if got, want := msg, hello; !reflect.DeepEqual(got, want) {
