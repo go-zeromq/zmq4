@@ -9,6 +9,7 @@ package zmtp
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"strings"
 
@@ -38,6 +39,28 @@ func NewMsgFromString(frames []string) Msg {
 		msg.Frames[i] = append(msg.Frames[i], []byte(frame)...)
 	}
 	return msg
+}
+
+func (msg Msg) String() string {
+	buf := new(bytes.Buffer)
+	buf.WriteString("Msg{Frames:{")
+	for i, frame := range msg.Frames {
+		if i > 0 {
+			buf.WriteString(", ")
+		}
+		fmt.Fprintf(buf, "%q", frame)
+	}
+	buf.WriteString("}}")
+	return buf.String()
+}
+
+func (msg Msg) Clone() Msg {
+	o := Msg{Frames: make([][]byte, len(msg.Frames))}
+	for i, frame := range msg.Frames {
+		o.Frames[i] = make([]byte, len(frame))
+		copy(o.Frames[i], frame)
+	}
+	return o
 }
 
 // Conn implements the ZeroMQ Message Transport Protocol as defined
