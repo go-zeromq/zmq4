@@ -10,15 +10,15 @@ import (
 
 // NewPair returns a new PAIR ZeroMQ socket.
 // The returned socket value is initially unbound.
-func NewPair(opts ...Option) *Pair {
-	return &Pair{newSocket(zmtp.Pair, opts...)}
+func NewPair(opts ...Option) Socket {
+	return &pairSocket{newSocket(zmtp.Pair, opts...)}
 }
 
-// Pair is a PAIR ZeroMQ socket.
-type Pair struct {
+// pairSocket is a PAIR ZeroMQ socket.
+type pairSocket struct {
 	*socket
 }
 
 var (
-	_ Socket = (*Pair)(nil)
+	_ Socket = (*pairSocket)(nil)
 )

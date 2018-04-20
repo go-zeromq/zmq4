@@ -10,15 +10,15 @@ import (
 
 // NewReq returns a new REQ ZeroMQ socket.
 // The returned socket value is initially unbound.
-func NewReq(opts ...Option) *Req {
-	return &Req{newSocket(zmtp.Req, opts...)}
+func NewReq(opts ...Option) Socket {
+	return &reqSocket{newSocket(zmtp.Req, opts...)}
 }
 
-// Req is a REQ ZeroMQ socket.
-type Req struct {
+// reqSocket is a REQ ZeroMQ socket.
+type reqSocket struct {
 	*socket
 }
 
 var (
-	_ Socket = (*Req)(nil)
+	_ Socket = (*reqSocket)(nil)
 )

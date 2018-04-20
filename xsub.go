@@ -10,15 +10,15 @@ import (
 
 // NewXSub returns a new XSUB ZeroMQ socket.
 // The returned socket value is initially unbound.
-func NewXSub(opts ...Option) *XSub {
-	return &XSub{newSocket(zmtp.XSub, opts...)}
+func NewXSub(opts ...Option) Socket {
+	return &xsubSocket{newSocket(zmtp.XSub, opts...)}
 }
 
-// XSub is a XSUB ZeroMQ socket.
-type XSub struct {
+// xsubSocket is a XSUB ZeroMQ socket.
+type xsubSocket struct {
 	*socket
 }
 
 var (
-	_ Socket = (*XSub)(nil)
+	_ Socket = (*xsubSocket)(nil)
 )

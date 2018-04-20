@@ -10,15 +10,15 @@ import (
 
 // NewRep returns a new REP ZeroMQ socket.
 // The returned socket value is initially unbound.
-func NewRep(opts ...Option) *Rep {
-	return &Rep{newSocket(zmtp.Rep, opts...)}
+func NewRep(opts ...Option) Socket {
+	return &repSocket{newSocket(zmtp.Rep, opts...)}
 }
 
-// Rep is a REP ZeroMQ socket.
-type Rep struct {
+// repSocket is a REP ZeroMQ socket.
+type repSocket struct {
 	*socket
 }
 
 var (
-	_ Socket = (*Rep)(nil)
+	_ Socket = (*repSocket)(nil)
 )

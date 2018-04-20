@@ -11,20 +11,20 @@ import (
 
 // NewPush returns a new PUSH ZeroMQ socket.
 // The returned socket value is initially unbound.
-func NewPush(opts ...Option) *Push {
-	return &Push{newSocket(zmtp.Push, opts...)}
+func NewPush(opts ...Option) Socket {
+	return &pushSocket{newSocket(zmtp.Push, opts...)}
 }
 
-// Push is a PUSH ZeroMQ socket.
-type Push struct {
+// pushSocket is a PUSH ZeroMQ socket.
+type pushSocket struct {
 	*socket
 }
 
 // Recv receives a complete message.
-func (*Push) Recv() (zmtp.Msg, error) {
+func (*pushSocket) Recv() (zmtp.Msg, error) {
 	return zmtp.Msg{}, errors.Errorf("zmq4: PUSH sockets can't recv messages")
 }
 
 var (
-	_ Socket = (*Push)(nil)
+	_ Socket = (*pushSocket)(nil)
 )

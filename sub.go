@@ -10,15 +10,15 @@ import (
 
 // NewSub returns a new SUB ZeroMQ socket.
 // The returned socket value is initially unbound.
-func NewSub(opts ...Option) *Sub {
-	return &Sub{newSocket(zmtp.Sub, opts...)}
+func NewSub(opts ...Option) Socket {
+	return &subSocket{newSocket(zmtp.Sub, opts...)}
 }
 
-// Sub is a SUB ZeroMQ socket.
-type Sub struct {
+// subSocket is a SUB ZeroMQ socket.
+type subSocket struct {
 	*socket
 }
 
 var (
-	_ Socket = (*Sub)(nil)
+	_ Socket = (*subSocket)(nil)
 )

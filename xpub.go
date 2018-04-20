@@ -10,15 +10,15 @@ import (
 
 // NewXPub returns a new XPUB ZeroMQ socket.
 // The returned socket value is initially unbound.
-func NewXPub(opts ...Option) *XPub {
-	return &XPub{newSocket(zmtp.XPub, opts...)}
+func NewXPub(opts ...Option) Socket {
+	return &xpubSocket{newSocket(zmtp.XPub, opts...)}
 }
 
-// XPub is a XPUB ZeroMQ socket.
-type XPub struct {
+// xpubSocket is a XPUB ZeroMQ socket.
+type xpubSocket struct {
 	*socket
 }
 
 var (
-	_ Socket = (*XPub)(nil)
+	_ Socket = (*xpubSocket)(nil)
 )

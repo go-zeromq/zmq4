@@ -10,15 +10,15 @@ import (
 
 // NewPub returns a new PUB ZeroMQ socket.
 // The returned socket value is initially unbound.
-func NewPub(opts ...Option) *Pub {
-	return &Pub{newSocket(zmtp.Pub, opts...)}
+func NewPub(opts ...Option) Socket {
+	return &pubSocket{newSocket(zmtp.Pub, opts...)}
 }
 
-// Pub is a PUB ZeroMQ socket.
-type Pub struct {
+// pubSocket is a PUB ZeroMQ socket.
+type pubSocket struct {
 	*socket
 }
 
 var (
-	_ Socket = (*Pub)(nil)
+	_ Socket = (*pubSocket)(nil)
 )
