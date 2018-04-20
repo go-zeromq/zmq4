@@ -21,6 +21,22 @@ type reqSocket struct {
 	*socket
 }
 
+// Send puts the message on the outbound send queue.
+// Send blocks until the message can be queued or the send deadline expires.
+func (req *reqSocket) Send(msg zmtp.Msg) error {
+	msg.Frames = append([][]byte{nil}, msg.Frames...)
+	return req.socket.Send(msg)
+}
+
+// Recv receives a complete message.
+func (req *reqSocket) Recv() (zmtp.Msg, error) {
+	msg, err := req.socket.Recv()
+	if len(msg.Frames) > 1 {
+		msg.Frames = msg.Frames[1:]
+	}
+	return msg, err
+}
+
 var (
 	_ Socket = (*reqSocket)(nil)
 )
