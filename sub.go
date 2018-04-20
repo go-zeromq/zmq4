@@ -21,6 +21,23 @@ type subSocket struct {
 	*socket
 }
 
+// SetOption is used to set an option for a socket.
+func (sub *subSocket) SetOption(name string, value interface{}) error {
+	err := sub.socket.SetOption(name, value)
+	if err != nil {
+		return err
+	}
+
+	switch name {
+	case OptionSubscribe:
+		err = sub.Send(zmtp.NewMsgFrom([]byte{1}, []byte(value.(string))))
+	case OptionUnsubscribe:
+		err = sub.Send(zmtp.NewMsgFrom([]byte{0}, []byte(value.(string))))
+	}
+
+	return err
+}
+
 var (
 	_ Socket = (*subSocket)(nil)
 )

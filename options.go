@@ -64,3 +64,8 @@ func WithRecvBufferSize(size int) Option {
 	return nil
 }
 */
+
+const (
+	OptionSubscribe   = "SUBSCRIBE"
+	OptionUnsubscribe = "UNSUBSCRIBE"
+)
