@@ -8,8 +8,6 @@
 package zmq4
 
 import (
-	"net"
-
 	"github.com/go-zeromq/zmq4/zmtp"
 )
 
@@ -33,9 +31,6 @@ type Socket interface {
 
 	// Type returns the type of this Socket (PUB, SUB, ...)
 	Type() zmtp.SocketType
-
-	// Conn returns the underlying net.Conn the socket is bound to.
-	Conn() net.Conn
 
 	// GetOption is used to retrieve an option for a socket.
 	GetOption(name string) (interface{}, error)

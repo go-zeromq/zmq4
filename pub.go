@@ -21,6 +21,22 @@ type pubSocket struct {
 	*socket
 }
 
+// Send puts the message on the outbound send queue.
+// Send blocks until the message can be queued or the send deadline expires.
+func (pub *pubSocket) Send(msg zmtp.Msg) error {
+	pub.socket.mu.RLock()
+	var err error
+	// FIXME(sbinet): only send to correct subscribers...
+	for _, conn := range pub.conns {
+		e := conn.SendMsg(msg)
+		if e != nil && err == nil {
+			err = e
+		}
+	}
+	pub.socket.mu.RUnlock()
+	return err
+}
+
 var (
 	_ Socket = (*pubSocket)(nil)
 )

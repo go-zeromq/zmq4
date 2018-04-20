@@ -68,18 +68,22 @@ func (msg Msg) Clone() Msg {
 type Conn struct {
 	typ    SocketType
 	id     SocketIdentity
-	rw     io.ReadWriter
+	rw     io.ReadWriteCloser
 	sec    Security
 	server bool
-	peer   struct {
-		server bool
-		md     map[string]string
+	Peer   struct {
+		Server bool
+		MD     map[string]string
 	}
+}
+
+func (c *Conn) Close() error {
+	return c.rw.Close()
 }
 
 // Open opens a ZMTP connection over rw with the given security, socket type and identity.
 // Open performs a complete ZMTP handshake.
-func Open(rw io.ReadWriter, sec Security, sockType SocketType, sockID SocketIdentity, server bool) (*Conn, error) {
+func Open(rw io.ReadWriteCloser, sec Security, sockType SocketType, sockID SocketIdentity, server bool) (*Conn, error) {
 	if rw == nil {
 		return nil, errors.Errorf("zmtp: invalid nil read-writer")
 	}
@@ -123,7 +127,7 @@ func (conn *Conn) init(sec Security, md map[string]string) error {
 		return errors.Wrapf(err, "zmtp: could not send metadata to peer")
 	}
 
-	conn.peer.md, err = conn.recvMD()
+	conn.Peer.MD, err = conn.recvMD()
 	if err != nil {
 		return errors.Wrapf(err, "zmtp: could not recv metadata from peer")
 	}
@@ -163,7 +167,7 @@ func (conn *Conn) greet(server bool) error {
 		return errBadSec
 	}
 
-	conn.peer.server, err = asBool(recv.Server)
+	conn.Peer.Server, err = asBool(recv.Server)
 	if err != nil {
 		return errors.Wrapf(err, "zmtp: could not get peer server flag")
 	}

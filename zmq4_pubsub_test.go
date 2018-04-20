@@ -6,7 +6,6 @@ package zmq4_test
 
 import (
 	"context"
-	"log"
 	"os"
 	"reflect"
 	"strings"
@@ -23,7 +22,6 @@ var (
 	pubsubs = []testCasePubSub{
 		{
 			name:     "tcp-pub-sub",
-			skip:     true,
 			endpoint: must(EndPoint("tcp")),
 			pub:      zmq4.NewPub(bkg),
 			sub1:     zmq4.NewSub(bkg),
@@ -31,7 +29,6 @@ var (
 		},
 		{
 			name:     "ipc-pub-sub",
-			skip:     true,
 			endpoint: "ipc://ipc-pub-sub",
 			pub:      zmq4.NewPub(bkg),
 			sub1:     zmq4.NewSub(bkg),
@@ -92,14 +89,12 @@ func TestPubSub(t *testing.T) {
 				time.Sleep(1 * time.Second)
 
 				for _, msg := range msgs {
-					log.Printf("pub: send... %v", msg)
 					err = tc.pub.Send(msg)
 					if err != nil {
 						return errors.Wrapf(err, "could not send message %v", msg)
 					}
 				}
 
-				log.Printf("pub: done")
 				return err
 			})
 
@@ -116,12 +111,9 @@ func TestPubSub(t *testing.T) {
 							return errors.Wrapf(err, "could not subscribe to topic %q", topic)
 						}
 
-						log.Printf("sub[%d] subscribed to %q...", isub, topic)
 						ready <- isub
 						for _, want := range msgs {
-							log.Printf("sub[%d]: recv...", isub)
 							msg, err := sub.Recv()
-							log.Printf("sub[%d]: recv... %v", isub, msg)
 							if err != nil {
 								return errors.Wrapf(err, "could not recv message %v", want)
 							}

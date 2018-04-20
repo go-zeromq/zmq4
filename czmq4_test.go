@@ -105,7 +105,6 @@ var (
 		},
 		{
 			name:     "tcp-pub-csub",
-			skip:     true,
 			endpoint: must(EndPoint("tcp")),
 			pub:      zmq4.NewPub(bkg),
 			sub1:     NewCSub(bkg),
@@ -120,7 +119,6 @@ var (
 		},
 		{
 			name:     "ipc-cpub-sub",
-			skip:     true,
 			endpoint: "ipc://ipc-cpub-sub",
 			pub:      NewCPub(bkg),
 			sub1:     zmq4.NewSub(bkg),
@@ -128,7 +126,6 @@ var (
 		},
 		{
 			name:     "ipc-pub-csub",
-			skip:     true,
 			endpoint: "ipc://ipc-pub-csub",
 			pub:      zmq4.NewPub(bkg),
 			sub1:     NewCSub(bkg),
@@ -136,7 +133,6 @@ var (
 		},
 		{
 			name:     "ipc-cpub-csub",
-			skip:     true,
 			endpoint: "ipc://ipc-cpub-csub",
 			pub:      NewCPub(bkg),
 			sub1:     NewCSub(bkg),

@@ -6,7 +6,10 @@ package zmq4
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
+	"io"
+	"log"
 	"net"
 	"strings"
 	"sync"
@@ -38,8 +41,11 @@ type socket struct {
 	id    zmtp.SocketIdentity
 	retry time.Duration
 	sec   zmtp.Security
-	conn  net.Conn               // transport connection
-	zmtp  *zmtp.Conn             // ZMTP connection
+
+	mu    sync.RWMutex
+	ids   map[string]*zmtp.Conn // ZMTP connection IDs
+	conns []*zmtp.Conn          // ZMTP connections
+
 	props map[string]interface{} // properties of this socket
 
 	ctx      context.Context // life-line of socket
@@ -59,6 +65,8 @@ func newDefaultSocket(ctx context.Context, sockType zmtp.SocketType) *socket {
 		typ:    sockType,
 		retry:  defaultRetry,
 		sec:    null.Security(),
+		ids:    make(map[string]*zmtp.Conn),
+		conns:  nil,
 		props:  make(map[string]interface{}),
 		ctx:    ctx,
 		cancel: cancel,
@@ -81,23 +89,36 @@ func (sck *socket) Close() error {
 		defer sck.listener.Close()
 	}
 
-	if sck.conn == nil {
+	if sck.conns == nil {
 		return errInvalidSocket
 	}
-	return sck.conn.Close()
+	var err error
+	for _, conn := range sck.conns {
+		e := conn.Close()
+		if e != nil && err == nil {
+			err = e
+		}
+	}
+	return err
 }
 
 // Send puts the message on the outbound send queue.
 // Send blocks until the message can be queued or the send deadline expires.
 func (sck *socket) Send(msg zmtp.Msg) error {
 	sck.isReady()
-	return sck.zmtp.SendMsg(msg)
+	sck.mu.RLock()
+	err := sck.conns[0].SendMsg(msg)
+	sck.mu.RUnlock()
+	return err
 }
 
 // Recv receives a complete message.
 func (sck *socket) Recv() (zmtp.Msg, error) {
 	sck.isReady()
-	return sck.zmtp.RecvMsg()
+	sck.mu.RLock()
+	msg, err := sck.conns[0].RecvMsg()
+	sck.mu.RUnlock()
+	return msg, err
 }
 
 // Listen connects a local endpoint to the Socket.
@@ -146,14 +167,14 @@ func (sck *socket) accept() {
 				// log.Printf("zmq4: error accepting connection from %q: %v", sck.ep, err)
 				continue
 			}
-			// FIXME(sbinet): multiple connections...
-			sck.conn = conn
 
-			sck.zmtp, err = zmtp.Open(sck.conn, sck.sec, sck.typ, sck.id, true)
+			zconn, err := zmtp.Open(conn, sck.sec, sck.typ, sck.id, true)
 			if err != nil {
 				panic(err)
 				//		return errors.Wrapf(err, "could not open a ZMTP connection")
 			}
+
+			sck.addConn(zconn)
 			go func() {
 				select {
 				case sck.ready <- struct{}{}:
@@ -201,15 +222,15 @@ connect:
 		return errors.Wrapf(err, "got a nil dial-conn to %q", endpoint)
 	}
 
-	sck.conn = conn
-
-	sck.zmtp, err = zmtp.Open(sck.conn, sck.sec, sck.typ, sck.id, false)
+	zconn, err := zmtp.Open(conn, sck.sec, sck.typ, sck.id, false)
 	if err != nil {
 		return errors.Wrapf(err, "could not open a ZMTP connection")
 	}
-	if sck.zmtp == nil {
+	if zconn == nil {
 		return errors.Wrapf(err, "got a nil ZMTP connection to %q", endpoint)
 	}
+
+	sck.addConn(zconn)
 
 	go func() {
 		select {
@@ -219,14 +240,20 @@ connect:
 	return nil
 }
 
+func (sck *socket) addConn(c *zmtp.Conn) {
+	sck.mu.Lock()
+	sck.conns = append(sck.conns, c)
+	uuid, ok := c.Peer.MD["Identity"]
+	if !ok {
+		uuid = newUUID()
+	}
+	sck.ids[uuid] = c
+	sck.mu.Unlock()
+}
+
 // Type returns the type of this Socket (PUB, SUB, ...)
 func (sck *socket) Type() zmtp.SocketType {
 	return sck.typ
-}
-
-// Conn returns the underlying net.Conn the socket is bound to.
-func (sck *socket) Conn() net.Conn {
-	return sck.conn
 }
 
 // GetOption is used to retrieve an option for a socket.
@@ -296,4 +323,14 @@ func splitAddr(v string) (network, addr string, err error) {
 	}
 
 	return network, addr, err
+}
+
+func newUUID() string {
+	var uuid [16]byte
+	if _, err := io.ReadFull(rand.Reader, uuid[:]); err != nil {
+		log.Fatalf("cannot generate random data for UUID: %v", err)
+	}
+	uuid[8] = uuid[8]&^0xc0 | 0x80
+	uuid[6] = uuid[6]&^0xf0 | 0x40
+	return fmt.Sprintf("%x-%x-%x-%x-%x", uuid[:4], uuid[4:6], uuid[6:8], uuid[8:10], uuid[10:])
 }
