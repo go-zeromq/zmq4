@@ -132,6 +132,18 @@ func (sck *csocket) GetOption(name string) (interface{}, error) {
 
 // SetOption is used to set an option for a socket.
 func (sck *csocket) SetOption(name string, value interface{}) error {
+	switch name {
+	case zmq4.OptionSubscribe:
+		topic := value.(string)
+		sck.sock.SetOption(czmq4.SockSetSubscribe(topic))
+		return nil
+	case zmq4.OptionUnsubscribe:
+		topic := value.(string)
+		sck.sock.SetUnsubscribe(topic)
+		return nil
+	default:
+		panic("unknown set option name [" + name + "]")
+	}
 	panic("not implemented")
 }
 

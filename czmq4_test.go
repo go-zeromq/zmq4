@@ -94,9 +94,59 @@ var (
 			rep:      NewCRep(bkg),
 		},
 	}
+
+	cpubsubs = []testCasePubSub{
+		{
+			name:     "tcp-cpub-sub",
+			endpoint: must(EndPoint("tcp")),
+			pub:      NewCPub(bkg),
+			sub1:     zmq4.NewSub(bkg),
+			sub2:     zmq4.NewSub(bkg),
+		},
+		{
+			name:     "tcp-pub-csub",
+			skip:     true,
+			endpoint: must(EndPoint("tcp")),
+			pub:      zmq4.NewPub(bkg),
+			sub1:     NewCSub(bkg),
+			sub2:     NewCSub(bkg),
+		},
+		{
+			name:     "tcp-cpub-csub",
+			endpoint: must(EndPoint("tcp")),
+			pub:      NewCPub(bkg),
+			sub1:     NewCSub(bkg),
+			sub2:     NewCSub(bkg),
+		},
+		{
+			name:     "ipc-cpub-sub",
+			skip:     true,
+			endpoint: "ipc://ipc-cpub-sub",
+			pub:      NewCPub(bkg),
+			sub1:     zmq4.NewSub(bkg),
+			sub2:     zmq4.NewSub(bkg),
+		},
+		{
+			name:     "ipc-pub-csub",
+			skip:     true,
+			endpoint: "ipc://ipc-pub-csub",
+			pub:      zmq4.NewPub(bkg),
+			sub1:     NewCSub(bkg),
+			sub2:     NewCSub(bkg),
+		},
+		{
+			name:     "ipc-cpub-csub",
+			skip:     true,
+			endpoint: "ipc://ipc-cpub-csub",
+			pub:      NewCPub(bkg),
+			sub1:     NewCSub(bkg),
+			sub2:     NewCSub(bkg),
+		},
+	}
 )
 
 func init() {
 	pushpulls = append(pushpulls, cpushpulls...)
 	reqreps = append(reqreps, creqreps...)
+	pubsubs = append(pubsubs, cpubsubs...)
 }
