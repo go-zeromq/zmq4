@@ -16,7 +16,7 @@ import (
 type Option func(s *socket)
 
 // WithID configures a ZeroMQ socket identity.
-func WithID(id zmtp.SocketIdentity) func(s *socket) {
+func WithID(id zmtp.SocketIdentity) Option {
 	return func(s *socket) {
 		s.id = id
 	}
@@ -24,7 +24,7 @@ func WithID(id zmtp.SocketIdentity) func(s *socket) {
 
 // WithSecurity configures a ZeroMQ socket to use the given security mechanism.
 // If the security mechanims is nil, the NULL mechanism is used.
-func WithSecurity(sec zmtp.Security) func(s *socket) {
+func WithSecurity(sec zmtp.Security) Option {
 	return func(s *socket) {
 		if sec == nil {
 			sec = null.Security()
@@ -35,7 +35,7 @@ func WithSecurity(sec zmtp.Security) func(s *socket) {
 
 // WithDialerRetry configures the time to wait before two failed attempts
 // at dialing an endpoint.
-func WithDialerRetry(retry time.Duration) func(s *socket) {
+func WithDialerRetry(retry time.Duration) Option {
 	return func(s *socket) {
 		s.retry = retry
 	}
@@ -43,7 +43,7 @@ func WithDialerRetry(retry time.Duration) func(s *socket) {
 
 // WithDialerTimeout sets the maximum amount of time a dial will wait
 // for a connect to complete.
-func WithDialerTimeout(timeout time.Duration) func(s *socket) {
+func WithDialerTimeout(timeout time.Duration) Option {
 	return func(s *socket) {
 		s.dialer.Timeout = timeout
 	}
@@ -52,15 +52,15 @@ func WithDialerTimeout(timeout time.Duration) func(s *socket) {
 /*
 // TODO(sbinet)
 
-func WithIOThreads(threads int)  func(s *socket) {
+func WithIOThreads(threads int) Option {
 	return nil
 }
 
-func WithSendBufferSize(size int) func(s *socket) {
+func WithSendBufferSize(size int) Option {
 	return nil
 }
 
-func WithRecvBufferSize(size int) func(s *socket) {
+func WithRecvBufferSize(size int) Option {
 	return nil
 }
 */
