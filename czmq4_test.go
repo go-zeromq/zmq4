@@ -55,8 +55,48 @@ var (
 		//	pull:     NewCPull(),
 		//},
 	}
+
+	creqreps = []testCaseReqRep{
+		{
+			name:     "tcp-creq-rep",
+			endpoint: must(EndPoint("tcp")),
+			req:      NewCReq(bkg),
+			rep:      zmq4.NewRep(bkg),
+		},
+		{
+			name:     "tcp-req-crep",
+			endpoint: must(EndPoint("tcp")),
+			req:      zmq4.NewReq(bkg),
+			rep:      NewCRep(bkg),
+		},
+		{
+			name:     "tcp-creq-crep",
+			endpoint: must(EndPoint("tcp")),
+			req:      NewCReq(bkg),
+			rep:      NewCRep(bkg),
+		},
+		{
+			name:     "ipc-creq-rep",
+			endpoint: "ipc://ipc-creq-rep",
+			req:      NewCReq(bkg),
+			rep:      zmq4.NewRep(bkg),
+		},
+		{
+			name:     "ipc-req-crep",
+			endpoint: "ipc://ipc-req-crep",
+			req:      zmq4.NewReq(bkg),
+			rep:      NewCRep(bkg),
+		},
+		{
+			name:     "ipc-creq-crep",
+			endpoint: "ipc://ipc-creq-crep",
+			req:      NewCReq(bkg),
+			rep:      NewCRep(bkg),
+		},
+	}
 )
 
 func init() {
 	pushpulls = append(pushpulls, cpushpulls...)
+	reqreps = append(reqreps, creqreps...)
 }
