@@ -61,6 +61,10 @@ func Open(rw io.ReadWriter, sec Security, sockType SocketType, sockID SocketIden
 		return nil, errors.Errorf("zmtp: invalid nil read-writer")
 	}
 
+	if sec == nil {
+		return nil, errors.Errorf("zmtp: invalid nil security")
+	}
+
 	conn := &Conn{
 		typ:    sockType,
 		id:     sockID,
