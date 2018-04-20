@@ -5,13 +5,15 @@
 package zmq4
 
 import (
+	"context"
+
 	"github.com/go-zeromq/zmq4/zmtp"
 )
 
 // NewPair returns a new PAIR ZeroMQ socket.
 // The returned socket value is initially unbound.
-func NewPair(opts ...Option) Socket {
-	return &pairSocket{newSocket(zmtp.Pair, opts...)}
+func NewPair(ctx context.Context, opts ...Option) Socket {
+	return &pairSocket{newSocket(ctx, zmtp.Pair, opts...)}
 }
 
 // pairSocket is a PAIR ZeroMQ socket.

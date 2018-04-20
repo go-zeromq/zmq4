@@ -5,7 +5,6 @@
 package zmq4
 
 import (
-	"context"
 	"time"
 
 	"github.com/go-zeromq/zmq4/zmtp"
@@ -15,17 +14,6 @@ import (
 // Option configures some aspect of a ZeroMQ socket.
 // (e.g. SocketIdentity, Security, ...)
 type Option func(s *socket)
-
-// WithContext setups a ZeroMQ socket with the given context.
-// If the context is nil, context.Background is used.
-func WithContext(ctx context.Context) func(s *socket) {
-	return func(s *socket) {
-		if ctx == nil {
-			ctx = context.Background()
-		}
-		s.ctx, s.cancel = context.WithCancel(ctx)
-	}
-}
 
 // WithID configures a ZeroMQ socket identity.
 func WithID(id zmtp.SocketIdentity) func(s *socket) {

@@ -5,13 +5,15 @@
 package zmq4
 
 import (
+	"context"
+
 	"github.com/go-zeromq/zmq4/zmtp"
 )
 
 // NewXSub returns a new XSUB ZeroMQ socket.
 // The returned socket value is initially unbound.
-func NewXSub(opts ...Option) Socket {
-	return &xsubSocket{newSocket(zmtp.XSub, opts...)}
+func NewXSub(ctx context.Context, opts ...Option) Socket {
+	return &xsubSocket{newSocket(ctx, zmtp.XSub, opts...)}
 }
 
 // xsubSocket is a XSUB ZeroMQ socket.

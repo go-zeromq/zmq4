@@ -5,13 +5,15 @@
 package zmq4
 
 import (
+	"context"
+
 	"github.com/go-zeromq/zmq4/zmtp"
 )
 
 // NewSub returns a new SUB ZeroMQ socket.
 // The returned socket value is initially unbound.
-func NewSub(opts ...Option) Socket {
-	return &subSocket{newSocket(zmtp.Sub, opts...)}
+func NewSub(ctx context.Context, opts ...Option) Socket {
+	return &subSocket{newSocket(ctx, zmtp.Sub, opts...)}
 }
 
 // subSocket is a SUB ZeroMQ socket.

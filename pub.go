@@ -5,13 +5,15 @@
 package zmq4
 
 import (
+	"context"
+
 	"github.com/go-zeromq/zmq4/zmtp"
 )
 
 // NewPub returns a new PUB ZeroMQ socket.
 // The returned socket value is initially unbound.
-func NewPub(opts ...Option) Socket {
-	return &pubSocket{newSocket(zmtp.Pub, opts...)}
+func NewPub(ctx context.Context, opts ...Option) Socket {
+	return &pubSocket{newSocket(ctx, zmtp.Pub, opts...)}
 }
 
 // pubSocket is a PUB ZeroMQ socket.

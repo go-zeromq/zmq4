@@ -20,19 +20,21 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+var bkg = context.Background()
+
 var (
 	pushpulls = []testCasePushPull{
 		{
 			name:     "tcp-push-pull",
 			endpoint: "tcp://127.0.0.1:55550",
-			push:     zmq4.NewPush(),
-			pull:     zmq4.NewPull(),
+			push:     zmq4.NewPush(bkg),
+			pull:     zmq4.NewPull(bkg),
 		},
 		{
 			name:     "ipc-push-pull",
 			endpoint: "ipc://ipc-push-pull",
-			push:     zmq4.NewPush(),
-			pull:     zmq4.NewPull(),
+			push:     zmq4.NewPush(bkg),
+			pull:     zmq4.NewPull(bkg),
 		},
 	}
 )

@@ -48,7 +48,11 @@ type socket struct {
 	dialer   net.Dialer
 }
 
-func newDefaultSocket(sockType zmtp.SocketType) *socket {
+func newDefaultSocket(ctx context.Context, sockType zmtp.SocketType) *socket {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	ctx, cancel := context.WithCancel(ctx)
 	return &socket{
 		once:   new(sync.Once),
 		ready:  make(chan struct{}),
@@ -56,19 +60,16 @@ func newDefaultSocket(sockType zmtp.SocketType) *socket {
 		retry:  defaultRetry,
 		sec:    null.Security(),
 		props:  make(map[string]interface{}),
-		ctx:    nil,
-		cancel: nil,
+		ctx:    ctx,
+		cancel: cancel,
 		dialer: net.Dialer{Timeout: defaultTimeout},
 	}
 }
 
-func newSocket(sockType zmtp.SocketType, opts ...Option) *socket {
-	sck := newDefaultSocket(sockType)
+func newSocket(ctx context.Context, sockType zmtp.SocketType, opts ...Option) *socket {
+	sck := newDefaultSocket(ctx, sockType)
 	for _, opt := range opts {
 		opt(sck)
-	}
-	if sck.ctx == nil {
-		sck.ctx, sck.cancel = context.WithCancel(context.Background())
 	}
 	return sck
 }

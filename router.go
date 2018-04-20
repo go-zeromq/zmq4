@@ -5,13 +5,15 @@
 package zmq4
 
 import (
+	"context"
+
 	"github.com/go-zeromq/zmq4/zmtp"
 )
 
 // NewRouter returns a new ROUTER ZeroMQ socket.
 // The returned socket value is initially unbound.
-func NewRouter(opts ...Option) Socket {
-	return &routerSocket{newSocket(zmtp.Router, opts...)}
+func NewRouter(ctx context.Context, opts ...Option) Socket {
+	return &routerSocket{newSocket(ctx, zmtp.Router, opts...)}
 }
 
 // routerSocket is a ROUTER ZeroMQ socket.

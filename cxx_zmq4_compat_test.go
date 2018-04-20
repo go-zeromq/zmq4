@@ -7,6 +7,7 @@
 package zmq4_test
 
 import (
+	"context"
 	"net"
 
 	"github.com/go-zeromq/zmq4"
@@ -14,47 +15,47 @@ import (
 	czmq4 "github.com/zeromq/goczmq"
 )
 
-func NewCPair() zmq4.Socket {
+func NewCPair(ctx context.Context) zmq4.Socket {
 	return &csocket{czmq4.NewSock(czmq4.Pair)}
 }
 
-func NewCPub() zmq4.Socket {
+func NewCPub(ctx context.Context) zmq4.Socket {
 	return &csocket{czmq4.NewSock(czmq4.Pub)}
 }
 
-func NewCSub() zmq4.Socket {
+func NewCSub(ctx context.Context) zmq4.Socket {
 	return &csocket{czmq4.NewSock(czmq4.Sub)}
 }
 
-func NewCReq() zmq4.Socket {
+func NewCReq(ctx context.Context) zmq4.Socket {
 	return &csocket{czmq4.NewSock(czmq4.Req)}
 }
 
-func NewCRep() zmq4.Socket {
+func NewCRep(ctx context.Context) zmq4.Socket {
 	return &csocket{czmq4.NewSock(czmq4.Rep)}
 }
 
-func NewCDealer() zmq4.Socket {
+func NewCDealer(ctx context.Context) zmq4.Socket {
 	return &csocket{czmq4.NewSock(czmq4.Dealer)}
 }
 
-func NewCRouter() zmq4.Socket {
+func NewCRouter(ctx context.Context) zmq4.Socket {
 	return &csocket{czmq4.NewSock(czmq4.Router)}
 }
 
-func NewCPull() zmq4.Socket {
+func NewCPull(ctx context.Context) zmq4.Socket {
 	return &csocket{czmq4.NewSock(czmq4.Pull)}
 }
 
-func NewCPush() zmq4.Socket {
+func NewCPush(ctx context.Context) zmq4.Socket {
 	return &csocket{czmq4.NewSock(czmq4.Push)}
 }
 
-func NewCXPub() zmq4.Socket {
+func NewCXPub(ctx context.Context) zmq4.Socket {
 	return &csocket{czmq4.NewSock(czmq4.XPub)}
 }
 
-func NewCXSub() zmq4.Socket {
+func NewCXSub(ctx context.Context) zmq4.Socket {
 	return &csocket{czmq4.NewSock(czmq4.XSub)}
 }
 

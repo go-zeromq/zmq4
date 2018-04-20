@@ -5,13 +5,15 @@
 package zmq4
 
 import (
+	"context"
+
 	"github.com/go-zeromq/zmq4/zmtp"
 )
 
 // NewRep returns a new REP ZeroMQ socket.
 // The returned socket value is initially unbound.
-func NewRep(opts ...Option) Socket {
-	return &repSocket{newSocket(zmtp.Rep, opts...)}
+func NewRep(ctx context.Context, opts ...Option) Socket {
+	return &repSocket{newSocket(ctx, zmtp.Rep, opts...)}
 }
 
 // repSocket is a REP ZeroMQ socket.

@@ -5,14 +5,16 @@
 package zmq4
 
 import (
+	"context"
+
 	"github.com/go-zeromq/zmq4/zmtp"
 	"github.com/pkg/errors"
 )
 
 // NewPull returns a new PULL ZeroMQ socket.
 // The returned socket value is initially unbound.
-func NewPull(opts ...Option) Socket {
-	return &pullSocket{newSocket(zmtp.Pull, opts...)}
+func NewPull(ctx context.Context, opts ...Option) Socket {
+	return &pullSocket{newSocket(ctx, zmtp.Pull, opts...)}
 }
 
 // pullSocket is a PULL ZeroMQ socket.

@@ -5,14 +5,16 @@
 package zmq4
 
 import (
+	"context"
+
 	"github.com/go-zeromq/zmq4/zmtp"
 	"github.com/pkg/errors"
 )
 
 // NewPush returns a new PUSH ZeroMQ socket.
 // The returned socket value is initially unbound.
-func NewPush(opts ...Option) Socket {
-	return &pushSocket{newSocket(zmtp.Push, opts...)}
+func NewPush(ctx context.Context, opts ...Option) Socket {
+	return &pushSocket{newSocket(ctx, zmtp.Push, opts...)}
 }
 
 // pushSocket is a PUSH ZeroMQ socket.
