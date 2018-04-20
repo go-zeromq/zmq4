@@ -14,19 +14,19 @@ var (
 	cpushpulls = []testCasePushPull{
 		{
 			name:     "tcp-cpush-pull",
-			endpoint: "tcp://127.0.0.1:55552",
+			endpoint: must(EndPoint("tcp")),
 			push:     NewCPush(bkg),
 			pull:     zmq4.NewPull(bkg),
 		},
 		{
 			name:     "tcp-push-cpull",
-			endpoint: "tcp://127.0.0.1:55553",
+			endpoint: must(EndPoint("tcp")),
 			push:     zmq4.NewPush(bkg),
 			pull:     NewCPull(bkg),
 		},
 		{
 			name:     "tcp-cpush-cpull",
-			endpoint: "tcp://127.0.0.1:55554",
+			endpoint: must(EndPoint("tcp")),
 			push:     NewCPush(bkg),
 			pull:     NewCPull(bkg),
 		},
