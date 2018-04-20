@@ -35,7 +35,7 @@ func NewMsgString(frame string) Msg {
 func NewMsgFromString(frames []string) Msg {
 	msg := Msg{Frames: make([][]byte, len(frames))}
 	for i, frame := range frames {
-		copy(msg.Frames[i], frame)
+		msg.Frames[i] = append(msg.Frames[i], []byte(frame)...)
 	}
 	return msg
 }
