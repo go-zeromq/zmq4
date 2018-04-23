@@ -155,12 +155,12 @@ func (c *Conn) sendMD(appMD map[string]string) error {
 }
 
 func (c *Conn) recvMD() (map[string]string, error) {
-	isCommand, msg, err := c.read()
+	msg, err := c.read()
 	if err != nil {
 		return nil, err
 	}
 
-	if !isCommand {
+	if !msg.isCmd() {
 		return nil, errBadFrame
 	}
 
@@ -228,12 +228,12 @@ func (c *Conn) SendMsg(msg Msg) error {
 
 // RecvMsg receives a ZMTP message from the wire.
 func (c *Conn) RecvMsg() (Msg, error) {
-	isCmd, msg, err := c.read()
+	msg, err := c.read()
 	if err != nil {
 		return msg, errors.WithStack(err)
 	}
 
-	if !isCmd {
+	if !msg.isCmd() {
 		return msg, nil
 	}
 
@@ -308,7 +308,7 @@ func (c *Conn) send(isCommand bool, body []byte, flag byte) error {
 }
 
 // read returns the isCommand flag, the body of the message, and optionally an error
-func (c *Conn) read() (bool, Msg, error) {
+func (c *Conn) read() (Msg, error) {
 	var (
 		header  [2]byte
 		longHdr [8]byte
@@ -323,7 +323,7 @@ func (c *Conn) read() (bool, Msg, error) {
 		// Read out the header
 		_, err := io.ReadFull(c.rw, header[:])
 		if err != nil {
-			return false, msg, err
+			return msg, err
 		}
 
 		fl := flag(header[0])
@@ -341,20 +341,20 @@ func (c *Conn) read() (bool, Msg, error) {
 
 			_, err = io.ReadFull(c.rw, longHdr[1:])
 			if err != nil {
-				return false, msg, err
+				return msg, err
 			}
 
 			size = binary.BigEndian.Uint64(longHdr[:])
 		}
 
 		if size > uint64(maxInt64) {
-			return false, msg, errOverflow
+			return msg, errOverflow
 		}
 
 		body := make([]byte, size)
 		_, err = io.ReadFull(c.rw, body)
 		if err != nil {
-			return false, msg, err
+			return msg, err
 		}
 
 		// fast path for NULL security: we bypass the bytes.Buffer allocation.
@@ -365,9 +365,12 @@ func (c *Conn) read() (bool, Msg, error) {
 
 		buf := new(bytes.Buffer)
 		if _, err := c.sec.Decrypt(buf, body); err != nil {
-			return false, msg, err
+			return msg, err
 		}
 		msg.Frames = append(msg.Frames, buf.Bytes())
 	}
-	return isCmd, msg, nil
+	if isCmd {
+		msg.Type = CmdMsg
+	}
+	return msg, nil
 }
