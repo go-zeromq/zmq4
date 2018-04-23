@@ -22,6 +22,7 @@ type pubSocket struct {
 // Send puts the message on the outbound send queue.
 // Send blocks until the message can be queued or the send deadline expires.
 func (pub *pubSocket) Send(msg Msg) error {
+	pub.socket.isReady()
 	pub.socket.mu.RLock()
 	var err error
 	// FIXME(sbinet): only send to correct subscribers...

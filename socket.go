@@ -27,8 +27,6 @@ var (
 
 // socket implements the ZeroMQ socket interface
 type socket struct {
-	ready chan struct{} // ready when at least 1 connection is live
-	once  *sync.Once
 	ep    string // socket end-point
 	typ   SocketType
 	id    SocketIdentity
@@ -38,6 +36,7 @@ type socket struct {
 	mu    sync.RWMutex
 	ids   map[string]*Conn // ZMTP connection IDs
 	conns []*Conn          // ZMTP connections
+	ready chan struct{}    // ready when at least 1 connection is live
 
 	props map[string]interface{} // properties of this socket
 
@@ -53,11 +52,10 @@ func newDefaultSocket(ctx context.Context, sockType SocketType) *socket {
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	return &socket{
-		once:   new(sync.Once),
-		ready:  make(chan struct{}),
 		typ:    sockType,
 		retry:  defaultRetry,
 		sec:    nullSecurity{},
+		ready:  make(chan struct{}),
 		ids:    make(map[string]*Conn),
 		conns:  nil,
 		props:  make(map[string]interface{}),
@@ -170,11 +168,6 @@ func (sck *socket) accept() {
 			}
 
 			sck.addConn(zconn)
-			go func() {
-				select {
-				case sck.ready <- struct{}{}:
-				}
-			}()
 		}
 	}
 }
@@ -226,12 +219,6 @@ connect:
 	}
 
 	sck.addConn(zconn)
-
-	go func() {
-		select {
-		case sck.ready <- struct{}{}:
-		}
-	}()
 	return nil
 }
 
@@ -243,6 +230,14 @@ func (sck *socket) addConn(c *Conn) {
 		uuid = newUUID()
 	}
 	sck.ids[uuid] = c
+	select {
+	case _, ok := <-sck.ready:
+		if ok {
+			close(sck.ready)
+		}
+	default:
+		close(sck.ready)
+	}
 	sck.mu.Unlock()
 }
 
@@ -268,10 +263,7 @@ func (sck *socket) SetOption(name string, value interface{}) error {
 }
 
 func (sck *socket) isReady() {
-	sck.once.Do(func() {
-		<-sck.ready
-		sck.ready = nil
-	})
+	<-sck.ready
 }
 
 var (
