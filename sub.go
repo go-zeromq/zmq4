@@ -26,13 +26,32 @@ func (sub *subSocket) SetOption(name string, value interface{}) error {
 		return err
 	}
 
+	var (
+		topic []byte
+	)
+
 	switch name {
 	case OptionSubscribe:
-		err = sub.Send(NewMsgFrom([]byte{1}, []byte(value.(string))))
+		topic = []byte{1}
+		topic = append(topic, value.(string)...)
+
 	case OptionUnsubscribe:
-		err = sub.Send(NewMsgFrom([]byte{0}, []byte(value.(string))))
+		topic = []byte{0}
+		topic = append(topic, value.(string)...)
+
+	default:
+		return ErrBadProperty
 	}
 
+	sub.socket.mu.RLock()
+	msg := NewMsg(topic)
+	for _, conn := range sub.conns {
+		e := conn.SendMsg(msg)
+		if e != nil && err == nil {
+			err = e
+		}
+	}
+	sub.socket.mu.RUnlock()
 	return err
 }
 

@@ -106,11 +106,12 @@ func (cmd *command) marshalZMTP() ([]byte, error) {
 // ZMTP commands as per:
 //  https://rfc.zeromq.org/spec:23/ZMTP/#commands
 const (
-	cmdCancel    = "CANCEL"
-	cmdError     = "ERROR"
-	cmdHello     = "HELLO"
-	cmdPing      = "PING"
-	cmdPong      = "PONG"
-	cmdReady     = "READY"
-	cmdSubscribe = "SUBSCRIBE"
+	cmdCancel      = "CANCEL"
+	cmdError       = "ERROR"
+	cmdHello       = "HELLO"
+	cmdPing        = "PING"
+	cmdPong        = "PONG"
+	cmdReady       = "READY"
+	cmdSubscribe   = "SUBSCRIBE"
+	cmdUnsubscribe = "UNSUBSCRIBE"
 )
