@@ -21,9 +21,9 @@ type Conn struct {
 	rw     io.ReadWriteCloser
 	sec    Security
 	server bool
-	Peer   struct {
-		Server bool
-		MD     map[string]string
+	peer   struct {
+		server bool
+		meta   map[string]string
 	}
 }
 
@@ -77,7 +77,7 @@ func (conn *Conn) init(sec Security, md map[string]string) error {
 		return errors.Wrapf(err, "zmq4: could not send metadata to peer")
 	}
 
-	conn.Peer.MD, err = conn.recvMD()
+	conn.peer.meta, err = conn.recvMD()
 	if err != nil {
 		return errors.Wrapf(err, "zmq4: could not recv metadata from peer")
 	}
@@ -117,7 +117,7 @@ func (conn *Conn) greet(server bool) error {
 		return errBadSec
 	}
 
-	conn.Peer.Server, err = asBool(recv.Server)
+	conn.peer.server, err = asBool(recv.Server)
 	if err != nil {
 		return errors.Wrapf(err, "zmq4: could not get peer server flag")
 	}

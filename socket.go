@@ -238,7 +238,7 @@ connect:
 func (sck *socket) addConn(c *Conn) {
 	sck.mu.Lock()
 	sck.conns = append(sck.conns, c)
-	uuid, ok := c.Peer.MD["Identity"]
+	uuid, ok := c.peer.meta[sysSockID]
 	if !ok {
 		uuid = newUUID()
 	}
