@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/go-zeromq/zmq4"
-	"github.com/go-zeromq/zmq4/zmtp"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
@@ -49,9 +48,9 @@ type testCasePubSub struct {
 func TestPubSub(t *testing.T) {
 	var (
 		topic = "MSG"
-		msg1  = zmtp.NewMsgString("MSG 1")
-		msg2  = zmtp.NewMsgString("MSG 2")
-		msgs  = []zmtp.Msg{msg1, msg2}
+		msg1  = zmq4.NewMsgString("MSG 1")
+		msg2  = zmq4.NewMsgString("MSG 2")
+		msgs  = []zmq4.Msg{msg1, msg2}
 	)
 
 	for _, tc := range pubsubs {

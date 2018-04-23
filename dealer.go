@@ -6,14 +6,12 @@ package zmq4
 
 import (
 	"context"
-
-	"github.com/go-zeromq/zmq4/zmtp"
 )
 
 // NewDealer returns a new DEALER ZeroMQ socket.
 // The returned socket value is initially unbound.
 func NewDealer(ctx context.Context, opts ...Option) Socket {
-	return &dealerSocket{newSocket(ctx, zmtp.Dealer, opts...)}
+	return &dealerSocket{newSocket(ctx, Dealer, opts...)}
 }
 
 // dealerSocket is a DEALER ZeroMQ socket.

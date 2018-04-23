@@ -4,58 +4,56 @@
 
 // +build czmq4
 
-package zmq4_test
+package zmq4
 
 import (
 	"context"
 	"net"
 
-	"github.com/go-zeromq/zmq4"
-	"github.com/go-zeromq/zmq4/zmtp"
 	czmq4 "github.com/zeromq/goczmq"
 )
 
-func NewCPair(ctx context.Context) zmq4.Socket {
+func NewCPair(ctx context.Context) Socket {
 	return &csocket{czmq4.NewSock(czmq4.Pair)}
 }
 
-func NewCPub(ctx context.Context) zmq4.Socket {
+func NewCPub(ctx context.Context) Socket {
 	return &csocket{czmq4.NewSock(czmq4.Pub)}
 }
 
-func NewCSub(ctx context.Context) zmq4.Socket {
+func NewCSub(ctx context.Context) Socket {
 	return &csocket{czmq4.NewSock(czmq4.Sub)}
 }
 
-func NewCReq(ctx context.Context) zmq4.Socket {
+func NewCReq(ctx context.Context) Socket {
 	return &csocket{czmq4.NewSock(czmq4.Req)}
 }
 
-func NewCRep(ctx context.Context) zmq4.Socket {
+func NewCRep(ctx context.Context) Socket {
 	return &csocket{czmq4.NewSock(czmq4.Rep)}
 }
 
-func NewCDealer(ctx context.Context) zmq4.Socket {
+func NewCDealer(ctx context.Context) Socket {
 	return &csocket{czmq4.NewSock(czmq4.Dealer)}
 }
 
-func NewCRouter(ctx context.Context) zmq4.Socket {
+func NewCRouter(ctx context.Context) Socket {
 	return &csocket{czmq4.NewSock(czmq4.Router)}
 }
 
-func NewCPull(ctx context.Context) zmq4.Socket {
+func NewCPull(ctx context.Context) Socket {
 	return &csocket{czmq4.NewSock(czmq4.Pull)}
 }
 
-func NewCPush(ctx context.Context) zmq4.Socket {
+func NewCPush(ctx context.Context) Socket {
 	return &csocket{czmq4.NewSock(czmq4.Push)}
 }
 
-func NewCXPub(ctx context.Context) zmq4.Socket {
+func NewCXPub(ctx context.Context) Socket {
 	return &csocket{czmq4.NewSock(czmq4.XPub)}
 }
 
-func NewCXSub(ctx context.Context) zmq4.Socket {
+func NewCXSub(ctx context.Context) Socket {
 	return &csocket{czmq4.NewSock(czmq4.XSub)}
 }
 
@@ -70,14 +68,14 @@ func (sck *csocket) Close() error {
 
 // Send puts the message on the outbound send queue.
 // Send blocks until the message can be queued or the send deadline expires.
-func (sck *csocket) Send(msg zmtp.Msg) error {
+func (sck *csocket) Send(msg Msg) error {
 	return sck.sock.SendMessage(msg.Frames)
 }
 
 // Recv receives a complete message.
-func (sck *csocket) Recv() (zmtp.Msg, error) {
+func (sck *csocket) Recv() (Msg, error) {
 	frames, err := sck.sock.RecvMessage()
-	return zmtp.Msg{Frames: frames}, err
+	return Msg{Frames: frames}, err
 }
 
 // Listen connects a local endpoint to the Socket.
@@ -92,30 +90,30 @@ func (sck *csocket) Dial(addr string) error {
 }
 
 // Type returns the type of this Socket (PUB, SUB, ...)
-func (sck *csocket) Type() zmtp.SocketType {
+func (sck *csocket) Type() SocketType {
 	switch sck.sock.GetType() {
 	case czmq4.Pair:
-		return zmtp.Pair
+		return Pair
 	case czmq4.Pub:
-		return zmtp.Pub
+		return Pub
 	case czmq4.Sub:
-		return zmtp.Sub
+		return Sub
 	case czmq4.Req:
-		return zmtp.Req
+		return Req
 	case czmq4.Rep:
-		return zmtp.Rep
+		return Rep
 	case czmq4.Dealer:
-		return zmtp.Dealer
+		return Dealer
 	case czmq4.Router:
-		return zmtp.Router
+		return Router
 	case czmq4.Pull:
-		return zmtp.Pull
+		return Pull
 	case czmq4.Push:
-		return zmtp.Push
+		return Push
 	case czmq4.XPub:
-		return zmtp.XPub
+		return XPub
 	case czmq4.XSub:
-		return zmtp.XSub
+		return XSub
 	}
 	panic("invalid C-socket type")
 }
@@ -133,11 +131,11 @@ func (sck *csocket) GetOption(name string) (interface{}, error) {
 // SetOption is used to set an option for a socket.
 func (sck *csocket) SetOption(name string, value interface{}) error {
 	switch name {
-	case zmq4.OptionSubscribe:
+	case OptionSubscribe:
 		topic := value.(string)
 		sck.sock.SetOption(czmq4.SockSetSubscribe(topic))
 		return nil
-	case zmq4.OptionUnsubscribe:
+	case OptionUnsubscribe:
 		topic := value.(string)
 		sck.sock.SetUnsubscribe(topic)
 		return nil
@@ -148,5 +146,5 @@ func (sck *csocket) SetOption(name string, value interface{}) error {
 }
 
 var (
-	_ zmq4.Socket = (*csocket)(nil)
+	_ Socket = (*csocket)(nil)
 )

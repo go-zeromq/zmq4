@@ -6,14 +6,12 @@ package zmq4
 
 import (
 	"context"
-
-	"github.com/go-zeromq/zmq4/zmtp"
 )
 
 // NewSub returns a new SUB ZeroMQ socket.
 // The returned socket value is initially unbound.
 func NewSub(ctx context.Context, opts ...Option) Socket {
-	return &subSocket{newSocket(ctx, zmtp.Sub, opts...)}
+	return &subSocket{newSocket(ctx, Sub, opts...)}
 }
 
 // subSocket is a SUB ZeroMQ socket.
@@ -30,9 +28,9 @@ func (sub *subSocket) SetOption(name string, value interface{}) error {
 
 	switch name {
 	case OptionSubscribe:
-		err = sub.Send(zmtp.NewMsgFrom([]byte{1}, []byte(value.(string))))
+		err = sub.Send(NewMsgFrom([]byte{1}, []byte(value.(string))))
 	case OptionUnsubscribe:
-		err = sub.Send(zmtp.NewMsgFrom([]byte{0}, []byte(value.(string))))
+		err = sub.Send(NewMsgFrom([]byte{0}, []byte(value.(string))))
 	}
 
 	return err

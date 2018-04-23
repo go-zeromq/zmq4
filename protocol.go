@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package zmtp
+package zmq4
 
 import (
 	"bytes"
@@ -14,16 +14,15 @@ import (
 )
 
 var (
-	errGreeting      = errors.New("zmtp: invalid greeting received")
-	errSecMech       = errors.New("zmtp: invalid security mechanism")
-	errBadSec        = errors.New("zmtp: invalid or unsupported security mechanism")
-	errBadCmd        = errors.New("zmtp: invalid command name")
-	errBadFrame      = errors.New("zmtp: invalid frame")
-	errOverflow      = errors.New("zmtp: overflow")
-	errEmptyAppMDKey = errors.New("zmtp: empty application metadata key")
-	errDupAppMDKey   = errors.New("zmtp: duplicate application metadata key")
-	errBoolCnv       = errors.New("zmtp: invalid byte to bool conversion")
-	errMoreCmd       = errors.New("zmtp: MORE not supported") // FIXME(sbinet)
+	errGreeting      = errors.New("zmq4: invalid greeting received")
+	errSecMech       = errors.New("zmq4: invalid security mechanism")
+	errBadSec        = errors.New("zmq4: invalid or unsupported security mechanism")
+	errBadCmd        = errors.New("zmq4: invalid command name")
+	errBadFrame      = errors.New("zmq4: invalid frame")
+	errOverflow      = errors.New("zmq4: overflow")
+	errEmptyAppMDKey = errors.New("zmq4: empty application metadata key")
+	errDupAppMDKey   = errors.New("zmq4: duplicate application metadata key")
+	errBoolCnv       = errors.New("zmq4: invalid byte to bool conversion")
 )
 
 const (
@@ -150,51 +149,6 @@ func (g *greeting) marshal() []byte {
 	// padding 2 ignored
 	return buf[:]
 }
-
-// command is a ZMTP command as per:
-//  https://rfc.zeromq.org/spec:23/ZMTP/#formal-grammar
-type command struct {
-	Name string
-	Body []byte
-}
-
-func (cmd *command) unmarshalZMTP(data []byte) error {
-	if len(data) == 0 {
-		return io.ErrUnexpectedEOF
-	}
-	n := int(data[0])
-	if n > len(data)-1 {
-		return errBadCmd
-	}
-	cmd.Name = string(data[1 : n+1])
-	cmd.Body = data[n+1:]
-	return nil
-}
-
-func (cmd *command) marshalZMTP() ([]byte, error) {
-	n := len(cmd.Name)
-	if n > 255 {
-		return nil, errBadCmd
-	}
-
-	buf := make([]byte, 0, 1+n+len(cmd.Body))
-	buf = append(buf, byte(n))
-	buf = append(buf, []byte(cmd.Name)...)
-	buf = append(buf, cmd.Body...)
-	return buf, nil
-}
-
-// ZMTP commands as per:
-//  https://rfc.zeromq.org/spec:23/ZMTP/#commands
-const (
-	cmdCancel    = "CANCEL"
-	cmdError     = "ERROR"
-	cmdHello     = "HELLO"
-	cmdPing      = "PING"
-	cmdPong      = "PONG"
-	cmdReady     = "READY"
-	cmdSubscribe = "SUBSCRIBE"
-)
 
 const (
 	sysSockType = "Socket-Type"

@@ -7,10 +7,6 @@
 // For more informations, see http://zeromq.org.
 package zmq4
 
-import (
-	"github.com/go-zeromq/zmq4/zmtp"
-)
-
 // Socket represents a ZeroMQ socket.
 type Socket interface {
 	// Close closes the open Socket
@@ -18,10 +14,10 @@ type Socket interface {
 
 	// Send puts the message on the outbound send queue.
 	// Send blocks until the message can be queued or the send deadline expires.
-	Send(msg zmtp.Msg) error
+	Send(msg Msg) error
 
 	// Recv receives a complete message.
-	Recv() (zmtp.Msg, error)
+	Recv() (Msg, error)
 
 	// Listen connects a local endpoint to the Socket.
 	Listen(ep string) error
@@ -30,7 +26,7 @@ type Socket interface {
 	Dial(ep string) error
 
 	// Type returns the type of this Socket (PUB, SUB, ...)
-	Type() zmtp.SocketType
+	Type() SocketType
 
 	// GetOption is used to retrieve an option for a socket.
 	GetOption(name string) (interface{}, error)

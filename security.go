@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package zmtp
+package zmq4
 
 import (
 	"io"
@@ -34,12 +34,40 @@ const (
 	// that does no authentication nor encryption.
 	NullSecurity SecurityType = "NULL"
 
-	// PlainSecurityType is a security mechanism that uses
+	// PlainSecurity is a security mechanism that uses
 	// plaintext passwords. It is a reference implementation and
 	// should not be used to anything important.
-	PlainSecurityType SecurityType = "PLAIN"
+	PlainSecurity SecurityType = "PLAIN"
 
-	// CurveSecurityType uses ZMQ_CURVE for authentication
+	// CurveSecurity uses ZMQ_CURVE for authentication
 	// and encryption.
-	CurveSecurityType SecurityType = "CURVE"
+	CurveSecurity SecurityType = "CURVE"
 )
+
+// security implements the NULL security mechanism.
+type nullSecurity struct{}
+
+// Type returns the security mechanism type.
+func (nullSecurity) Type() SecurityType {
+	return NullSecurity
+}
+
+// Handshake implements the ZMTP security handshake according to
+// this security mechanism.
+// see:
+//  https://rfc.zeromq.org/spec:23/ZMTP/
+//  https://rfc.zeromq.org/spec:24/ZMTP-PLAIN/
+//  https://rfc.zeromq.org/spec:25/ZMTP-CURVE/
+func (nullSecurity) Handshake() error {
+	return nil
+}
+
+// Encrypt writes the encrypted form of data to w.
+func (nullSecurity) Encrypt(w io.Writer, data []byte) (int, error) {
+	return w.Write(data)
+}
+
+// Decrypt writes the decrypted form of data to w.
+func (nullSecurity) Decrypt(w io.Writer, data []byte) (int, error) {
+	return w.Write(data)
+}

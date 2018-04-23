@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/go-zeromq/zmq4"
-	"github.com/go-zeromq/zmq4/zmtp"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
@@ -45,12 +44,12 @@ type testCaseReqRep struct {
 
 func TestReqRep(t *testing.T) {
 	var (
-		reqName = zmtp.NewMsgString("NAME")
-		reqLang = zmtp.NewMsgString("LANG")
-		reqQuit = zmtp.NewMsgString("QUIT")
-		repName = zmtp.NewMsgString("zmq4")
-		repLang = zmtp.NewMsgString("Go")
-		repQuit = zmtp.NewMsgString("bye")
+		reqName = zmq4.NewMsgString("NAME")
+		reqLang = zmq4.NewMsgString("LANG")
+		reqQuit = zmq4.NewMsgString("QUIT")
+		repName = zmq4.NewMsgString("zmq4")
+		repLang = zmq4.NewMsgString("Go")
+		repQuit = zmq4.NewMsgString("bye")
 	)
 
 	for _, tc := range reqreps {
@@ -86,7 +85,7 @@ func TestReqRep(t *testing.T) {
 					if err != nil {
 						return errors.Wrapf(err, "could not recv REQ message")
 					}
-					var rep zmtp.Msg
+					var rep zmq4.Msg
 					switch string(msg.Frames[0]) {
 					case "NAME":
 						rep = repName
@@ -113,8 +112,8 @@ func TestReqRep(t *testing.T) {
 				}
 
 				for _, msg := range []struct {
-					req zmtp.Msg
-					rep zmtp.Msg
+					req zmq4.Msg
+					rep zmq4.Msg
 				}{
 					{reqName, repName},
 					{reqLang, repLang},

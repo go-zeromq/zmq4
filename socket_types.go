@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package zmtp
+package zmq4
 
 // SocketType is a ZeroMQ socket type.
 type SocketType string

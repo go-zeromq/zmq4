@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/go-zeromq/zmq4"
-	"github.com/go-zeromq/zmq4/zmtp"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
@@ -45,8 +44,8 @@ type testCasePushPull struct {
 
 func TestPushPull(t *testing.T) {
 	var (
-		hello = zmtp.NewMsg([]byte("HELLO WORLD"))
-		bye   = zmtp.NewMsgFrom([]byte("GOOD"), []byte("BYE"))
+		hello = zmq4.NewMsg([]byte("HELLO WORLD"))
+		bye   = zmq4.NewMsgFrom([]byte("GOOD"), []byte("BYE"))
 	)
 
 	for _, tc := range pushpulls {

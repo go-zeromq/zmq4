@@ -6,17 +6,10 @@ package zmq4
 
 import (
 	"context"
-	"crypto/rand"
-	"fmt"
-	"io"
-	"log"
 	"net"
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/go-zeromq/zmq4/zmtp"
-	"github.com/go-zeromq/zmq4/zmtp/security/null"
 	"github.com/pkg/errors"
 )
 
@@ -37,14 +30,14 @@ type socket struct {
 	ready chan struct{} // ready when at least 1 connection is live
 	once  *sync.Once
 	ep    string // socket end-point
-	typ   zmtp.SocketType
-	id    zmtp.SocketIdentity
+	typ   SocketType
+	id    SocketIdentity
 	retry time.Duration
-	sec   zmtp.Security
+	sec   Security
 
 	mu    sync.RWMutex
-	ids   map[string]*zmtp.Conn // ZMTP connection IDs
-	conns []*zmtp.Conn          // ZMTP connections
+	ids   map[string]*Conn // ZMTP connection IDs
+	conns []*Conn          // ZMTP connections
 
 	props map[string]interface{} // properties of this socket
 
@@ -54,7 +47,7 @@ type socket struct {
 	dialer   net.Dialer
 }
 
-func newDefaultSocket(ctx context.Context, sockType zmtp.SocketType) *socket {
+func newDefaultSocket(ctx context.Context, sockType SocketType) *socket {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -64,8 +57,8 @@ func newDefaultSocket(ctx context.Context, sockType zmtp.SocketType) *socket {
 		ready:  make(chan struct{}),
 		typ:    sockType,
 		retry:  defaultRetry,
-		sec:    null.Security(),
-		ids:    make(map[string]*zmtp.Conn),
+		sec:    nullSecurity{},
+		ids:    make(map[string]*Conn),
 		conns:  nil,
 		props:  make(map[string]interface{}),
 		ctx:    ctx,
@@ -74,7 +67,7 @@ func newDefaultSocket(ctx context.Context, sockType zmtp.SocketType) *socket {
 	}
 }
 
-func newSocket(ctx context.Context, sockType zmtp.SocketType, opts ...Option) *socket {
+func newSocket(ctx context.Context, sockType SocketType, opts ...Option) *socket {
 	sck := newDefaultSocket(ctx, sockType)
 	for _, opt := range opts {
 		opt(sck)
@@ -93,18 +86,20 @@ func (sck *socket) Close() error {
 		return errInvalidSocket
 	}
 	var err error
+	sck.mu.RLock()
 	for _, conn := range sck.conns {
 		e := conn.Close()
 		if e != nil && err == nil {
 			err = e
 		}
 	}
+	sck.mu.RUnlock()
 	return err
 }
 
 // Send puts the message on the outbound send queue.
 // Send blocks until the message can be queued or the send deadline expires.
-func (sck *socket) Send(msg zmtp.Msg) error {
+func (sck *socket) Send(msg Msg) error {
 	sck.isReady()
 	sck.mu.RLock()
 	err := sck.conns[0].SendMsg(msg)
@@ -113,7 +108,7 @@ func (sck *socket) Send(msg zmtp.Msg) error {
 }
 
 // Recv receives a complete message.
-func (sck *socket) Recv() (zmtp.Msg, error) {
+func (sck *socket) Recv() (Msg, error) {
 	sck.isReady()
 	sck.mu.RLock()
 	msg, err := sck.conns[0].RecvMsg()
@@ -168,7 +163,7 @@ func (sck *socket) accept() {
 				continue
 			}
 
-			zconn, err := zmtp.Open(conn, sck.sec, sck.typ, sck.id, true)
+			zconn, err := Open(conn, sck.sec, sck.typ, sck.id, true)
 			if err != nil {
 				panic(err)
 				//		return errors.Wrapf(err, "could not open a ZMTP connection")
@@ -222,7 +217,7 @@ connect:
 		return errors.Wrapf(err, "got a nil dial-conn to %q", endpoint)
 	}
 
-	zconn, err := zmtp.Open(conn, sck.sec, sck.typ, sck.id, false)
+	zconn, err := Open(conn, sck.sec, sck.typ, sck.id, false)
 	if err != nil {
 		return errors.Wrapf(err, "could not open a ZMTP connection")
 	}
@@ -240,7 +235,7 @@ connect:
 	return nil
 }
 
-func (sck *socket) addConn(c *zmtp.Conn) {
+func (sck *socket) addConn(c *Conn) {
 	sck.mu.Lock()
 	sck.conns = append(sck.conns, c)
 	uuid, ok := c.Peer.MD["Identity"]
@@ -252,7 +247,7 @@ func (sck *socket) addConn(c *zmtp.Conn) {
 }
 
 // Type returns the type of this Socket (PUB, SUB, ...)
-func (sck *socket) Type() zmtp.SocketType {
+func (sck *socket) Type() SocketType {
 	return sck.typ
 }
 
@@ -282,55 +277,3 @@ func (sck *socket) isReady() {
 var (
 	_ Socket = (*socket)(nil)
 )
-
-// splitAddr returns the triplet (network, addr, error)
-func splitAddr(v string) (network, addr string, err error) {
-	ep := strings.Split(v, "://")
-	if len(ep) != 2 {
-		err = errInvalidAddress
-		return network, addr, err
-	}
-	var (
-		host string
-		port string
-	)
-	network = ep[0]
-	switch network {
-	case "tcp", "udp":
-		host, port, err = net.SplitHostPort(ep[1])
-		if err != nil {
-			return network, addr, err
-		}
-		switch port {
-		case "0", "*", "":
-			port = "0"
-		}
-		switch host {
-		case "", "*":
-			host = "0.0.0.0"
-		}
-		addr = host + ":" + port
-		return network, addr, err
-
-	case "ipc":
-		host = ep[1]
-		port = ""
-		return network, host, nil
-	case "inproc":
-		err = fmt.Errorf("zmq4: protocol %q not implemented", network)
-	default:
-		err = fmt.Errorf("zmq4: unknown protocol %q", network)
-	}
-
-	return network, addr, err
-}
-
-func newUUID() string {
-	var uuid [16]byte
-	if _, err := io.ReadFull(rand.Reader, uuid[:]); err != nil {
-		log.Fatalf("cannot generate random data for UUID: %v", err)
-	}
-	uuid[8] = uuid[8]&^0xc0 | 0x80
-	uuid[6] = uuid[6]&^0xf0 | 0x40
-	return fmt.Sprintf("%x-%x-%x-%x-%x", uuid[:4], uuid[4:6], uuid[6:8], uuid[8:10], uuid[10:])
-}

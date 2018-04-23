@@ -6,9 +6,6 @@ package zmq4
 
 import (
 	"time"
-
-	"github.com/go-zeromq/zmq4/zmtp"
-	"github.com/go-zeromq/zmq4/zmtp/security/null"
 )
 
 // Option configures some aspect of a ZeroMQ socket.
@@ -16,7 +13,7 @@ import (
 type Option func(s *socket)
 
 // WithID configures a ZeroMQ socket identity.
-func WithID(id zmtp.SocketIdentity) Option {
+func WithID(id SocketIdentity) Option {
 	return func(s *socket) {
 		s.id = id
 	}
@@ -24,11 +21,8 @@ func WithID(id zmtp.SocketIdentity) Option {
 
 // WithSecurity configures a ZeroMQ socket to use the given security mechanism.
 // If the security mechanims is nil, the NULL mechanism is used.
-func WithSecurity(sec zmtp.Security) Option {
+func WithSecurity(sec Security) Option {
 	return func(s *socket) {
-		if sec == nil {
-			sec = null.Security()
-		}
 		s.sec = sec
 	}
 }

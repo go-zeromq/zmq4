@@ -2,66 +2,16 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package zmtp implements the ZeroMQ Message Transport Protocol as defined
-// in https://rfc.zeromq.org/spec:23/ZMTP/.
-package zmtp
+package zmq4
 
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"strings"
 
 	"github.com/pkg/errors"
 )
-
-// Msg is a ZMTP message, possibly composed of multiple frames.
-type Msg struct {
-	Frames [][]byte
-}
-
-func NewMsg(frame []byte) Msg {
-	return Msg{Frames: [][]byte{frame}}
-}
-
-func NewMsgFrom(frames ...[]byte) Msg {
-	return Msg{Frames: frames}
-}
-
-func NewMsgString(frame string) Msg {
-	return NewMsg([]byte(frame))
-}
-
-func NewMsgFromString(frames []string) Msg {
-	msg := Msg{Frames: make([][]byte, len(frames))}
-	for i, frame := range frames {
-		msg.Frames[i] = append(msg.Frames[i], []byte(frame)...)
-	}
-	return msg
-}
-
-func (msg Msg) String() string {
-	buf := new(bytes.Buffer)
-	buf.WriteString("Msg{Frames:{")
-	for i, frame := range msg.Frames {
-		if i > 0 {
-			buf.WriteString(", ")
-		}
-		fmt.Fprintf(buf, "%q", frame)
-	}
-	buf.WriteString("}}")
-	return buf.String()
-}
-
-func (msg Msg) Clone() Msg {
-	o := Msg{Frames: make([][]byte, len(msg.Frames))}
-	for i, frame := range msg.Frames {
-		o.Frames[i] = make([]byte, len(frame))
-		copy(o.Frames[i], frame)
-	}
-	return o
-}
 
 // Conn implements the ZeroMQ Message Transport Protocol as defined
 // in https://rfc.zeromq.org/spec:23/ZMTP/.
@@ -85,11 +35,11 @@ func (c *Conn) Close() error {
 // Open performs a complete ZMTP handshake.
 func Open(rw io.ReadWriteCloser, sec Security, sockType SocketType, sockID SocketIdentity, server bool) (*Conn, error) {
 	if rw == nil {
-		return nil, errors.Errorf("zmtp: invalid nil read-writer")
+		return nil, errors.Errorf("zmq4: invalid nil read-writer")
 	}
 
 	if sec == nil {
-		return nil, errors.Errorf("zmtp: invalid nil security")
+		return nil, errors.Errorf("zmq4: invalid nil security")
 	}
 
 	conn := &Conn{
@@ -114,22 +64,22 @@ func (conn *Conn) init(sec Security, md map[string]string) error {
 
 	err = conn.greet(conn.server)
 	if err != nil {
-		return errors.Wrapf(err, "zmtp: could not exchange greetings")
+		return errors.Wrapf(err, "zmq4: could not exchange greetings")
 	}
 
 	err = conn.sec.Handshake()
 	if err != nil {
-		return errors.Wrapf(err, "zmtp: could not perform security handshake")
+		return errors.Wrapf(err, "zmq4: could not perform security handshake")
 	}
 
 	err = conn.sendMD(md)
 	if err != nil {
-		return errors.Wrapf(err, "zmtp: could not send metadata to peer")
+		return errors.Wrapf(err, "zmq4: could not send metadata to peer")
 	}
 
 	conn.Peer.MD, err = conn.recvMD()
 	if err != nil {
-		return errors.Wrapf(err, "zmtp: could not recv metadata from peer")
+		return errors.Wrapf(err, "zmq4: could not recv metadata from peer")
 	}
 
 	// FIXME(sbinet): if security mechanism does not define a client/server
@@ -153,13 +103,13 @@ func (conn *Conn) greet(server bool) error {
 
 	err = send.write(conn.rw)
 	if err != nil {
-		return errors.Wrapf(err, "zmtp: could not send greeting")
+		return errors.Wrapf(err, "zmq4: could not send greeting")
 	}
 
 	var recv greeting
 	err = recv.read(conn.rw)
 	if err != nil {
-		return errors.Wrapf(err, "zmtp: could not recv greeting")
+		return errors.Wrapf(err, "zmq4: could not recv greeting")
 	}
 
 	peerKind := asString(recv.Mechanism[:])
@@ -169,7 +119,7 @@ func (conn *Conn) greet(server bool) error {
 
 	conn.Peer.Server, err = asBool(recv.Server)
 	if err != nil {
-		return errors.Wrapf(err, "zmtp: could not get peer server flag")
+		return errors.Wrapf(err, "zmq4: could not get peer server flag")
 	}
 
 	return nil
@@ -245,7 +195,7 @@ func (c *Conn) recvMD() (map[string]string, error) {
 
 	peer := SocketType(sysMetadata[sysSockType])
 	if !peer.IsCompatible(c.typ) {
-		return nil, errors.Errorf("zmtp: peer=%q not compatible with %q", peer, c.typ)
+		return nil, errors.Errorf("zmq4: peer=%q not compatible with %q", peer, c.typ)
 	}
 	return appMetadata, nil
 }
@@ -270,7 +220,7 @@ func (c *Conn) SendMsg(msg Msg) error {
 		}
 		err := c.send(false, frame, flag)
 		if err != nil {
-			return errors.Wrapf(err, "zmtp: error sending frame %d/%d", i+1, nframes)
+			return errors.Wrapf(err, "zmq4: error sending frame %d/%d", i+1, nframes)
 		}
 	}
 	return nil
@@ -289,11 +239,11 @@ func (c *Conn) RecvMsg() (Msg, error) {
 
 	switch len(msg.Frames) {
 	case 0:
-		return Msg{}, errors.Errorf("zmtp: empty command")
+		return Msg{}, errors.Errorf("zmq4: empty command")
 	case 1:
 		// ok
 	default:
-		return msg, errors.Errorf("zmtp: invalid length command")
+		return msg, errors.Errorf("zmq4: invalid length command")
 	}
 
 	var cmd command

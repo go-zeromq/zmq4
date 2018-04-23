@@ -8,20 +8,20 @@ package null
 import (
 	"io"
 
-	"github.com/go-zeromq/zmq4/zmtp"
+	"github.com/go-zeromq/zmq4"
 )
 
 // security implements the NULL security mechanism.
 type security struct{}
 
 // Security returns a value that implements the NULL security mechanism
-func Security() zmtp.Security {
+func Security() zmq4.Security {
 	return security{}
 }
 
 // Type returns the security mechanism type.
-func (security) Type() zmtp.SecurityType {
-	return zmtp.NullSecurity
+func (security) Type() zmq4.SecurityType {
+	return zmq4.NullSecurity
 }
 
 // Handshake implements the ZMTP security handshake according to

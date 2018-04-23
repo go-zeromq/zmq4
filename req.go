@@ -6,14 +6,12 @@ package zmq4
 
 import (
 	"context"
-
-	"github.com/go-zeromq/zmq4/zmtp"
 )
 
 // NewReq returns a new REQ ZeroMQ socket.
 // The returned socket value is initially unbound.
 func NewReq(ctx context.Context, opts ...Option) Socket {
-	return &reqSocket{newSocket(ctx, zmtp.Req, opts...)}
+	return &reqSocket{newSocket(ctx, Req, opts...)}
 }
 
 // reqSocket is a REQ ZeroMQ socket.
@@ -23,13 +21,13 @@ type reqSocket struct {
 
 // Send puts the message on the outbound send queue.
 // Send blocks until the message can be queued or the send deadline expires.
-func (req *reqSocket) Send(msg zmtp.Msg) error {
+func (req *reqSocket) Send(msg Msg) error {
 	msg.Frames = append([][]byte{nil}, msg.Frames...)
 	return req.socket.Send(msg)
 }
 
 // Recv receives a complete message.
-func (req *reqSocket) Recv() (zmtp.Msg, error) {
+func (req *reqSocket) Recv() (Msg, error) {
 	msg, err := req.socket.Recv()
 	if len(msg.Frames) > 1 {
 		msg.Frames = msg.Frames[1:]

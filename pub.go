@@ -6,14 +6,12 @@ package zmq4
 
 import (
 	"context"
-
-	"github.com/go-zeromq/zmq4/zmtp"
 )
 
 // NewPub returns a new PUB ZeroMQ socket.
 // The returned socket value is initially unbound.
 func NewPub(ctx context.Context, opts ...Option) Socket {
-	return &pubSocket{newSocket(ctx, zmtp.Pub, opts...)}
+	return &pubSocket{newSocket(ctx, Pub, opts...)}
 }
 
 // pubSocket is a PUB ZeroMQ socket.
@@ -23,7 +21,7 @@ type pubSocket struct {
 
 // Send puts the message on the outbound send queue.
 // Send blocks until the message can be queued or the send deadline expires.
-func (pub *pubSocket) Send(msg zmtp.Msg) error {
+func (pub *pubSocket) Send(msg Msg) error {
 	pub.socket.mu.RLock()
 	var err error
 	// FIXME(sbinet): only send to correct subscribers...

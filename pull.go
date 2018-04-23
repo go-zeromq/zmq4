@@ -7,14 +7,13 @@ package zmq4
 import (
 	"context"
 
-	"github.com/go-zeromq/zmq4/zmtp"
 	"github.com/pkg/errors"
 )
 
 // NewPull returns a new PULL ZeroMQ socket.
 // The returned socket value is initially unbound.
 func NewPull(ctx context.Context, opts ...Option) Socket {
-	return &pullSocket{newSocket(ctx, zmtp.Pull, opts...)}
+	return &pullSocket{newSocket(ctx, Pull, opts...)}
 }
 
 // pullSocket is a PULL ZeroMQ socket.
@@ -24,7 +23,7 @@ type pullSocket struct {
 
 // Send puts the message on the outbound send queue.
 // Send blocks until the message can be queued or the send deadline expires.
-func (*pullSocket) Send(msg zmtp.Msg) error {
+func (*pullSocket) Send(msg Msg) error {
 	return errors.Errorf("zmq4: PULL sockets can't send messages")
 }
 
