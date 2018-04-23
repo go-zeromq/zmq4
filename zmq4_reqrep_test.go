@@ -129,7 +129,7 @@ func TestReqRep(t *testing.T) {
 					}
 
 					if got, want := rep, msg.rep; !reflect.DeepEqual(got, want) {
-						return errors.Wrapf(err, "got = %v, want= %v", got, want)
+						return errors.Errorf("got = %v, want= %v", got, want)
 					}
 				}
 

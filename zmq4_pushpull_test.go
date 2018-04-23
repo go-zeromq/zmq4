@@ -99,7 +99,7 @@ func TestPushPull(t *testing.T) {
 				}
 
 				if got, want := msg, hello; !reflect.DeepEqual(got, want) {
-					return errors.Wrapf(err, "got = %v, want= %v", got, want)
+					return errors.Errorf("recv1: got = %v, want= %v", got, want)
 				}
 
 				msg, err = tc.pull.Recv()
@@ -107,8 +107,8 @@ func TestPushPull(t *testing.T) {
 					return errors.Wrapf(err, "could not recv %v", bye)
 				}
 
-				if got, want := msg, hello; !reflect.DeepEqual(got, want) {
-					return errors.Wrapf(err, "got = %v, want= %v", got, want)
+				if got, want := msg, bye; !reflect.DeepEqual(got, want) {
+					return errors.Errorf("recv2: got = %v, want= %v", got, want)
 				}
 
 				return err

@@ -117,7 +117,7 @@ func TestPubSub(t *testing.T) {
 								return errors.Wrapf(err, "could not recv message %v", want)
 							}
 							if !reflect.DeepEqual(msg, want) {
-								return errors.Wrapf(err, "got = %v, want= %v", msg, want)
+								return errors.Errorf("got = %v, want= %v", msg, want)
 							}
 						}
 
