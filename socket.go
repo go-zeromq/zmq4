@@ -70,6 +70,10 @@ func newSocket(ctx context.Context, sockType SocketType, opts ...Option) *socket
 	for _, opt := range opts {
 		opt(sck)
 	}
+	if len(sck.id) == 0 {
+		sck.id = SocketIdentity(newUUID())
+	}
+
 	return sck
 }
 
@@ -228,6 +232,7 @@ func (sck *socket) addConn(c *Conn) {
 	uuid, ok := c.peer.meta[sysSockID]
 	if !ok {
 		uuid = newUUID()
+		c.peer.meta[sysSockID] = uuid
 	}
 	sck.ids[uuid] = c
 	select {

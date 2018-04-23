@@ -187,9 +187,10 @@ func (c *Conn) recvMD() (map[string]string, error) {
 
 		name := strings.Title(kv.k)
 		if strings.HasPrefix(name, "X-") {
-			appMetadata[name[2:]] = kv.v
+			appMetadata[name] = kv.v
 		} else {
 			sysMetadata[name] = kv.v
+			appMetadata[name] = kv.v
 		}
 	}
 
