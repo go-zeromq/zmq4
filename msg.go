@@ -15,13 +15,13 @@ type MsgType byte
 const (
 	UsrMsg MsgType = 0
 	CmdMsg MsgType = 1
-	ErrMsg MsgType = 2
 )
 
 // Msg is a ZMTP message, possibly composed of multiple frames.
 type Msg struct {
-	Type   MsgType
 	Frames [][]byte
+	Type   MsgType
+	err    error
 }
 
 func NewMsg(frame []byte) Msg {
@@ -46,6 +46,10 @@ func NewMsgFromString(frames []string) Msg {
 
 func (msg Msg) isCmd() bool {
 	return msg.Type == CmdMsg
+}
+
+func (msg Msg) Err() error {
+	return msg.err
 }
 
 func (msg Msg) String() string {

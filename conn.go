@@ -155,9 +155,9 @@ func (c *Conn) sendMD(appMD map[string]string) error {
 }
 
 func (c *Conn) recvMD() (map[string]string, error) {
-	msg, err := c.read()
-	if err != nil {
-		return nil, err
+	msg := c.read()
+	if msg.err != nil {
+		return nil, msg.err
 	}
 
 	if !msg.isCmd() {
@@ -165,7 +165,7 @@ func (c *Conn) recvMD() (map[string]string, error) {
 	}
 
 	var cmd command
-	err = cmd.unmarshalZMTP(msg.Frames[0])
+	err := cmd.unmarshalZMTP(msg.Frames[0])
 	if err != nil {
 		return nil, err
 	}
@@ -229,9 +229,9 @@ func (c *Conn) SendMsg(msg Msg) error {
 
 // RecvMsg receives a ZMTP message from the wire.
 func (c *Conn) RecvMsg() (Msg, error) {
-	msg, err := c.read()
-	if err != nil {
-		return msg, errors.WithStack(err)
+	msg := c.read()
+	if msg.err != nil {
+		return msg, errors.WithStack(msg.err)
 	}
 
 	if !msg.isCmd() {
@@ -240,25 +240,27 @@ func (c *Conn) RecvMsg() (Msg, error) {
 
 	switch len(msg.Frames) {
 	case 0:
-		return Msg{}, errors.Errorf("zmq4: empty command")
+		msg.err = errors.Errorf("zmq4: empty command")
+		return msg, msg.err
 	case 1:
 		// ok
 	default:
-		return msg, errors.Errorf("zmq4: invalid length command")
+		msg.err = errors.Errorf("zmq4: invalid length command")
+		return msg, msg.err
 	}
 
 	var cmd command
-	err = cmd.unmarshalZMTP(msg.Frames[0])
-	if err != nil {
-		return msg, errors.WithStack(err)
+	msg.err = cmd.unmarshalZMTP(msg.Frames[0])
+	if msg.err != nil {
+		return msg, errors.WithStack(msg.err)
 	}
 
 	switch cmd.Name {
 	case cmdPing:
 		// send back a PONG immediately.
-		err := c.SendCmd(cmdPong, nil)
-		if err != nil {
-			return Msg{}, err
+		msg.err = c.SendCmd(cmdPong, nil)
+		if msg.err != nil {
+			return msg, msg.err
 		}
 	}
 
@@ -309,7 +311,7 @@ func (c *Conn) send(isCommand bool, body []byte, flag byte) error {
 }
 
 // read returns the isCommand flag, the body of the message, and optionally an error
-func (c *Conn) read() (Msg, error) {
+func (c *Conn) read() Msg {
 	var (
 		header  [2]byte
 		longHdr [8]byte
@@ -322,9 +324,9 @@ func (c *Conn) read() (Msg, error) {
 	for hasMore {
 
 		// Read out the header
-		_, err := io.ReadFull(c.rw, header[:])
-		if err != nil {
-			return msg, err
+		_, msg.err = io.ReadFull(c.rw, header[:])
+		if msg.err != nil {
+			return msg
 		}
 
 		fl := flag(header[0])
@@ -340,22 +342,23 @@ func (c *Conn) read() (Msg, error) {
 			// We already have the first byte, so assign it, and then read the rest
 			longHdr[0] = header[1]
 
-			_, err = io.ReadFull(c.rw, longHdr[1:])
-			if err != nil {
-				return msg, err
+			_, msg.err = io.ReadFull(c.rw, longHdr[1:])
+			if msg.err != nil {
+				return msg
 			}
 
 			size = binary.BigEndian.Uint64(longHdr[:])
 		}
 
 		if size > uint64(maxInt64) {
-			return msg, errOverflow
+			msg.err = errOverflow
+			return msg
 		}
 
 		body := make([]byte, size)
-		_, err = io.ReadFull(c.rw, body)
-		if err != nil {
-			return msg, err
+		_, msg.err = io.ReadFull(c.rw, body)
+		if msg.err != nil {
+			return msg
 		}
 
 		// fast path for NULL security: we bypass the bytes.Buffer allocation.
@@ -365,13 +368,13 @@ func (c *Conn) read() (Msg, error) {
 		}
 
 		buf := new(bytes.Buffer)
-		if _, err := c.sec.Decrypt(buf, body); err != nil {
-			return msg, err
+		if _, msg.err = c.sec.Decrypt(buf, body); msg.err != nil {
+			return msg
 		}
 		msg.Frames = append(msg.Frames, buf.Bytes())
 	}
 	if isCmd {
 		msg.Type = CmdMsg
 	}
-	return msg, nil
+	return msg
 }
