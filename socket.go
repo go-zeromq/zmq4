@@ -36,7 +36,8 @@ type socket struct {
 	mu    sync.RWMutex
 	ids   map[string]*Conn // ZMTP connection IDs
 	conns []*Conn          // ZMTP connections
-	ready chan struct{}    // ready when at least 1 connection is live
+	r     rpool
+	w     wpool
 
 	props map[string]interface{} // properties of this socket
 
@@ -55,9 +56,10 @@ func newDefaultSocket(ctx context.Context, sockType SocketType) *socket {
 		typ:    sockType,
 		retry:  defaultRetry,
 		sec:    nullSecurity{},
-		ready:  make(chan struct{}),
 		ids:    make(map[string]*Conn),
 		conns:  nil,
+		r:      newQReader(),
+		w:      newMWriter(),
 		props:  make(map[string]interface{}),
 		ctx:    ctx,
 		cancel: cancel,
@@ -102,19 +104,17 @@ func (sck *socket) Close() error {
 // Send puts the message on the outbound send queue.
 // Send blocks until the message can be queued or the send deadline expires.
 func (sck *socket) Send(msg Msg) error {
-	sck.isReady()
-	sck.mu.RLock()
-	err := sck.conns[0].SendMsg(msg)
-	sck.mu.RUnlock()
-	return err
+	ctx, cancel := context.WithTimeout(sck.ctx, sck.timeout())
+	defer cancel()
+	return sck.w.write(ctx, msg)
 }
 
 // Recv receives a complete message.
 func (sck *socket) Recv() (Msg, error) {
-	sck.isReady()
-	sck.mu.RLock()
-	msg, err := sck.conns[0].RecvMsg()
-	sck.mu.RUnlock()
+	ctx, cancel := context.WithCancel(sck.ctx)
+	defer cancel()
+	var msg Msg
+	err := sck.r.read(ctx, &msg)
 	return msg, err
 }
 
@@ -235,13 +235,11 @@ func (sck *socket) addConn(c *Conn) {
 		c.peer.meta[sysSockID] = uuid
 	}
 	sck.ids[uuid] = c
-	select {
-	case _, ok := <-sck.ready:
-		if ok {
-			close(sck.ready)
-		}
-	default:
-		close(sck.ready)
+	if sck.r != nil {
+		sck.r.addConn(&msgReader{r: c})
+	}
+	if sck.w != nil {
+		sck.w.addConn(&msgWriter{w: c})
 	}
 	sck.mu.Unlock()
 }
@@ -267,8 +265,9 @@ func (sck *socket) SetOption(name string, value interface{}) error {
 	return nil
 }
 
-func (sck *socket) isReady() {
-	<-sck.ready
+func (sck *socket) timeout() time.Duration {
+	// FIXME(sbinet): extract from options
+	return 5 * time.Second
 }
 
 var (
