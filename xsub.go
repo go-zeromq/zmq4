@@ -11,12 +11,54 @@ import (
 // NewXSub returns a new XSUB ZeroMQ socket.
 // The returned socket value is initially unbound.
 func NewXSub(ctx context.Context, opts ...Option) Socket {
-	return &xsubSocket{newSocket(ctx, XSub, opts...)}
+	xsub := &xsubSocket{newSocket(ctx, XSub, opts...)}
+	return xsub
 }
 
 // xsubSocket is a XSUB ZeroMQ socket.
 type xsubSocket struct {
-	*socket
+	sck *socket
+}
+
+// Close closes the open Socket
+func (xsub *xsubSocket) Close() error {
+	return xsub.sck.Close()
+}
+
+// Send puts the message on the outbound send queue.
+// Send blocks until the message can be queued or the send deadline expires.
+func (xsub *xsubSocket) Send(msg Msg) error {
+	return xsub.sck.Send(msg)
+}
+
+// Recv receives a complete message.
+func (xsub *xsubSocket) Recv() (Msg, error) {
+	return xsub.sck.Recv()
+}
+
+// Listen connects a local endpoint to the Socket.
+func (xsub *xsubSocket) Listen(ep string) error {
+	return xsub.sck.Listen(ep)
+}
+
+// Dial connects a remote endpoint to the Socket.
+func (xsub *xsubSocket) Dial(ep string) error {
+	return xsub.sck.Dial(ep)
+}
+
+// Type returns the type of this Socket (PUB, SUB, ...)
+func (xsub *xsubSocket) Type() SocketType {
+	return xsub.sck.Type()
+}
+
+// GetOption is used to retrieve an option for a socket.
+func (xsub *xsubSocket) GetOption(name string) (interface{}, error) {
+	return xsub.sck.GetOption(name)
+}
+
+// SetOption is used to set an option for a socket.
+func (xsub *xsubSocket) SetOption(name string, value interface{}) error {
+	return xsub.sck.SetOption(name, value)
 }
 
 var (
