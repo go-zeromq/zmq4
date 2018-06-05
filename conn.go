@@ -31,6 +31,14 @@ func (c *Conn) Close() error {
 	return c.rw.Close()
 }
 
+func (c *Conn) Read(p []byte) (int, error) {
+	return c.rw.Read(p)
+}
+
+func (c *Conn) Write(p []byte) (int, error) {
+	return c.rw.Write(p)
+}
+
 // Open opens a ZMTP connection over rw with the given security, socket type and identity.
 // Open performs a complete ZMTP handshake.
 func Open(rw io.ReadWriteCloser, sec Security, sockType SocketType, sockID SocketIdentity, server bool) (*Conn, error) {
