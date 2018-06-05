@@ -11,17 +11,55 @@ import (
 // NewSub returns a new SUB ZeroMQ socket.
 // The returned socket value is initially unbound.
 func NewSub(ctx context.Context, opts ...Option) Socket {
-	return &subSocket{newSocket(ctx, Sub, opts...)}
+	sub := &subSocket{sck: newSocket(ctx, Sub, opts...)}
+	sub.sck.r = newQReader()
+	return sub
 }
 
 // subSocket is a SUB ZeroMQ socket.
 type subSocket struct {
-	*socket
+	sck *socket
+}
+
+// Close closes the open Socket
+func (sub *subSocket) Close() error {
+	return sub.sck.Close()
+}
+
+// Send puts the message on the outbound send queue.
+// Send blocks until the message can be queued or the send deadline expires.
+func (sub *subSocket) Send(msg Msg) error {
+	return sub.sck.Send(msg)
+}
+
+// Recv receives a complete message.
+func (sub *subSocket) Recv() (Msg, error) {
+	return sub.sck.Recv()
+}
+
+// Listen connects a local endpoint to the Socket.
+func (sub *subSocket) Listen(ep string) error {
+	return sub.sck.Listen(ep)
+}
+
+// Dial connects a remote endpoint to the Socket.
+func (sub *subSocket) Dial(ep string) error {
+	return sub.sck.Dial(ep)
+}
+
+// Type returns the type of this Socket (PUB, SUB, ...)
+func (sub *subSocket) Type() SocketType {
+	return sub.sck.Type()
+}
+
+// GetOption is used to retrieve an option for a socket.
+func (sub *subSocket) GetOption(name string) (interface{}, error) {
+	return sub.sck.GetOption(name)
 }
 
 // SetOption is used to set an option for a socket.
 func (sub *subSocket) SetOption(name string, value interface{}) error {
-	err := sub.socket.SetOption(name, value)
+	err := sub.sck.SetOption(name, value)
 	if err != nil {
 		return err
 	}
@@ -43,15 +81,15 @@ func (sub *subSocket) SetOption(name string, value interface{}) error {
 		return ErrBadProperty
 	}
 
-	sub.socket.mu.RLock()
+	sub.sck.mu.RLock()
 	msg := NewMsg(topic)
-	for _, conn := range sub.conns {
+	for _, conn := range sub.sck.conns {
 		e := conn.SendMsg(msg)
 		if e != nil && err == nil {
 			err = e
 		}
 	}
-	sub.socket.mu.RUnlock()
+	sub.sck.mu.RUnlock()
 	return err
 }
 
