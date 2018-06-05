@@ -11,12 +11,54 @@ import (
 // NewPair returns a new PAIR ZeroMQ socket.
 // The returned socket value is initially unbound.
 func NewPair(ctx context.Context, opts ...Option) Socket {
-	return &pairSocket{newSocket(ctx, Pair, opts...)}
+	pair := &pairSocket{newSocket(ctx, Pair, opts...)}
+	return pair
 }
 
 // pairSocket is a PAIR ZeroMQ socket.
 type pairSocket struct {
-	*socket
+	sck *socket
+}
+
+// Close closes the open Socket
+func (pair *pairSocket) Close() error {
+	return pair.sck.Close()
+}
+
+// Send puts the message on the outbound send queue.
+// Send blocks until the message can be queued or the send deadline expires.
+func (pair *pairSocket) Send(msg Msg) error {
+	return pair.sck.Send(msg)
+}
+
+// Recv receives a complete message.
+func (pair *pairSocket) Recv() (Msg, error) {
+	return pair.sck.Recv()
+}
+
+// Listen connects a local endpoint to the Socket.
+func (pair *pairSocket) Listen(ep string) error {
+	return pair.sck.Listen(ep)
+}
+
+// Dial connects a remote endpoint to the Socket.
+func (pair *pairSocket) Dial(ep string) error {
+	return pair.sck.Dial(ep)
+}
+
+// Type returns the type of this Socket (PUB, SUB, ...)
+func (pair *pairSocket) Type() SocketType {
+	return pair.sck.Type()
+}
+
+// GetOption is used to retrieve an option for a socket.
+func (pair *pairSocket) GetOption(name string) (interface{}, error) {
+	return pair.sck.GetOption(name)
+}
+
+// SetOption is used to set an option for a socket.
+func (pair *pairSocket) SetOption(name string, value interface{}) error {
+	return pair.sck.SetOption(name, value)
 }
 
 var (
