@@ -13,7 +13,9 @@ import (
 // NewPull returns a new PULL ZeroMQ socket.
 // The returned socket value is initially unbound.
 func NewPull(ctx context.Context, opts ...Option) Socket {
-	return &pullSocket{newSocket(ctx, Pull, opts...)}
+	pull := &pullSocket{newSocket(ctx, Pull, opts...)}
+	pull.sck.w = nil
+	return pull
 }
 
 // pullSocket is a PULL ZeroMQ socket.
