@@ -14,7 +14,7 @@ import (
 // The returned socket value is initially unbound.
 func NewPub(ctx context.Context, opts ...Option) Socket {
 	pub := &pubSocket{sck: newSocket(ctx, Pub, opts...)}
-	pub.sck.w = newMWriter()
+	pub.sck.w = newMWriter(pub.sck.ctx)
 	return pub
 }
 

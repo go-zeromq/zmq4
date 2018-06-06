@@ -58,16 +58,18 @@ func (w *msgWriter) write(ctx context.Context, msg Msg) error {
 
 // qreader is a queued-message reader.
 type qreader struct {
-	mu sync.RWMutex
-	rs []*msgReader
-	c  chan Msg
+	ctx context.Context
+	mu  sync.RWMutex
+	rs  []*msgReader
+	c   chan Msg
 
 	sem *semaphore // ready when a connection is live.
 }
 
-func newQReader() *qreader {
+func newQReader(ctx context.Context) *qreader {
 	const qrsize = 10
 	return &qreader{
+		ctx: ctx,
 		c:   make(chan Msg, qrsize),
 		sem: newSemaphore(),
 	}
@@ -88,7 +90,7 @@ func (q *qreader) Close() error {
 }
 
 func (q *qreader) addConn(r *msgReader) {
-	go rlisten(context.Background(), r, q.c)
+	go q.listen(q.ctx, r)
 	q.mu.Lock()
 	q.sem.enable()
 	q.rs = append(q.rs, r)
@@ -104,7 +106,7 @@ func (q *qreader) read(ctx context.Context, msg *Msg) error {
 	return msg.err
 }
 
-func rlisten(ctx context.Context, r *msgReader, ch chan Msg) {
+func (q *qreader) listen(ctx context.Context, r *msgReader) {
 	for {
 		var msg Msg
 		err := r.read(ctx, &msg)
@@ -112,7 +114,7 @@ func rlisten(ctx context.Context, r *msgReader, ch chan Msg) {
 		case <-ctx.Done():
 			return
 		default:
-			ch <- msg
+			q.c <- msg
 			if err != nil {
 				return
 			}
@@ -121,13 +123,17 @@ func rlisten(ctx context.Context, r *msgReader, ch chan Msg) {
 }
 
 type mwriter struct {
+	ctx context.Context
 	mu  sync.Mutex
 	ws  []*msgWriter
 	sem *semaphore
 }
 
-func newMWriter() *mwriter {
-	return &mwriter{sem: newSemaphore()}
+func newMWriter(ctx context.Context) *mwriter {
+	return &mwriter{
+		ctx: ctx,
+		sem: newSemaphore(),
+	}
 }
 
 func (w *mwriter) Close() error {
@@ -167,13 +173,15 @@ func (w *mwriter) write(ctx context.Context, msg Msg) error {
 }
 
 type lbwriter struct {
+	ctx context.Context
 	c   chan Msg
 	sem *semaphore
 }
 
-func newLBWriter() *lbwriter {
+func newLBWriter(ctx context.Context) *lbwriter {
 	const size = 10
 	return &lbwriter{
+		ctx: ctx,
 		c:   make(chan Msg, size),
 		sem: newSemaphore(),
 	}
@@ -186,7 +194,7 @@ func (lw *lbwriter) Close() error {
 
 func (lw *lbwriter) addConn(w *msgWriter) {
 	lw.sem.enable()
-	go wlisten(context.Background(), w, lw.c)
+	go lw.listen(lw.ctx, w)
 }
 
 func (lw *lbwriter) write(ctx context.Context, msg Msg) error {
@@ -199,19 +207,19 @@ func (lw *lbwriter) write(ctx context.Context, msg Msg) error {
 	}
 }
 
-func wlisten(ctx context.Context, w *msgWriter, c chan Msg) {
+func (lw *lbwriter) listen(ctx context.Context, w *msgWriter) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case msg, ok := <-c:
+		case msg, ok := <-lw.c:
 			if !ok {
 				return
 			}
 			err := w.write(ctx, msg)
 			if err != nil {
 				// try another msg writer
-				c <- msg
+				lw.c <- msg
 				break
 			}
 		}

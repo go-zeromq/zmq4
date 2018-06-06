@@ -12,7 +12,7 @@ import (
 // The returned socket value is initially unbound.
 func NewSub(ctx context.Context, opts ...Option) Socket {
 	sub := &subSocket{sck: newSocket(ctx, Sub, opts...)}
-	sub.sck.r = newQReader()
+	sub.sck.r = newQReader(sub.sck.ctx)
 	return sub
 }
 
