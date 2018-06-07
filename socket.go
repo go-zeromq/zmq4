@@ -15,7 +15,7 @@ import (
 
 const (
 	defaultRetry   = 250 * time.Millisecond
-	defaultTimeout = 5 * time.Second
+	defaultTimeout = 5 * time.Minute
 )
 
 var (
@@ -267,7 +267,7 @@ func (sck *socket) SetOption(name string, value interface{}) error {
 
 func (sck *socket) timeout() time.Duration {
 	// FIXME(sbinet): extract from options
-	return 5 * time.Second
+	return defaultTimeout
 }
 
 var (
