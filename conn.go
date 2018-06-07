@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"io"
 	"strings"
+	"sync"
 
 	"github.com/pkg/errors"
 )
@@ -25,6 +26,9 @@ type Conn struct {
 		server bool
 		meta   map[string]string
 	}
+
+	mu     sync.RWMutex
+	topics map[string]struct{} // set of subscribed topics
 }
 
 func (c *Conn) Close() error {
@@ -56,6 +60,7 @@ func Open(rw io.ReadWriteCloser, sec Security, sockType SocketType, sockID Socke
 		rw:     rw,
 		sec:    sec,
 		server: server,
+		topics: make(map[string]struct{}),
 	}
 
 	err := conn.init(sec, nil)
@@ -385,4 +390,32 @@ func (c *Conn) read() Msg {
 		msg.Type = CmdMsg
 	}
 	return msg
+}
+
+func (conn *Conn) subscribe(msg Msg) {
+	conn.mu.Lock()
+	v := msg.Frames[0]
+	k := string(v[1:])
+	switch v[0] {
+	case 0:
+		delete(conn.topics, k)
+	case 1:
+		conn.topics[k] = struct{}{}
+	}
+	conn.mu.Unlock()
+}
+
+func (conn *Conn) subscribed(topic string) bool {
+	conn.mu.RLock()
+	defer conn.mu.RUnlock()
+	for k := range conn.topics {
+		switch {
+		case k == "":
+			// subscribed to everything
+			return true
+		case strings.HasPrefix(topic, k):
+			return true
+		}
+	}
+	return false
 }

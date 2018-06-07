@@ -32,6 +32,10 @@ type msgReader struct {
 	r *Conn
 }
 
+func newMsgReader(c *Conn) *msgReader {
+	return &msgReader{r: c}
+}
+
 // read reads data over the wire and assembles it into a complete message
 func (r *msgReader) read(ctx context.Context, msg *Msg) error {
 	*msg = r.r.read()
@@ -44,6 +48,10 @@ func (r *msgReader) Close() error {
 
 type msgWriter struct {
 	w *Conn
+}
+
+func newMsgWriter(c *Conn) *msgWriter {
+	return &msgWriter{w: c}
 }
 
 func (w *msgWriter) Close() error {
@@ -78,12 +86,11 @@ func newQReader(ctx context.Context) *qreader {
 func (q *qreader) Close() error {
 	q.mu.RLock()
 	var err error
-	for _, r := range q.rs {
-		e := r.Close()
-		if e != nil && err == nil {
-			err = e
-		}
+	var grp errgroup.Group
+	for i := range q.rs {
+		grp.Go(q.rs[i].Close)
 	}
+	err = grp.Wait()
 	q.rs = nil
 	q.mu.RUnlock()
 	return err

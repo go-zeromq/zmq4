@@ -236,10 +236,10 @@ func (sck *socket) addConn(c *Conn) {
 	}
 	sck.ids[uuid] = c
 	if sck.r != nil {
-		sck.r.addConn(&msgReader{r: c})
+		sck.r.addConn(newMsgReader(c))
 	}
 	if sck.w != nil {
-		sck.w.addConn(&msgWriter{w: c})
+		sck.w.addConn(newMsgWriter(c))
 	}
 	sck.mu.Unlock()
 }
