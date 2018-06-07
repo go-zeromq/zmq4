@@ -52,6 +52,23 @@ func (msg Msg) Err() error {
 	return msg.err
 }
 
+// Bytes returns the concatenated content of all its frames.
+func (msg Msg) Bytes() []byte {
+	buf := make([]byte, 0, msg.size())
+	for _, frame := range msg.Frames {
+		buf = append(buf, frame...)
+	}
+	return buf
+}
+
+func (msg Msg) size() int {
+	n := 0
+	for _, frame := range msg.Frames {
+		n += len(frame)
+	}
+	return n
+}
+
 func (msg Msg) String() string {
 	buf := new(bytes.Buffer)
 	buf.WriteString("Msg{Frames:{")
