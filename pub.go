@@ -34,7 +34,6 @@ func (pub *pubSocket) Close() error {
 // Send puts the message on the outbound send queue.
 // Send blocks until the message can be queued or the send deadline expires.
 func (pub *pubSocket) Send(msg Msg) error {
-	// FIXME(sbinet): only send to correct subscribers...
 	ctx, cancel := context.WithTimeout(pub.sck.ctx, pub.sck.timeout())
 	defer cancel()
 	return pub.sck.w.write(ctx, msg)
