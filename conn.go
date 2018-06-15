@@ -299,21 +299,21 @@ func (c *Conn) send(isCommand bool, body []byte, flag byte) error {
 		flag ^= isCommandBitFlag
 	}
 
-	// Write out the message itself
-	if _, err := c.rw.Write([]byte{flag}); err != nil {
-		return err
-	}
+	var (
+		hdr = [8 + 1]byte{flag}
+		hsz int
+	)
 
+	// Write out the message itself
 	if isLong {
-		var buf [8]byte
-		binary.BigEndian.PutUint64(buf[:], uint64(size))
-		if _, err := c.rw.Write(buf[:]); err != nil {
-			return err
-		}
+		hsz = 9
+		binary.BigEndian.PutUint64(hdr[1:], uint64(size))
 	} else {
-		if _, err := c.rw.Write([]byte{uint8(size)}); err != nil {
-			return err
-		}
+		hsz = 2
+		hdr[1] = uint8(size)
+	}
+	if _, err := c.rw.Write(hdr[:hsz]); err != nil {
+		return err
 	}
 
 	if _, err := c.sec.Encrypt(c.rw, body); err != nil {
