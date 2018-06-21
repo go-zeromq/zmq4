@@ -7,6 +7,8 @@ package zmq4
 import (
 	"context"
 	"net"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -89,6 +91,7 @@ func (sck *socket) Close() error {
 	if sck.conns == nil {
 		return errInvalidSocket
 	}
+
 	var err error
 	sck.mu.RLock()
 	for _, conn := range sck.conns {
@@ -98,6 +101,10 @@ func (sck *socket) Close() error {
 		}
 	}
 	sck.mu.RUnlock()
+	if strings.HasPrefix(sck.ep, "ipc://") {
+		os.Remove(sck.ep[len("ipc://"):])
+	}
+
 	return err
 }
 
