@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-zeromq/zmq4/internal/inproc"
 	"github.com/pkg/errors"
 )
 
@@ -143,7 +144,7 @@ func (sck *socket) Listen(endpoint string) error {
 	case "udp":
 		l, err = net.Listen("udp", addr)
 	case "inproc":
-		panic("zmq4: inproc not implemented")
+		l, err = inproc.Listen(addr)
 	default:
 		panic("zmq4: unknown protocol " + network)
 	}
@@ -203,7 +204,7 @@ connect:
 	case "udp":
 		conn, err = sck.dialer.DialContext(sck.ctx, "udp", addr)
 	case "inproc":
-		panic("zmq4: inproc not implemented")
+		conn, err = inproc.Dial(addr)
 	default:
 		panic("zmq4: unknown protocol " + network)
 	}

@@ -47,7 +47,8 @@ func splitAddr(v string) (network, addr string, err error) {
 		port = ""
 		return network, host, nil
 	case "inproc":
-		err = fmt.Errorf("zmq4: protocol %q not implemented", network)
+		host = ep[1]
+		return "inproc", host, nil
 	default:
 		err = fmt.Errorf("zmq4: unknown protocol %q", network)
 	}

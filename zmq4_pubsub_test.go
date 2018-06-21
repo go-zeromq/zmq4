@@ -36,6 +36,14 @@ var (
 			sub1:     zmq4.NewSub(bkg, zmq4.WithID(zmq4.SocketIdentity("sub1"))),
 			sub2:     zmq4.NewSub(bkg, zmq4.WithID(zmq4.SocketIdentity("sub2"))),
 		},
+		{
+			name:     "inproc-pub-sub",
+			endpoint: "inproc://inproc-pub-sub",
+			pub:      zmq4.NewPub(bkg),
+			sub0:     zmq4.NewSub(bkg, zmq4.WithID(zmq4.SocketIdentity("sub0"))),
+			sub1:     zmq4.NewSub(bkg, zmq4.WithID(zmq4.SocketIdentity("sub1"))),
+			sub2:     zmq4.NewSub(bkg, zmq4.WithID(zmq4.SocketIdentity("sub2"))),
+		},
 	}
 )
 

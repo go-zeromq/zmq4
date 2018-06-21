@@ -54,6 +54,12 @@ var (
 		//	push:     zmq4.NewCPush(),
 		//	pull:     zmq4.NewCPull(),
 		//},
+		{
+			name:     "inproc-cpush-cpull",
+			endpoint: "inproc://cpush-cpull",
+			push:     zmq4.NewCPush(bkg),
+			pull:     zmq4.NewCPull(bkg),
+		},
 	}
 
 	creqreps = []testCaseReqRep{
@@ -90,6 +96,12 @@ var (
 		{
 			name:     "ipc-creq-crep",
 			endpoint: "ipc://ipc-creq-crep",
+			req:      zmq4.NewCReq(bkg),
+			rep:      zmq4.NewCRep(bkg),
+		},
+		{
+			name:     "inproc-creq-crep",
+			endpoint: "inproc://inproc-creq-crep",
 			req:      zmq4.NewCReq(bkg),
 			rep:      zmq4.NewCRep(bkg),
 		},
@@ -139,6 +151,14 @@ var (
 		{
 			name:     "ipc-cpub-csub",
 			endpoint: "ipc://ipc-cpub-csub",
+			pub:      zmq4.NewCPub(bkg),
+			sub0:     zmq4.NewCSub(bkg),
+			sub1:     zmq4.NewCSub(bkg),
+			sub2:     zmq4.NewCSub(bkg),
+		},
+		{
+			name:     "inproc-cpub-csub",
+			endpoint: "inproc://inproc-cpub-csub",
 			pub:      zmq4.NewCPub(bkg),
 			sub0:     zmq4.NewCSub(bkg),
 			sub1:     zmq4.NewCSub(bkg),
