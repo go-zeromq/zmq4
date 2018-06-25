@@ -78,6 +78,9 @@ func (c *conn) read(data []byte) (int, error) {
 	select {
 	case bw := <-c.r:
 		nr := copy(data, bw)
+		if len(data) < len(bw) {
+			return nr, io.ErrShortBuffer
+		}
 		return nr, nil
 	case <-c.rdeadline.wait():
 		return 0, timeoutError{}
