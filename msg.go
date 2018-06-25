@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"net"
 )
 
 type MsgType byte
@@ -19,7 +20,7 @@ const (
 
 // Msg is a ZMTP message, possibly composed of multiple frames.
 type Msg struct {
-	Frames [][]byte
+	Frames net.Buffers
 	Type   MsgType
 	err    error
 }
