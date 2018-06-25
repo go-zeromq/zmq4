@@ -221,18 +221,21 @@ func (c *Conn) SendCmd(name string, body []byte) error {
 	if err != nil {
 		return err
 	}
-	return c.send(true, buf, 0)
+	return c.send(c.rw, true, buf, 0)
 }
 
 // SendMsg sends a ZMTP message over the wire.
 func (c *Conn) SendMsg(msg Msg) error {
 	nframes := len(msg.Frames)
+	//	sz := msg.size() + nframes*9 // FIXME(sbinet): compute the correct final size? (encryption?)
+	//	o := new(bytes.Buffer)
+	//	o.Grow(sz)
 	for i, frame := range msg.Frames {
 		var flag byte
 		if i < nframes-1 {
 			flag ^= hasMoreBitFlag
 		}
-		err := c.send(false, frame, flag)
+		err := c.send(c.rw, false, frame, flag)
 		if err != nil {
 			return errors.Wrapf(err, "zmq4: error sending frame %d/%d", i+1, nframes)
 		}
@@ -287,7 +290,7 @@ func (c *Conn) RecvMsg() (Msg, error) {
 	return msg, nil
 }
 
-func (c *Conn) send(isCommand bool, body []byte, flag byte) error {
+func (c *Conn) send(o io.Writer, isCommand bool, body []byte, flag byte) error {
 	// Long flag
 	size := len(body)
 	isLong := size > 255
@@ -316,7 +319,7 @@ func (c *Conn) send(isCommand bool, body []byte, flag byte) error {
 		return err
 	}
 
-	if _, err := c.sec.Encrypt(c.rw, body); err != nil {
+	if _, err := c.sec.Encrypt(o, body); err != nil {
 		return err
 	}
 
