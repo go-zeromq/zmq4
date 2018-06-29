@@ -6,9 +6,7 @@ package zmq4_test
 
 import (
 	"context"
-	"os"
 	"reflect"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -76,11 +74,6 @@ func TestPubSub(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.skip {
 				t.Skipf(tc.name)
-			}
-
-			// FIXME(sbinet): we should probably do this at the zmq4.Socket.Close level
-			if strings.HasPrefix(tc.endpoint, "ipc://") {
-				defer os.Remove(tc.endpoint[len("ipc://"):])
 			}
 
 			ep := tc.endpoint
