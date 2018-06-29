@@ -77,6 +77,7 @@ func TestRouterDealer(t *testing.T) {
 			}
 			t.Parallel()
 			ep := tc.endpoint
+			cleanUp(ep)
 
 			ctx, timeout := context.WithTimeout(context.Background(), 10*time.Second)
 			defer timeout()

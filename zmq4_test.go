@@ -8,7 +8,9 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 	"strconv"
+	"strings"
 )
 
 var (
@@ -51,4 +53,10 @@ func getTCPPort() (string, error) {
 	}
 	defer l.Close()
 	return strconv.Itoa(l.Addr().(*net.TCPAddr).Port), nil
+}
+
+func cleanUp(ep string) {
+	if strings.HasPrefix(ep, "ipc://") {
+		os.Remove(ep[len("ipc://"):])
+	}
 }
