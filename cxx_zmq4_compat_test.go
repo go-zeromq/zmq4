@@ -13,52 +13,60 @@ import (
 	czmq4 "github.com/zeromq/goczmq"
 )
 
-func NewCPair(ctx context.Context) Socket {
-	return &csocket{czmq4.NewSock(czmq4.Pair)}
+func NewCPair(ctx context.Context, opts ...czmq4.SockOption) Socket {
+	return newCSocket(czmq4.Pair, opts...)
 }
 
-func NewCPub(ctx context.Context) Socket {
-	return &csocket{czmq4.NewSock(czmq4.Pub)}
+func NewCPub(ctx context.Context, opts ...czmq4.SockOption) Socket {
+	return newCSocket(czmq4.Pub, opts...)
 }
 
-func NewCSub(ctx context.Context) Socket {
-	return &csocket{czmq4.NewSock(czmq4.Sub)}
+func NewCSub(ctx context.Context, opts ...czmq4.SockOption) Socket {
+	return newCSocket(czmq4.Sub, opts...)
 }
 
-func NewCReq(ctx context.Context) Socket {
-	return &csocket{czmq4.NewSock(czmq4.Req)}
+func NewCReq(ctx context.Context, opts ...czmq4.SockOption) Socket {
+	return newCSocket(czmq4.Req, opts...)
 }
 
-func NewCRep(ctx context.Context) Socket {
-	return &csocket{czmq4.NewSock(czmq4.Rep)}
+func NewCRep(ctx context.Context, opts ...czmq4.SockOption) Socket {
+	return newCSocket(czmq4.Rep, opts...)
 }
 
-func NewCDealer(ctx context.Context) Socket {
-	return &csocket{czmq4.NewSock(czmq4.Dealer)}
+func NewCDealer(ctx context.Context, opts ...czmq4.SockOption) Socket {
+	return newCSocket(czmq4.Dealer, opts...)
 }
 
-func NewCRouter(ctx context.Context) Socket {
-	return &csocket{czmq4.NewSock(czmq4.Router)}
+func NewCRouter(ctx context.Context, opts ...czmq4.SockOption) Socket {
+	return newCSocket(czmq4.Router, opts...)
 }
 
-func NewCPull(ctx context.Context) Socket {
-	return &csocket{czmq4.NewSock(czmq4.Pull)}
+func NewCPull(ctx context.Context, opts ...czmq4.SockOption) Socket {
+	return newCSocket(czmq4.Pull, opts...)
 }
 
-func NewCPush(ctx context.Context) Socket {
-	return &csocket{czmq4.NewSock(czmq4.Push)}
+func NewCPush(ctx context.Context, opts ...czmq4.SockOption) Socket {
+	return newCSocket(czmq4.Push, opts...)
 }
 
-func NewCXPub(ctx context.Context) Socket {
-	return &csocket{czmq4.NewSock(czmq4.XPub)}
+func NewCXPub(ctx context.Context, opts ...czmq4.SockOption) Socket {
+	return newCSocket(czmq4.XPub, opts...)
 }
 
-func NewCXSub(ctx context.Context) Socket {
-	return &csocket{czmq4.NewSock(czmq4.XSub)}
+func NewCXSub(ctx context.Context, opts ...czmq4.SockOption) Socket {
+	return newCSocket(czmq4.XSub, opts...)
 }
 
 type csocket struct {
 	sock *czmq4.Sock
+}
+
+func newCSocket(ctyp int, opts ...czmq4.SockOption) *csocket {
+	sck := &csocket{czmq4.NewSock(ctyp)}
+	for _, opt := range opts {
+		opt(sck.sock)
+	}
+	return sck
 }
 
 func (sck *csocket) Close() error {
