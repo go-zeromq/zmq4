@@ -153,6 +153,11 @@ func (sck *csocket) SetOption(name string, value interface{}) error {
 	panic("not implemented")
 }
 
+// CWithID configures a ZeroMQ socket identity.
+func CWithID(id SocketIdentity) czmq4.SockOption {
+	return czmq4.SockSetIdentity(string(id))
+}
+
 var (
 	_ Socket = (*csocket)(nil)
 )

@@ -28,7 +28,9 @@ func (dealer *dealerSocket) Close() error {
 // Send puts the message on the outbound send queue.
 // Send blocks until the message can be queued or the send deadline expires.
 func (dealer *dealerSocket) Send(msg Msg) error {
-	return dealer.sck.Send(msg)
+	dmsg := NewMsg(dealer.sck.id)
+	dmsg.Frames = append(dmsg.Frames, msg.Frames...)
+	return dealer.sck.Send(dmsg)
 }
 
 // Recv receives a complete message.

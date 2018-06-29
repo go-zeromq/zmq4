@@ -165,10 +165,70 @@ var (
 			sub2:     zmq4.NewCSub(bkg),
 		},
 	}
+
+	crouterdealers = []testCaseRouterDealer{
+		{
+			name:     "tcp-router-cdealer",
+			endpoint: must(EndPoint("tcp")),
+			router:   zmq4.NewRouter(bkg),
+			dealer0:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-0"))),
+			dealer1:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-1"))),
+			dealer2:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-2"))),
+		},
+		{
+			name:     "tcp-crouter-dealer",
+			endpoint: must(EndPoint("tcp")),
+			router:   zmq4.NewCRouter(bkg),
+			dealer0:  zmq4.NewDealer(bkg, zmq4.WithID(zmq4.SocketIdentity("dealer-0"))),
+			dealer1:  zmq4.NewDealer(bkg, zmq4.WithID(zmq4.SocketIdentity("dealer-1"))),
+			dealer2:  zmq4.NewDealer(bkg, zmq4.WithID(zmq4.SocketIdentity("dealer-2"))),
+		},
+		{
+			name:     "tcp-crouter-cdealer",
+			endpoint: must(EndPoint("tcp")),
+			router:   zmq4.NewCRouter(bkg),
+			dealer0:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-0"))),
+			dealer1:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-1"))),
+			dealer2:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-2"))),
+		},
+		{
+			name:     "ipc-router-cdealer",
+			endpoint: "ipc://ipc-router-cdealer",
+			router:   zmq4.NewRouter(bkg),
+			dealer0:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-0"))),
+			dealer1:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-1"))),
+			dealer2:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-2"))),
+		},
+		{
+			name:     "ipc-crouter-dealer",
+			endpoint: "ipc://crouter-dealer",
+			router:   zmq4.NewCRouter(bkg),
+			dealer0:  zmq4.NewDealer(bkg, zmq4.WithID(zmq4.SocketIdentity("dealer-0"))),
+			dealer1:  zmq4.NewDealer(bkg, zmq4.WithID(zmq4.SocketIdentity("dealer-1"))),
+			dealer2:  zmq4.NewDealer(bkg, zmq4.WithID(zmq4.SocketIdentity("dealer-2"))),
+		},
+		{
+			name:     "ipc-crouter-cdealer",
+			endpoint: "ipc://crouter-cdealer",
+			router:   zmq4.NewCRouter(bkg),
+			dealer0:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-0"))),
+			dealer1:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-1"))),
+			dealer2:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-2"))),
+		},
+		{
+			name:     "inproc-crouter-cdealer",
+			endpoint: "inproc://crouter-cdealer",
+			router:   zmq4.NewCRouter(bkg),
+			dealer0:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-0"))),
+			dealer1:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-1"))),
+			dealer2:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-2"))),
+		},
+	}
 )
 
 func init() {
 	pushpulls = append(pushpulls, cpushpulls...)
 	reqreps = append(reqreps, creqreps...)
 	pubsubs = append(pubsubs, cpubsubs...)
+	routerdealers = append(routerdealers, crouterdealers...)
 }

@@ -57,7 +57,6 @@ type testCasePubSub struct {
 
 func TestPubSub(t *testing.T) {
 	var (
-		//topics = []string{"", "MSG ", "MSG "}
 		topics      = []string{"", "MSG", "msg"}
 		wantNumMsgs = []int{3, 1, 1}
 		msg0        = zmq4.NewMsgString("anything")
