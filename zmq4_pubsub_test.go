@@ -72,6 +72,11 @@ func TestPubSub(t *testing.T) {
 	for i := range pubsubs {
 		tc := pubsubs[i]
 		t.Run(tc.name, func(t *testing.T) {
+			defer tc.pub.Close()
+			defer tc.sub0.Close()
+			defer tc.sub1.Close()
+			defer tc.sub2.Close()
+
 			if tc.skip {
 				t.Skipf(tc.name)
 			}
@@ -81,11 +86,6 @@ func TestPubSub(t *testing.T) {
 
 			ctx, timeout := context.WithTimeout(context.Background(), 20*time.Second)
 			defer timeout()
-
-			defer tc.pub.Close()
-			defer tc.sub0.Close()
-			defer tc.sub1.Close()
-			defer tc.sub2.Close()
 
 			nmsgs := []int{0, 0, 0}
 			subs := []zmq4.Socket{tc.sub0, tc.sub1, tc.sub2}

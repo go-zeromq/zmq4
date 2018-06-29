@@ -59,6 +59,9 @@ func TestReqRep(t *testing.T) {
 	for i := range reqreps {
 		tc := reqreps[i]
 		t.Run(tc.name, func(t *testing.T) {
+			defer tc.req.Close()
+			defer tc.rep.Close()
+
 			if tc.skip {
 				t.Skipf(tc.name)
 			}
@@ -68,9 +71,6 @@ func TestReqRep(t *testing.T) {
 
 			ctx, timeout := context.WithTimeout(context.Background(), 20*time.Second)
 			defer timeout()
-
-			defer tc.req.Close()
-			defer tc.rep.Close()
 
 			grp, ctx := errgroup.WithContext(ctx)
 			grp.Go(func() error {

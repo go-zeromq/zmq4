@@ -55,6 +55,9 @@ func TestPushPull(t *testing.T) {
 	for i := range pushpulls {
 		tc := pushpulls[i]
 		t.Run(tc.name, func(t *testing.T) {
+			defer tc.pull.Close()
+			defer tc.push.Close()
+
 			if tc.skip {
 				t.Skipf(tc.name)
 			}
@@ -64,9 +67,6 @@ func TestPushPull(t *testing.T) {
 
 			ctx, timeout := context.WithTimeout(context.Background(), 20*time.Second)
 			defer timeout()
-
-			defer tc.pull.Close()
-			defer tc.push.Close()
 
 			grp, ctx := errgroup.WithContext(ctx)
 			grp.Go(func() error {
