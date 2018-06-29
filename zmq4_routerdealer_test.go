@@ -64,11 +64,13 @@ func TestRouterDealer(t *testing.T) {
 		ready = zmq4.NewMsgFrom([]byte(""), []byte("ready"))
 	)
 
-	for _, tc := range routerdealers {
+	for i := range routerdealers {
+		tc := routerdealers[i]
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.skip {
 				t.Skipf(tc.name)
 			}
+			t.Parallel()
 			ep := tc.endpoint
 
 			ctx, timeout := context.WithTimeout(context.Background(), 10*time.Second)

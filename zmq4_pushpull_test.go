@@ -52,11 +52,13 @@ func TestPushPull(t *testing.T) {
 		bye   = zmq4.NewMsgFrom([]byte("GOOD"), []byte("BYE"))
 	)
 
-	for _, tc := range pushpulls {
+	for i := range pushpulls {
+		tc := pushpulls[i]
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.skip {
 				t.Skipf(tc.name)
 			}
+			t.Parallel()
 
 			ep := tc.endpoint
 

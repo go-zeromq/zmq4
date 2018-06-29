@@ -69,11 +69,13 @@ func TestPubSub(t *testing.T) {
 		}
 	)
 
-	for _, tc := range pubsubs {
+	for i := range pubsubs {
+		tc := pubsubs[i]
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.skip {
 				t.Skipf(tc.name)
 			}
+			t.Parallel()
 
 			ep := tc.endpoint
 

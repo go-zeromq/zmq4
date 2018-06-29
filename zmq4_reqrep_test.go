@@ -56,11 +56,13 @@ func TestReqRep(t *testing.T) {
 		repQuit = zmq4.NewMsgString("bye")
 	)
 
-	for _, tc := range reqreps {
+	for i := range reqreps {
+		tc := reqreps[i]
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.skip {
 				t.Skipf(tc.name)
 			}
+			t.Parallel()
 
 			ep := tc.endpoint
 
