@@ -121,6 +121,7 @@ func (q *routerQReader) read(ctx context.Context, msg *Msg) error {
 }
 
 func (q *routerQReader) listen(ctx context.Context, r *msgReader) {
+	id := []byte(r.r.peer.meta[sysSockID])
 	for {
 		var msg Msg
 		err := r.read(ctx, &msg)
@@ -131,7 +132,7 @@ func (q *routerQReader) listen(ctx context.Context, r *msgReader) {
 			if err != nil {
 				return
 			}
-			msg.Frames = append([][]byte{r.r.id}, msg.Frames...)
+			msg.Frames = append([][]byte{id}, msg.Frames...)
 			q.c <- msg
 		}
 	}
@@ -180,10 +181,11 @@ func (w *routerMWriter) write(ctx context.Context, msg Msg) error {
 	dmsg := NewMsgFrom(msg.Frames[1:]...)
 	for i := range w.ws {
 		ww := w.ws[i]
+		pid := []byte(ww.w.peer.meta[sysSockID])
+		if !bytes.Equal(pid, id) {
+			continue
+		}
 		grp.Go(func() error {
-			if !bytes.Equal(ww.w.id, id) {
-				return nil
-			}
 			return ww.write(ctx, dmsg)
 		})
 	}
