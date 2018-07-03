@@ -7,6 +7,8 @@
 package zmq4_test
 
 import (
+	"context"
+
 	"github.com/go-zeromq/zmq4"
 )
 
@@ -169,59 +171,115 @@ var (
 	crouterdealers = []testCaseRouterDealer{
 		{
 			name:     "tcp-router-cdealer",
-			endpoint: must(EndPoint("tcp")),
-			router:   zmq4.NewRouter(bkg),
-			dealer0:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-0"))),
-			dealer1:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-1"))),
-			dealer2:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-2"))),
+			endpoint: func() string { return must(EndPoint("tcp")) },
+			router: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewRouter(ctx, zmq4.WithID(zmq4.SocketIdentity("router")))
+			},
+			dealer0: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewCDealer(ctx, zmq4.CWithID(zmq4.SocketIdentity("dealer-0")))
+			},
+			dealer1: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewCDealer(ctx, zmq4.CWithID(zmq4.SocketIdentity("dealer-1")))
+			},
+			dealer2: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewCDealer(ctx, zmq4.CWithID(zmq4.SocketIdentity("dealer-2")))
+			},
 		},
 		{
 			name:     "tcp-crouter-dealer",
-			endpoint: must(EndPoint("tcp")),
-			router:   zmq4.NewCRouter(bkg),
-			dealer0:  zmq4.NewDealer(bkg, zmq4.WithID(zmq4.SocketIdentity("dealer-0"))),
-			dealer1:  zmq4.NewDealer(bkg, zmq4.WithID(zmq4.SocketIdentity("dealer-1"))),
-			dealer2:  zmq4.NewDealer(bkg, zmq4.WithID(zmq4.SocketIdentity("dealer-2"))),
+			endpoint: func() string { return must(EndPoint("tcp")) },
+			router: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewCRouter(ctx, zmq4.CWithID(zmq4.SocketIdentity("router")))
+			},
+			dealer0: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewDealer(ctx, zmq4.WithID(zmq4.SocketIdentity("dealer-0")))
+			},
+			dealer1: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewDealer(ctx, zmq4.WithID(zmq4.SocketIdentity("dealer-1")))
+			},
+			dealer2: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewDealer(ctx, zmq4.WithID(zmq4.SocketIdentity("dealer-2")))
+			},
 		},
 		{
 			name:     "tcp-crouter-cdealer",
-			endpoint: must(EndPoint("tcp")),
-			router:   zmq4.NewCRouter(bkg),
-			dealer0:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-0"))),
-			dealer1:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-1"))),
-			dealer2:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-2"))),
+			endpoint: func() string { return must(EndPoint("tcp")) },
+			router: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewCRouter(ctx, zmq4.CWithID(zmq4.SocketIdentity("router")))
+			},
+			dealer0: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewCDealer(ctx, zmq4.CWithID(zmq4.SocketIdentity("dealer-0")))
+			},
+			dealer1: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewCDealer(ctx, zmq4.CWithID(zmq4.SocketIdentity("dealer-1")))
+			},
+			dealer2: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewCDealer(ctx, zmq4.CWithID(zmq4.SocketIdentity("dealer-2")))
+			},
 		},
 		{
 			name:     "ipc-router-cdealer",
-			endpoint: "ipc://ipc-router-cdealer",
-			router:   zmq4.NewRouter(bkg),
-			dealer0:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-0"))),
-			dealer1:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-1"))),
-			dealer2:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-2"))),
+			endpoint: func() string { return "ipc://ipc-router-cdealer" },
+			router: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewRouter(ctx, zmq4.WithID(zmq4.SocketIdentity("router")))
+			},
+			dealer0: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewCDealer(ctx, zmq4.CWithID(zmq4.SocketIdentity("dealer-0")))
+			},
+			dealer1: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewCDealer(ctx, zmq4.CWithID(zmq4.SocketIdentity("dealer-1")))
+			},
+			dealer2: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewCDealer(ctx, zmq4.CWithID(zmq4.SocketIdentity("dealer-2")))
+			},
 		},
 		{
 			name:     "ipc-crouter-dealer",
-			endpoint: "ipc://crouter-dealer",
-			router:   zmq4.NewCRouter(bkg),
-			dealer0:  zmq4.NewDealer(bkg, zmq4.WithID(zmq4.SocketIdentity("dealer-0"))),
-			dealer1:  zmq4.NewDealer(bkg, zmq4.WithID(zmq4.SocketIdentity("dealer-1"))),
-			dealer2:  zmq4.NewDealer(bkg, zmq4.WithID(zmq4.SocketIdentity("dealer-2"))),
+			endpoint: func() string { return "ipc://crouter-dealer" },
+			router: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewCRouter(ctx, zmq4.CWithID(zmq4.SocketIdentity("router")))
+			},
+			dealer0: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewDealer(ctx, zmq4.WithID(zmq4.SocketIdentity("dealer-0")))
+			},
+			dealer1: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewDealer(ctx, zmq4.WithID(zmq4.SocketIdentity("dealer-1")))
+			},
+			dealer2: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewDealer(ctx, zmq4.WithID(zmq4.SocketIdentity("dealer-2")))
+			},
 		},
 		{
 			name:     "ipc-crouter-cdealer",
-			endpoint: "ipc://crouter-cdealer",
-			router:   zmq4.NewCRouter(bkg),
-			dealer0:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-0"))),
-			dealer1:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-1"))),
-			dealer2:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-2"))),
+			endpoint: func() string { return "ipc://crouter-cdealer" },
+			router: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewCRouter(ctx, zmq4.CWithID(zmq4.SocketIdentity("router")))
+			},
+			dealer0: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewCDealer(ctx, zmq4.CWithID(zmq4.SocketIdentity("dealer-0")))
+			},
+			dealer1: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewCDealer(ctx, zmq4.CWithID(zmq4.SocketIdentity("dealer-1")))
+			},
+			dealer2: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewCDealer(ctx, zmq4.CWithID(zmq4.SocketIdentity("dealer-2")))
+			},
 		},
 		{
 			name:     "inproc-crouter-cdealer",
-			endpoint: "inproc://crouter-cdealer",
-			router:   zmq4.NewCRouter(bkg),
-			dealer0:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-0"))),
-			dealer1:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-1"))),
-			dealer2:  zmq4.NewCDealer(bkg, zmq4.CWithID(zmq4.SocketIdentity("dealer-2"))),
+			endpoint: func() string { return "inproc://crouter-cdealer" },
+			router: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewCRouter(ctx, zmq4.CWithID(zmq4.SocketIdentity("router")))
+			},
+			dealer0: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewCDealer(ctx, zmq4.CWithID(zmq4.SocketIdentity("dealer-0")))
+			},
+			dealer1: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewCDealer(ctx, zmq4.CWithID(zmq4.SocketIdentity("dealer-1")))
+			},
+			dealer2: func(ctx context.Context) zmq4.Socket {
+				return zmq4.NewCDealer(ctx, zmq4.CWithID(zmq4.SocketIdentity("dealer-2")))
+			},
 		},
 	}
 )
