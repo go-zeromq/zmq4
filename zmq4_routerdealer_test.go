@@ -7,6 +7,7 @@ package zmq4_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"reflect"
 	"sync"
 	"testing"
@@ -114,13 +115,15 @@ func TestRouterDealer(t *testing.T) {
 			defer dealer2.Close()
 
 			dealers := []zmq4.Socket{dealer0, dealer1, dealer2}
-			fired := make([]bool, len(dealers))
+			fired := make([]int, len(dealers))
 
 			var wgd sync.WaitGroup
 			wgd.Add(len(dealers))
 			var wgr sync.WaitGroup
 			wgr.Add(1)
 
+			var seenMu sync.RWMutex
+			seen := make(map[string]int)
 			grp, ctx := errgroup.WithContext(ctx)
 			grp.Go(func() error {
 
@@ -132,7 +135,6 @@ func TestRouterDealer(t *testing.T) {
 				wgd.Wait()
 				wgr.Done()
 
-				seen := make(map[string]int)
 				fired := 0
 				const N = 3
 				for i := 0; i < len(dealers)*N+1 && fired < N; i++ {
@@ -142,11 +144,17 @@ func TestRouterDealer(t *testing.T) {
 					}
 
 					if len(msg.Frames) == 0 {
-						return errors.Errorf("router received empty message (test=%q, iter=%d, seen=%v)", tc.name, i, seen)
+						seenMu.RLock()
+						str := fmt.Sprintf("%v", seen)
+						seenMu.RUnlock()
+						return errors.Errorf("router received empty message (test=%q, iter=%d, seen=%v)", tc.name, i, str)
 					}
 					id := string(msg.Frames[0])
+					seenMu.Lock()
 					seen[id]++
-					switch n := seen[id]; {
+					n := seen[id]
+					seenMu.Unlock()
+					switch {
 					case n >= N:
 						msg = zmq4.NewMsgFrom([]byte(id), []byte(""), Fired)
 						fired++
@@ -191,11 +199,14 @@ func TestRouterDealer(t *testing.T) {
 								return errors.Wrapf(err, "could not recv msg")
 							}
 							if len(msg.Frames) < 2 {
-								return errors.Errorf("dealer-%d received invalid msg %v (test=%q, iter=%d)", idealer, msg, tc.name, n)
+								seenMu.RLock()
+								str := fmt.Sprintf("%v", seen)
+								seenMu.RUnlock()
+								return errors.Errorf("dealer-%d received invalid msg %v (test=%q, iter=%d, seen=%v)", idealer, msg, tc.name, n, str)
 							}
 							work := msg.Frames[1]
+							fired[idealer]++
 							if bytes.Equal(work, Fired) {
-								fired[idealer] = true
 								break loop
 							}
 
@@ -214,7 +225,7 @@ func TestRouterDealer(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if !reflect.DeepEqual(fired, []bool{true, true, true}) {
+			if !reflect.DeepEqual(fired, []int{3, 3, 3}) {
 				t.Fatalf("some workers did not get fired: %v", fired)
 			}
 		})
