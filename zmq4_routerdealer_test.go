@@ -37,6 +37,7 @@ var (
 		},
 		{
 			name:     "ipc-router-dealer",
+			skip:     true,
 			endpoint: func() string { return must(EndPoint("ipc")) },
 			router: func(ctx context.Context) zmq4.Socket {
 				return zmq4.NewRouter(ctx, zmq4.WithID(zmq4.SocketIdentity("router")))
@@ -53,6 +54,7 @@ var (
 		},
 		{
 			name:     "inproc-router-dealer",
+			skip:     true,
 			endpoint: func() string { return must(EndPoint("inproc")) },
 			router: func(ctx context.Context) zmq4.Socket {
 				return zmq4.NewRouter(ctx, zmq4.WithID(zmq4.SocketIdentity("router")))

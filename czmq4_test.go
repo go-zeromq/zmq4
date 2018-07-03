@@ -171,6 +171,7 @@ var (
 	crouterdealers = []testCaseRouterDealer{
 		{
 			name:     "tcp-router-cdealer",
+			skip:     true,
 			endpoint: func() string { return must(EndPoint("tcp")) },
 			router: func(ctx context.Context) zmq4.Socket {
 				return zmq4.NewRouter(ctx, zmq4.WithID(zmq4.SocketIdentity("router")))
@@ -219,6 +220,7 @@ var (
 		},
 		{
 			name:     "ipc-router-cdealer",
+			skip:     true,
 			endpoint: func() string { return "ipc://ipc-router-cdealer" },
 			router: func(ctx context.Context) zmq4.Socket {
 				return zmq4.NewRouter(ctx, zmq4.WithID(zmq4.SocketIdentity("router")))
