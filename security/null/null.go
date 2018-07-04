@@ -30,7 +30,7 @@ func (security) Type() zmq4.SecurityType {
 //  https://rfc.zeromq.org/spec:23/ZMTP/
 //  https://rfc.zeromq.org/spec:24/ZMTP-PLAIN/
 //  https://rfc.zeromq.org/spec:25/ZMTP-CURVE/
-func (security) Handshake() error {
+func (security) Handshake(conn *zmq4.Conn, server bool) error {
 	return nil
 }
 

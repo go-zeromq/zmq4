@@ -10,14 +10,16 @@ import (
 
 // Security is an interface for ZMTP security mechanisms
 type Security interface {
+	// Type returns the security mechanism type.
 	Type() SecurityType
+
 	// Handshake implements the ZMTP security handshake according to
 	// this security mechanism.
 	// see:
 	//  https://rfc.zeromq.org/spec:23/ZMTP/
 	//  https://rfc.zeromq.org/spec:24/ZMTP-PLAIN/
 	//  https://rfc.zeromq.org/spec:25/ZMTP-CURVE/
-	Handshake() error
+	Handshake(conn *Conn, server bool) error
 
 	// Encrypt writes the encrypted form of data to w.
 	Encrypt(w io.Writer, data []byte) (int, error)
@@ -58,7 +60,7 @@ func (nullSecurity) Type() SecurityType {
 //  https://rfc.zeromq.org/spec:23/ZMTP/
 //  https://rfc.zeromq.org/spec:24/ZMTP-PLAIN/
 //  https://rfc.zeromq.org/spec:25/ZMTP-CURVE/
-func (nullSecurity) Handshake() error {
+func (nullSecurity) Handshake(conn *Conn, server bool) error {
 	return nil
 }
 

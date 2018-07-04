@@ -80,7 +80,7 @@ func (conn *Conn) init(sec Security, md map[string]string) error {
 		return errors.Wrapf(err, "zmq4: could not exchange greetings")
 	}
 
-	err = conn.sec.Handshake()
+	err = conn.sec.Handshake(conn, conn.server)
 	if err != nil {
 		return errors.Wrapf(err, "zmq4: could not perform security handshake")
 	}

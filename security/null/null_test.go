@@ -12,13 +12,13 @@ import (
 	"github.com/go-zeromq/zmq4/security/null"
 )
 
-func TestNullSecurity(t *testing.T) {
+func TestSecurity(t *testing.T) {
 	sec := null.Security()
 	if got, want := sec.Type(), zmq4.NullSecurity; got != want {
 		t.Fatalf("got=%v, want=%v", got, want)
 	}
 
-	err := sec.Handshake()
+	err := sec.Handshake(nil, false)
 	if err != nil {
 		t.Fatalf("error doing handshake: %v", err)
 	}
