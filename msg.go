@@ -91,14 +91,14 @@ func (msg Msg) Clone() Msg {
 	return o
 }
 
-// command is a ZMTP command as per:
+// Cmd is a ZMTP Cmd as per:
 //  https://rfc.zeromq.org/spec:23/ZMTP/#formal-grammar
-type command struct {
+type Cmd struct {
 	Name string
 	Body []byte
 }
 
-func (cmd *command) unmarshalZMTP(data []byte) error {
+func (cmd *Cmd) unmarshalZMTP(data []byte) error {
 	if len(data) == 0 {
 		return io.ErrUnexpectedEOF
 	}
@@ -111,7 +111,7 @@ func (cmd *command) unmarshalZMTP(data []byte) error {
 	return nil
 }
 
-func (cmd *command) marshalZMTP() ([]byte, error) {
+func (cmd *Cmd) marshalZMTP() ([]byte, error) {
 	n := len(cmd.Name)
 	if n > 255 {
 		return nil, errBadCmd

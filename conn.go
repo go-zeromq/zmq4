@@ -177,7 +177,7 @@ func (c *Conn) recvMD() (map[string]string, error) {
 		return nil, errBadFrame
 	}
 
-	var cmd command
+	var cmd Cmd
 	err := cmd.unmarshalZMTP(msg.Frames[0])
 	if err != nil {
 		return nil, err
@@ -216,7 +216,7 @@ func (c *Conn) recvMD() (map[string]string, error) {
 
 // SendCmd sends a ZMTP command over the wire.
 func (c *Conn) SendCmd(name string, body []byte) error {
-	cmd := command{Name: name, Body: body}
+	cmd := Cmd{Name: name, Body: body}
 	buf, err := cmd.marshalZMTP()
 	if err != nil {
 		return err
@@ -262,7 +262,7 @@ func (c *Conn) RecvMsg() (Msg, error) {
 		return msg, msg.err
 	}
 
-	var cmd command
+	var cmd Cmd
 	msg.err = cmd.unmarshalZMTP(msg.Frames[0])
 	if msg.err != nil {
 		return msg, errors.WithStack(msg.err)
@@ -285,6 +285,36 @@ func (c *Conn) RecvMsg() (Msg, error) {
 		msg.Frames[0] = cmd.Body
 	}
 	return msg, nil
+}
+
+func (c *Conn) RecvCmd() (Cmd, error) {
+	var cmd Cmd
+	msg := c.read()
+	if msg.err != nil {
+		return cmd, errors.WithStack(msg.err)
+	}
+
+	if !msg.isCmd() {
+		return cmd, errBadFrame
+	}
+
+	switch len(msg.Frames) {
+	case 0:
+		msg.err = errors.Errorf("zmq4: empty command")
+		return cmd, msg.err
+	case 1:
+		// ok
+	default:
+		msg.err = errors.Errorf("zmq4: invalid length command")
+		return cmd, msg.err
+	}
+
+	err := cmd.unmarshalZMTP(msg.Frames[0])
+	if err != nil {
+		return cmd, errors.WithStack(err)
+	}
+
+	return cmd, nil
 }
 
 func (c *Conn) send(isCommand bool, body []byte, flag byte) error {
