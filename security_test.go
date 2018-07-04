@@ -2,19 +2,16 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package null_test
+package zmq4
 
 import (
 	"bytes"
 	"testing"
-
-	"github.com/go-zeromq/zmq4"
-	"github.com/go-zeromq/zmq4/security/null"
 )
 
 func TestNullSecurity(t *testing.T) {
-	sec := null.Security()
-	if got, want := sec.Type(), zmq4.NullSecurity; got != want {
+	sec := nullSecurity{}
+	if got, want := sec.Type(), NullSecurity; got != want {
 		t.Fatalf("got=%v, want=%v", got, want)
 	}
 
