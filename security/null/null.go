@@ -43,3 +43,7 @@ func (security) Encrypt(w io.Writer, data []byte) (int, error) {
 func (security) Decrypt(w io.Writer, data []byte) (int, error) {
 	return w.Write(data)
 }
+
+var (
+	_ zmq4.Security = (*security)(nil)
+)

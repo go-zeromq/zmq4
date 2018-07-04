@@ -71,3 +71,7 @@ func (nullSecurity) Encrypt(w io.Writer, data []byte) (int, error) {
 func (nullSecurity) Decrypt(w io.Writer, data []byte) (int, error) {
 	return w.Write(data)
 }
+
+var (
+	_ Security = (*nullSecurity)(nil)
+)
