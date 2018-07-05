@@ -104,7 +104,7 @@ func (cmd *Cmd) unmarshalZMTP(data []byte) error {
 	}
 	n := int(data[0])
 	if n > len(data)-1 {
-		return errBadCmd
+		return ErrBadCmd
 	}
 	cmd.Name = string(data[1 : n+1])
 	cmd.Body = data[n+1:]
@@ -114,7 +114,7 @@ func (cmd *Cmd) unmarshalZMTP(data []byte) error {
 func (cmd *Cmd) marshalZMTP() ([]byte, error) {
 	n := len(cmd.Name)
 	if n > 255 {
-		return nil, errBadCmd
+		return nil, ErrBadCmd
 	}
 
 	buf := make([]byte, 0, 1+n+len(cmd.Body))

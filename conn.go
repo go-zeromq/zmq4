@@ -189,7 +189,7 @@ func (c *Conn) recvMD() (map[string]string, error) {
 	}
 
 	if !msg.isCmd() {
-		return nil, errBadFrame
+		return nil, ErrBadFrame
 	}
 
 	var cmd Cmd
@@ -199,7 +199,7 @@ func (c *Conn) recvMD() (map[string]string, error) {
 	}
 
 	if cmd.Name != cmdReady {
-		return nil, errBadCmd
+		return nil, ErrBadCmd
 	}
 
 	sysMetadata := make(map[string]string)
@@ -310,7 +310,7 @@ func (c *Conn) RecvCmd() (Cmd, error) {
 	}
 
 	if !msg.isCmd() {
-		return cmd, errBadFrame
+		return cmd, ErrBadFrame
 	}
 
 	switch len(msg.Frames) {
