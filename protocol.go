@@ -155,6 +155,56 @@ const (
 	sysSockID   = "Identity"
 )
 
+// MetaData is describing a Conn's metadata information.
+type MetaData map[string]string
+
+// MarshalZMTP marshals MetaData to ZMTP encoded data.
+func (md MetaData) MarshalZMTP() ([]byte, error) {
+	buf := new(bytes.Buffer)
+	keys := make(map[string]struct{})
+
+	for k, v := range md {
+		if len(k) == 0 {
+			return nil, errEmptyAppMDKey
+		}
+
+		key := strings.ToLower(k)
+		if _, dup := keys[key]; dup {
+			return nil, errDupAppMDKey
+		}
+
+		keys[key] = struct{}{}
+		switch k {
+		case sysSockID, sysSockType:
+			if _, err := io.Copy(buf, Property{K: k, V: v}); err != nil {
+				return nil, err
+			}
+		default:
+			if _, err := io.Copy(buf, Property{K: "X-" + key, V: v}); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return buf.Bytes(), nil
+}
+
+// UnmarshalZMTP unmarshals MetaData from a ZMTP encoded data.
+func (md *MetaData) UnmarshalZMTP(p []byte) error {
+	i := 0
+	for i < len(p) {
+		var kv Property
+		n, err := kv.Write(p[i:])
+		if err != nil {
+			return err
+		}
+		i += n
+
+		name := strings.Title(kv.K)
+		(*md)[name] = kv.V
+	}
+	return nil
+}
+
 // Property describes a Conn metadata's entry.
 // The on-wire respresentation of Property is specified by:
 //  https://rfc.zeromq.org/spec:23/ZMTP/

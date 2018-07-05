@@ -6,21 +6,23 @@ package null_test
 
 import (
 	"bytes"
+	"context"
+	"os"
+	"reflect"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-zeromq/zmq4"
 	"github.com/go-zeromq/zmq4/security/null"
+	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 )
 
 func TestSecurity(t *testing.T) {
 	sec := null.Security()
 	if got, want := sec.Type(), zmq4.NullSecurity; got != want {
 		t.Fatalf("got=%v, want=%v", got, want)
-	}
-
-	err := sec.Handshake(nil, false)
-	if err != nil {
-		t.Fatalf("error doing handshake: %v", err)
 	}
 
 	data := []byte("hello world")
@@ -40,5 +42,72 @@ func TestSecurity(t *testing.T) {
 
 	if !bytes.Equal(wdec.Bytes(), data) {
 		t.Fatalf("error decrypted data.\ngot = %q\nwant= %q\n", wdec.Bytes(), data)
+	}
+}
+
+func TestHandshakeReqRep(t *testing.T) {
+	var (
+		reqQuit = zmq4.NewMsgString("QUIT")
+		repQuit = zmq4.NewMsgString("bye")
+	)
+
+	sec := null.Security()
+	ctx, timeout := context.WithTimeout(context.Background(), 10*time.Second)
+	defer timeout()
+
+	ep := "ipc://ipc-req-rep-null-sec"
+	cleanUp(ep)
+
+	req := zmq4.NewReq(ctx, zmq4.WithSecurity(sec))
+	defer req.Close()
+
+	rep := zmq4.NewRep(ctx, zmq4.WithSecurity(sec))
+	defer rep.Close()
+
+	grp, ctx := errgroup.WithContext(ctx)
+	grp.Go(func() error {
+		err := rep.Listen(ep)
+		if err != nil {
+			return errors.Wrap(err, "could not listen")
+		}
+
+		msg, err := rep.Recv()
+		if err != nil {
+			return errors.Wrap(err, "could not recv REQ message")
+		}
+
+		if !reflect.DeepEqual(msg, reqQuit) {
+			return errors.Errorf("got = %v, want = %v", msg, repQuit)
+		}
+
+		err = rep.Send(repQuit)
+		if err != nil {
+			return errors.Wrap(err, "could not send REP message")
+		}
+
+		return nil
+	})
+
+	grp.Go(func() error {
+		err := req.Dial(ep)
+		if err != nil {
+			return errors.Wrap(err, "could not dial")
+		}
+
+		err = req.Send(reqQuit)
+		if err != nil {
+			return errors.Wrap(err, "could not send REQ message")
+		}
+		return nil
+	})
+
+	if err := grp.Wait(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func cleanUp(ep string) {
+	if strings.HasPrefix(ep, "ipc://") {
+		os.Remove(ep[len("ipc://"):])
 	}
 }

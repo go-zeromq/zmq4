@@ -6,6 +6,8 @@ package zmq4
 
 import (
 	"io"
+
+	"github.com/pkg/errors"
 )
 
 // Security is an interface for ZMTP security mechanisms
@@ -61,14 +63,28 @@ func (nullSecurity) Type() SecurityType {
 //  https://rfc.zeromq.org/spec:24/ZMTP-PLAIN/
 //  https://rfc.zeromq.org/spec:25/ZMTP-CURVE/
 func (nullSecurity) Handshake(conn *Conn, server bool) error {
-	err := conn.sendMD(conn.Meta)
+	raw, err := conn.Meta.MarshalZMTP()
+	if err != nil {
+		return errors.Wrapf(err, "zmq4: could not marshal metadata")
+	}
+
+	err = conn.SendCmd(CmdReady, raw)
 	if err != nil {
 		return errors.Wrapf(err, "zmq4: could not send metadata to peer")
 	}
 
-	conn.Peer.Meta, err = conn.recvMD()
+	cmd, err := conn.RecvCmd()
 	if err != nil {
 		return errors.Wrapf(err, "zmq4: could not recv metadata from peer")
+	}
+
+	if cmd.Name != CmdReady {
+		return ErrBadCmd
+	}
+
+	err = conn.Peer.Meta.UnmarshalZMTP(cmd.Body)
+	if err != nil {
+		return errors.Wrapf(err, "zmq4: could not unmarshal peer metadata")
 	}
 
 	return nil

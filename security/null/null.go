@@ -9,6 +9,7 @@ import (
 	"io"
 
 	"github.com/go-zeromq/zmq4"
+	"github.com/pkg/errors"
 )
 
 // security implements the NULL security mechanism.
@@ -31,6 +32,30 @@ func (security) Type() zmq4.SecurityType {
 //  https://rfc.zeromq.org/spec:24/ZMTP-PLAIN/
 //  https://rfc.zeromq.org/spec:25/ZMTP-CURVE/
 func (security) Handshake(conn *zmq4.Conn, server bool) error {
+	raw, err := conn.Meta.MarshalZMTP()
+	if err != nil {
+		return errors.Wrapf(err, "security/null: could not marshal metadata")
+	}
+
+	err = conn.SendCmd(zmq4.CmdReady, raw)
+	if err != nil {
+		return errors.Wrapf(err, "security/null: could not send metadata to peer")
+	}
+
+	cmd, err := conn.RecvCmd()
+	if err != nil {
+		return errors.Wrapf(err, "security/null: could not recv metadata from peer")
+	}
+
+	if cmd.Name != zmq4.CmdReady {
+		return zmq4.ErrBadCmd
+	}
+
+	err = conn.Peer.Meta.UnmarshalZMTP(cmd.Body)
+	if err != nil {
+		return errors.Wrapf(err, "security/null: could not unmarshal peer metadata")
+	}
+
 	return nil
 }
 

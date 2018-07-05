@@ -61,9 +61,12 @@ func Open(rw io.ReadWriteCloser, sec Security, sockType SocketType, sockID Socke
 		rw:     rw,
 		sec:    sec,
 		Server: server,
-		Meta:   nil,
+		Meta:   make(MetaData),
 		topics: make(map[string]struct{}),
 	}
+	conn.Meta[sysSockType] = string(conn.typ)
+	conn.Meta[sysSockID] = conn.id.String()
+	conn.Peer.Meta = make(MetaData)
 
 	err := conn.init(sec)
 	if err != nil {
@@ -87,14 +90,9 @@ func (conn *Conn) init(sec Security) error {
 		return errors.Wrapf(err, "zmq4: could not perform security handshake")
 	}
 
-	err = conn.sendMD(conn.meta)
-	if err != nil {
-		return errors.Wrapf(err, "zmq4: could not send metadata to peer")
-	}
-
-	conn.peer.meta, err = conn.recvMD()
-	if err != nil {
-		return errors.Wrapf(err, "zmq4: could not recv metadata from peer")
+	peer := SocketType(conn.Peer.Meta[sysSockType])
+	if !peer.IsCompatible(conn.typ) {
+		return errors.Errorf("zmq4: peer=%q not compatible with %q", peer, conn.typ)
 	}
 
 	// FIXME(sbinet): if security mechanism does not define a client/server
@@ -138,95 +136,6 @@ func (conn *Conn) greet(server bool) error {
 	}
 
 	return nil
-}
-
-func (c *Conn) sendMD(appMD map[string]string) error {
-	md, err := c.metadata(appMD)
-	if err != nil {
-		return err
-	}
-	return c.SendCmd(CmdReady, md)
-}
-
-// Metadata returns the ZMTP-serialized metadata for this connection.
-func (c *Conn) Metadata() ([]byte, error) {
-	return c.metadata(c.meta)
-}
-
-func (c *Conn) metadata(appMD map[string]string) ([]byte, error) {
-	buf := new(bytes.Buffer)
-	keys := make(map[string]struct{})
-
-	for k, v := range appMD {
-		if len(k) == 0 {
-			return nil, errEmptyAppMDKey
-		}
-
-		key := strings.ToLower(k)
-		if _, dup := keys[key]; dup {
-			return nil, errDupAppMDKey
-		}
-
-		keys[key] = struct{}{}
-		if _, err := io.Copy(buf, Property{K: "X-" + key, V: v}); err != nil {
-			return nil, err
-		}
-	}
-
-	if _, err := io.Copy(buf, Property{K: sysSockType, V: string(c.typ)}); err != nil {
-		return nil, err
-	}
-	if _, err := io.Copy(buf, Property{K: sysSockID, V: c.id.String()}); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
-func (c *Conn) recvMD() (map[string]string, error) {
-	msg := c.read()
-	if msg.err != nil {
-		return nil, msg.err
-	}
-
-	if !msg.isCmd() {
-		return nil, ErrBadFrame
-	}
-
-	var cmd Cmd
-	err := cmd.unmarshalZMTP(msg.Frames[0])
-	if err != nil {
-		return nil, err
-	}
-
-	if cmd.Name != CmdReady {
-		return nil, ErrBadCmd
-	}
-
-	sysMetadata := make(map[string]string)
-	appMetadata := make(map[string]string)
-	i := 0
-	for i < len(cmd.Body) {
-		var kv Property
-		n, err := kv.Write(cmd.Body[i:])
-		if err != nil {
-			return nil, err
-		}
-		i += n
-
-		name := strings.Title(kv.K)
-		if strings.HasPrefix(name, "X-") {
-			appMetadata[name] = kv.V
-		} else {
-			sysMetadata[name] = kv.V
-			appMetadata[name] = kv.V
-		}
-	}
-
-	peer := SocketType(sysMetadata[sysSockType])
-	if !peer.IsCompatible(c.typ) {
-		return nil, errors.Errorf("zmq4: peer=%q not compatible with %q", peer, c.typ)
-	}
-	return appMetadata, nil
 }
 
 // SendCmd sends a ZMTP command over the wire.

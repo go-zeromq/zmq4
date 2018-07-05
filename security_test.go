@@ -6,18 +6,21 @@ package zmq4
 
 import (
 	"bytes"
+	"context"
+	"os"
+	"reflect"
+	"strings"
 	"testing"
+	"time"
+
+	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 )
 
 func TestNullSecurity(t *testing.T) {
 	sec := nullSecurity{}
 	if got, want := sec.Type(), NullSecurity; got != want {
 		t.Fatalf("got=%v, want=%v", got, want)
-	}
-
-	err := sec.Handshake(nil, false)
-	if err != nil {
-		t.Fatalf("error doing handshake: %v", err)
 	}
 
 	data := []byte("hello world")
@@ -37,5 +40,72 @@ func TestNullSecurity(t *testing.T) {
 
 	if !bytes.Equal(wdec.Bytes(), data) {
 		t.Fatalf("error decrypted data.\ngot = %q\nwant= %q\n", wdec.Bytes(), data)
+	}
+}
+
+func TestNullHandshakeReqRep(t *testing.T) {
+	var (
+		reqQuit = NewMsgString("QUIT")
+		repQuit = NewMsgString("bye")
+	)
+
+	sec := nullSecurity{}
+	ctx, timeout := context.WithTimeout(context.Background(), 10*time.Second)
+	defer timeout()
+
+	ep := "ipc://ipc-req-rep-null-sec"
+	cleanUp(ep)
+
+	req := NewReq(ctx, WithSecurity(sec))
+	defer req.Close()
+
+	rep := NewRep(ctx, WithSecurity(sec))
+	defer rep.Close()
+
+	grp, ctx := errgroup.WithContext(ctx)
+	grp.Go(func() error {
+		err := rep.Listen(ep)
+		if err != nil {
+			return errors.Wrap(err, "could not listen")
+		}
+
+		msg, err := rep.Recv()
+		if err != nil {
+			return errors.Wrap(err, "could not recv REQ message")
+		}
+
+		if !reflect.DeepEqual(msg, reqQuit) {
+			return errors.Errorf("got = %v, want = %v", msg, repQuit)
+		}
+
+		err = rep.Send(repQuit)
+		if err != nil {
+			return errors.Wrap(err, "could not send REP message")
+		}
+
+		return nil
+	})
+
+	grp.Go(func() error {
+		err := req.Dial(ep)
+		if err != nil {
+			return errors.Wrap(err, "could not dial")
+		}
+
+		err = req.Send(reqQuit)
+		if err != nil {
+			return errors.Wrap(err, "could not send REQ message")
+		}
+		return nil
+	})
+
+	if err := grp.Wait(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func cleanUp(ep string) {
+	if strings.HasPrefix(ep, "ipc://") {
+		os.Remove(ep[len("ipc://"):])
 	}
 }
