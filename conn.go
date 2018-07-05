@@ -329,7 +329,8 @@ func (c *Conn) read() Msg {
 		}
 
 		// fast path for NULL security: we bypass the bytes.Buffer allocation.
-		if c.sec.Type() == NullSecurity {
+		switch c.sec.Type() {
+		case NullSecurity: // FIXME(sbinet): also do that for non-encrypted PLAIN?
 			msg.Frames = append(msg.Frames, body)
 			continue
 		}
