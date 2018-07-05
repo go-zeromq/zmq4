@@ -37,7 +37,7 @@ func (c *Conn) Close() error {
 }
 
 func (c *Conn) Read(p []byte) (int, error) {
-	return c.rw.Read(p)
+	return io.ReadFull(c.rw, p)
 }
 
 func (c *Conn) Write(p []byte) (int, error) {
