@@ -21,11 +21,11 @@ type Conn struct {
 	id     SocketIdentity
 	rw     io.ReadWriteCloser
 	sec    Security
-	server bool
-	meta   map[string]string
-	peer   struct {
-		server bool
-		meta   map[string]string
+	Server bool
+	Meta   MetaData
+	Peer   struct {
+		Server bool
+		Meta   MetaData
 	}
 
 	mu     sync.RWMutex
@@ -60,8 +60,8 @@ func Open(rw io.ReadWriteCloser, sec Security, sockType SocketType, sockID Socke
 		id:     sockID,
 		rw:     rw,
 		sec:    sec,
-		server: server,
-		meta:   nil,
+		Server: server,
+		Meta:   nil,
 		topics: make(map[string]struct{}),
 	}
 
@@ -77,12 +77,12 @@ func Open(rw io.ReadWriteCloser, sec Security, sockType SocketType, sockID Socke
 func (conn *Conn) init(sec Security) error {
 	var err error
 
-	err = conn.greet(conn.server)
+	err = conn.greet(conn.Server)
 	if err != nil {
 		return errors.Wrapf(err, "zmq4: could not exchange greetings")
 	}
 
-	err = conn.sec.Handshake(conn, conn.server)
+	err = conn.sec.Handshake(conn, conn.Server)
 	if err != nil {
 		return errors.Wrapf(err, "zmq4: could not perform security handshake")
 	}
@@ -132,7 +132,7 @@ func (conn *Conn) greet(server bool) error {
 		return errBadSec
 	}
 
-	conn.peer.server, err = asBool(recv.Server)
+	conn.Peer.Server, err = asBool(recv.Server)
 	if err != nil {
 		return errors.Wrapf(err, "zmq4: could not get peer server flag")
 	}

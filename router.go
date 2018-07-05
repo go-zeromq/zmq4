@@ -121,7 +121,7 @@ func (q *routerQReader) read(ctx context.Context, msg *Msg) error {
 }
 
 func (q *routerQReader) listen(ctx context.Context, r *msgReader) {
-	id := []byte(r.r.peer.meta[sysSockID])
+	id := []byte(r.r.Peer.Meta[sysSockID])
 	for {
 		var msg Msg
 		err := r.read(ctx, &msg)
@@ -181,7 +181,7 @@ func (w *routerMWriter) write(ctx context.Context, msg Msg) error {
 	dmsg := NewMsgFrom(msg.Frames[1:]...)
 	for i := range w.ws {
 		ww := w.ws[i]
-		pid := []byte(ww.w.peer.meta[sysSockID])
+		pid := []byte(ww.w.Peer.Meta[sysSockID])
 		if !bytes.Equal(pid, id) {
 			continue
 		}
