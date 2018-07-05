@@ -168,15 +168,15 @@ func (c *Conn) metadata(appMD map[string]string) ([]byte, error) {
 		}
 
 		keys[key] = struct{}{}
-		if _, err := io.Copy(buf, metaData{k: "X-" + key, v: v}); err != nil {
+		if _, err := io.Copy(buf, MetaData{K: "X-" + key, V: v}); err != nil {
 			return nil, err
 		}
 	}
 
-	if _, err := io.Copy(buf, metaData{k: sysSockType, v: string(c.typ)}); err != nil {
+	if _, err := io.Copy(buf, MetaData{K: sysSockType, V: string(c.typ)}); err != nil {
 		return nil, err
 	}
-	if _, err := io.Copy(buf, metaData{k: sysSockID, v: c.id.String()}); err != nil {
+	if _, err := io.Copy(buf, MetaData{K: sysSockID, V: c.id.String()}); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil
@@ -206,19 +206,19 @@ func (c *Conn) recvMD() (map[string]string, error) {
 	appMetadata := make(map[string]string)
 	i := 0
 	for i < len(cmd.Body) {
-		var kv metaData
+		var kv MetaData
 		n, err := kv.Write(cmd.Body[i:])
 		if err != nil {
 			return nil, err
 		}
 		i += n
 
-		name := strings.Title(kv.k)
+		name := strings.Title(kv.K)
 		if strings.HasPrefix(name, "X-") {
-			appMetadata[name] = kv.v
+			appMetadata[name] = kv.V
 		} else {
-			sysMetadata[name] = kv.v
-			appMetadata[name] = kv.v
+			sysMetadata[name] = kv.V
+			appMetadata[name] = kv.V
 		}
 	}
 
