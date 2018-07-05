@@ -145,7 +145,7 @@ func (c *Conn) sendMD(appMD map[string]string) error {
 	if err != nil {
 		return err
 	}
-	return c.SendCmd(cmdReady, md)
+	return c.SendCmd(CmdReady, md)
 }
 
 // Metadata returns the ZMTP-serialized metadata for this connection.
@@ -198,7 +198,7 @@ func (c *Conn) recvMD() (map[string]string, error) {
 		return nil, err
 	}
 
-	if cmd.Name != cmdReady {
+	if cmd.Name != CmdReady {
 		return nil, ErrBadCmd
 	}
 
@@ -284,9 +284,9 @@ func (c *Conn) RecvMsg() (Msg, error) {
 	}
 
 	switch cmd.Name {
-	case cmdPing:
+	case CmdPing:
 		// send back a PONG immediately.
-		msg.err = c.SendCmd(cmdPong, nil)
+		msg.err = c.SendCmd(CmdPong, nil)
 		if msg.err != nil {
 			return msg, msg.err
 		}
