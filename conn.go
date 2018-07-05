@@ -22,6 +22,7 @@ type Conn struct {
 	rw     io.ReadWriteCloser
 	sec    Security
 	server bool
+	meta   map[string]string
 	peer   struct {
 		server bool
 		meta   map[string]string
@@ -60,10 +61,11 @@ func Open(rw io.ReadWriteCloser, sec Security, sockType SocketType, sockID Socke
 		rw:     rw,
 		sec:    sec,
 		server: server,
+		meta:   nil,
 		topics: make(map[string]struct{}),
 	}
 
-	err := conn.init(sec, nil)
+	err := conn.init(sec)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +74,7 @@ func Open(rw io.ReadWriteCloser, sec Security, sockType SocketType, sockID Socke
 }
 
 // init performs a ZMTP handshake over an io.ReadWriter
-func (conn *Conn) init(sec Security, md map[string]string) error {
+func (conn *Conn) init(sec Security) error {
 	var err error
 
 	err = conn.greet(conn.server)
@@ -85,7 +87,7 @@ func (conn *Conn) init(sec Security, md map[string]string) error {
 		return errors.Wrapf(err, "zmq4: could not perform security handshake")
 	}
 
-	err = conn.sendMD(md)
+	err = conn.sendMD(conn.meta)
 	if err != nil {
 		return errors.Wrapf(err, "zmq4: could not send metadata to peer")
 	}
@@ -139,32 +141,45 @@ func (conn *Conn) greet(server bool) error {
 }
 
 func (c *Conn) sendMD(appMD map[string]string) error {
+	md, err := c.metadata(appMD)
+	if err != nil {
+		return err
+	}
+	return c.SendCmd(cmdReady, md)
+}
+
+// Metadata returns the ZMTP-serialized metadata for this connection.
+func (c *Conn) Metadata() ([]byte, error) {
+	return c.metadata(c.meta)
+}
+
+func (c *Conn) metadata(appMD map[string]string) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	keys := make(map[string]struct{})
 
 	for k, v := range appMD {
 		if len(k) == 0 {
-			return errEmptyAppMDKey
+			return nil, errEmptyAppMDKey
 		}
 
 		key := strings.ToLower(k)
 		if _, dup := keys[key]; dup {
-			return errDupAppMDKey
+			return nil, errDupAppMDKey
 		}
 
 		keys[key] = struct{}{}
 		if _, err := io.Copy(buf, metaData{k: "X-" + key, v: v}); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	if _, err := io.Copy(buf, metaData{k: sysSockType, v: string(c.typ)}); err != nil {
-		return err
+		return nil, err
 	}
 	if _, err := io.Copy(buf, metaData{k: sysSockID, v: c.id.String()}); err != nil {
-		return err
+		return nil, err
 	}
-	return c.SendCmd(cmdReady, buf.Bytes())
+	return buf.Bytes(), nil
 }
 
 func (c *Conn) recvMD() (map[string]string, error) {
