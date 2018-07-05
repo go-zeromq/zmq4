@@ -168,15 +168,15 @@ func (c *Conn) metadata(appMD map[string]string) ([]byte, error) {
 		}
 
 		keys[key] = struct{}{}
-		if _, err := io.Copy(buf, MetaData{K: "X-" + key, V: v}); err != nil {
+		if _, err := io.Copy(buf, Property{K: "X-" + key, V: v}); err != nil {
 			return nil, err
 		}
 	}
 
-	if _, err := io.Copy(buf, MetaData{K: sysSockType, V: string(c.typ)}); err != nil {
+	if _, err := io.Copy(buf, Property{K: sysSockType, V: string(c.typ)}); err != nil {
 		return nil, err
 	}
-	if _, err := io.Copy(buf, MetaData{K: sysSockID, V: c.id.String()}); err != nil {
+	if _, err := io.Copy(buf, Property{K: sysSockID, V: c.id.String()}); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil
@@ -206,7 +206,7 @@ func (c *Conn) recvMD() (map[string]string, error) {
 	appMetadata := make(map[string]string)
 	i := 0
 	for i < len(cmd.Body) {
-		var kv MetaData
+		var kv Property
 		n, err := kv.Write(cmd.Body[i:])
 		if err != nil {
 			return nil, err

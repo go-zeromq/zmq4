@@ -155,37 +155,37 @@ const (
 	sysSockID   = "Identity"
 )
 
-// MetaData describes a Conn metadata.
-// The on-wire respresentation of MetaData is specified by:
+// Property describes a Conn metadata's entry.
+// The on-wire respresentation of Property is specified by:
 //  https://rfc.zeromq.org/spec:23/ZMTP/
-type MetaData struct {
+type Property struct {
 	K string
 	V string
 }
 
-func (md MetaData) Read(data []byte) (n int, err error) {
-	klen := len(md.K)
-	vlen := len(md.V)
+func (prop Property) Read(data []byte) (n int, err error) {
+	klen := len(prop.K)
+	vlen := len(prop.V)
 	size := 1 + klen + 4 + vlen
 	_ = data[:size] // help with bound check elision
 
 	data[n] = byte(klen)
 	n++
-	n += copy(data[n:n+klen], strings.Title(md.K))
+	n += copy(data[n:n+klen], strings.Title(prop.K))
 	binary.BigEndian.PutUint32(data[n:n+4], uint32(vlen))
 	n += 4
-	n += copy(data[n:n+vlen], md.V)
+	n += copy(data[n:n+vlen], prop.V)
 	return n, io.EOF
 }
 
-func (md *MetaData) Write(data []byte) (n int, err error) {
+func (prop *Property) Write(data []byte) (n int, err error) {
 	klen := int(data[n])
 	n++
 	if klen > len(data) {
 		return n, io.ErrUnexpectedEOF
 	}
 
-	md.K = strings.Title(string(data[n : n+klen]))
+	prop.K = strings.Title(string(data[n : n+klen]))
 	n += klen
 
 	v := binary.BigEndian.Uint32(data[n : n+4])
@@ -199,7 +199,7 @@ func (md *MetaData) Write(data []byte) (n int, err error) {
 		return n, io.ErrUnexpectedEOF
 	}
 
-	md.V = string(data[n : n+vlen])
+	prop.V = string(data[n : n+vlen])
 	n += vlen
 	return n, nil
 }
