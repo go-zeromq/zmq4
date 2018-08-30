@@ -22,10 +22,10 @@ type Conn struct {
 	rw     io.ReadWriteCloser
 	sec    Security
 	Server bool
-	Meta   MetaData
+	Meta   Metadata
 	Peer   struct {
 		Server bool
-		Meta   MetaData
+		Meta   Metadata
 	}
 
 	mu     sync.RWMutex
@@ -61,12 +61,12 @@ func Open(rw io.ReadWriteCloser, sec Security, sockType SocketType, sockID Socke
 		rw:     rw,
 		sec:    sec,
 		Server: server,
-		Meta:   make(MetaData),
+		Meta:   make(Metadata),
 		topics: make(map[string]struct{}),
 	}
 	conn.Meta[sysSockType] = string(conn.typ)
 	conn.Meta[sysSockID] = conn.id.String()
-	conn.Peer.Meta = make(MetaData)
+	conn.Peer.Meta = make(Metadata)
 
 	err := conn.init(sec)
 	if err != nil {

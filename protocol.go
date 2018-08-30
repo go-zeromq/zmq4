@@ -155,11 +155,11 @@ const (
 	sysSockID   = "Identity"
 )
 
-// MetaData is describing a Conn's metadata information.
-type MetaData map[string]string
+// Metadata is describing a Conn's metadata information.
+type Metadata map[string]string
 
 // MarshalZMTP marshals MetaData to ZMTP encoded data.
-func (md MetaData) MarshalZMTP() ([]byte, error) {
+func (md Metadata) MarshalZMTP() ([]byte, error) {
 	buf := new(bytes.Buffer)
 	keys := make(map[string]struct{})
 
@@ -189,7 +189,7 @@ func (md MetaData) MarshalZMTP() ([]byte, error) {
 }
 
 // UnmarshalZMTP unmarshals MetaData from a ZMTP encoded data.
-func (md *MetaData) UnmarshalZMTP(p []byte) error {
+func (md *Metadata) UnmarshalZMTP(p []byte) error {
 	i := 0
 	for i < len(p) {
 		var kv Property
