@@ -1,4 +1,4 @@
-sudo: false
+sudo: true
 language: go
 go:
   - 1.8.x
@@ -15,14 +15,11 @@ matrix:
 env:
  - TAGS="-tags czmq4"
 
-addons:
-  apt:
-    sources:
-    - sourceline: 'deb http://download.opensuse.org/repositories/network:/messaging:/zeromq:/git-draft/xUbuntu_12.04/ ./'
-      key_url: 'http://download.opensuse.org/repositories/network:/messaging:/zeromq:/git-draft/xUbuntu_12.04/Release.key'
-    packages:
-    - libsodium-dev
-    - libczmq-dev
+before_script:
+ - curl http://download.opensuse.org/repositories/network:/messaging:/zeromq:/git-stable/xUbuntu_14.04/Release.key | sudo apt-key add -
+ - echo "deb http://download.opensuse.org/repositories/network:/messaging:/zeromq:/git-stable/xUbuntu_14.04/ ./" | sudo tee -a /etc/apt/sources.list > /dev/null
+ - sudo apt-get update -qq -y
+ - sudo apt-get install -y libsodium-dev libczmq-dev
 
 script:
  - go get -d -t -v $TAGS ./...
