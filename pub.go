@@ -112,6 +112,22 @@ func (q *pubQReader) addConn(r *msgReader) {
 	q.mu.Unlock()
 }
 
+func (q *pubQReader) rmConn(r *msgReader) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	cur := -1
+	for i := range q.rs {
+		if q.rs[i] == r {
+			cur = i
+			break
+		}
+	}
+	if cur >= 0 {
+		q.rs = append(q.rs[:cur], q.rs[cur+1:]...)
+	}
+}
+
 func (q *pubQReader) read(ctx context.Context, msg *Msg) error {
 	q.sem.lock()
 	select {
@@ -122,6 +138,9 @@ func (q *pubQReader) read(ctx context.Context, msg *Msg) error {
 }
 
 func (q *pubQReader) listen(ctx context.Context, r *msgReader) {
+	defer q.rmConn(r)
+	defer r.Close()
+
 	for {
 		var msg Msg
 		err := r.read(ctx, &msg)
@@ -187,6 +206,22 @@ func (mw *pubMWriter) addConn(w *msgWriter) {
 	mw.sem.enable()
 	mw.ws = append(mw.ws, w)
 	mw.mu.Unlock()
+}
+
+func (mw *pubMWriter) rmConn(w *msgWriter) {
+	mw.mu.Lock()
+	defer mw.mu.Unlock()
+
+	cur := -1
+	for i := range mw.ws {
+		if mw.ws[i] == w {
+			cur = i
+			break
+		}
+	}
+	if cur >= 0 {
+		mw.ws = append(mw.ws[:cur], mw.ws[cur+1:]...)
+	}
 }
 
 func (w *pubMWriter) write(ctx context.Context, msg Msg) error {

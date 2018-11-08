@@ -17,6 +17,7 @@ type rpool interface {
 	io.Closer
 
 	addConn(r *msgReader)
+	rmConn(r *msgReader)
 	read(ctx context.Context, msg *Msg) error
 }
 
@@ -25,6 +26,7 @@ type wpool interface {
 	io.Closer
 
 	addConn(w *msgWriter)
+	rmConn(r *msgWriter)
 	write(ctx context.Context, msg Msg) error
 }
 
@@ -104,6 +106,22 @@ func (q *qreader) addConn(r *msgReader) {
 	q.mu.Unlock()
 }
 
+func (q *qreader) rmConn(r *msgReader) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	cur := -1
+	for i := range q.rs {
+		if q.rs[i] == r {
+			cur = i
+			break
+		}
+	}
+	if cur >= 0 {
+		q.rs = append(q.rs[:cur], q.rs[cur+1:]...)
+	}
+}
+
 func (q *qreader) read(ctx context.Context, msg *Msg) error {
 	q.sem.lock()
 	select {
@@ -114,6 +132,9 @@ func (q *qreader) read(ctx context.Context, msg *Msg) error {
 }
 
 func (q *qreader) listen(ctx context.Context, r *msgReader) {
+	defer q.rmConn(r)
+	defer r.Close()
+
 	for {
 		var msg Msg
 		err := r.read(ctx, &msg)
@@ -164,6 +185,22 @@ func (mw *mwriter) addConn(w *msgWriter) {
 	mw.mu.Unlock()
 }
 
+func (mw *mwriter) rmConn(w *msgWriter) {
+	mw.mu.Lock()
+	defer mw.mu.Unlock()
+
+	cur := -1
+	for i := range mw.ws {
+		if mw.ws[i] == w {
+			cur = i
+			break
+		}
+	}
+	if cur >= 0 {
+		mw.ws = append(mw.ws[:cur], mw.ws[cur+1:]...)
+	}
+}
+
 func (w *mwriter) write(ctx context.Context, msg Msg) error {
 	w.sem.lock()
 	grp, ctx := errgroup.WithContext(ctx)
@@ -204,6 +241,8 @@ func (lw *lbwriter) addConn(w *msgWriter) {
 	go lw.listen(lw.ctx, w)
 }
 
+func (*lbwriter) rmConn(w *msgWriter) {}
+
 func (lw *lbwriter) write(ctx context.Context, msg Msg) error {
 	lw.sem.lock()
 	select {
@@ -215,6 +254,9 @@ func (lw *lbwriter) write(ctx context.Context, msg Msg) error {
 }
 
 func (lw *lbwriter) listen(ctx context.Context, w *msgWriter) {
+	defer lw.rmConn(w)
+	defer w.Close()
+
 	for {
 		select {
 		case <-ctx.Done():
