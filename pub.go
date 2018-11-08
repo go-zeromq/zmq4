@@ -177,13 +177,11 @@ type pubMWriter struct {
 	ctx context.Context
 	mu  sync.Mutex
 	ws  []*msgWriter
-	sem *semaphore
 }
 
 func newPubMWriter(ctx context.Context) *pubMWriter {
 	return &pubMWriter{
 		ctx: ctx,
-		sem: newSemaphore(),
 	}
 }
 
@@ -203,7 +201,6 @@ func (w *pubMWriter) Close() error {
 
 func (mw *pubMWriter) addConn(w *msgWriter) {
 	mw.mu.Lock()
-	mw.sem.enable()
 	mw.ws = append(mw.ws, w)
 	mw.mu.Unlock()
 }
@@ -225,7 +222,6 @@ func (mw *pubMWriter) rmConn(w *msgWriter) {
 }
 
 func (w *pubMWriter) write(ctx context.Context, msg Msg) error {
-	w.sem.lock()
 	grp, ctx := errgroup.WithContext(ctx)
 	w.mu.Lock()
 	topic := string(msg.Frames[0])

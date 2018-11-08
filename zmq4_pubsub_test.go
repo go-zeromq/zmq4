@@ -55,6 +55,31 @@ type testCasePubSub struct {
 	sub2     zmq4.Socket
 }
 
+func TestNotBlockingSendOnPub(t *testing.T) {
+
+	pub := zmq4.NewPub(context.Background())
+	defer pub.Close()
+
+	err := pub.Listen(must(EndPoint("tcp")))
+	if err != nil {
+		t.Fatalf("could not listen on end point: %v", err)
+	}
+
+	errc := make(chan error)
+	go func() {
+		errc <- pub.Send(zmq4.NewMsg([]byte("blocked?")))
+	}()
+
+	select {
+	case <-time.After(5 * time.Second):
+		t.Fatalf("pub socket should not block!")
+	case err := <-errc:
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	}
+}
+
 func TestPubSub(t *testing.T) {
 	var (
 		topics      = []string{"", "MSG", "msg"}
