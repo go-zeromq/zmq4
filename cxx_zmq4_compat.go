@@ -10,7 +10,7 @@ import (
 	"context"
 	"net"
 
-	czmq4 "github.com/zeromq/goczmq"
+	czmq4 "gopkg.in/zeromq/goczmq.v4"
 )
 
 func NewCPair(ctx context.Context, opts ...czmq4.SockOption) Socket {
@@ -145,7 +145,7 @@ func (sck *csocket) SetOption(name string, value interface{}) error {
 		return nil
 	case OptionUnsubscribe:
 		topic := value.(string)
-		sck.sock.SetUnsubscribe(topic)
+		sck.sock.SetOption(czmq4.SockSetUnsubscribe(topic))
 		return nil
 	default:
 		panic("unknown set option name [" + name + "]")
