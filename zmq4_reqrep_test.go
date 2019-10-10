@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/go-zeromq/zmq4"
-	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/xerrors"
 )
 
 var (
@@ -78,14 +78,14 @@ func TestReqRep(t *testing.T) {
 
 				err := tc.rep.Listen(ep)
 				if err != nil {
-					return errors.Wrapf(err, "could not listen")
+					return xerrors.Errorf("could not listen: %w", err)
 				}
 
 				loop := true
 				for loop {
 					msg, err := tc.rep.Recv()
 					if err != nil {
-						return errors.Wrapf(err, "could not recv REQ message")
+						return xerrors.Errorf("could not recv REQ message: %w", err)
 					}
 					var rep zmq4.Msg
 					switch string(msg.Frames[0]) {
@@ -100,7 +100,7 @@ func TestReqRep(t *testing.T) {
 
 					err = tc.rep.Send(rep)
 					if err != nil {
-						return errors.Wrapf(err, "could not send REP message to %v", msg)
+						return xerrors.Errorf("could not send REP message to %v: %w", msg, err)
 					}
 				}
 
@@ -110,7 +110,7 @@ func TestReqRep(t *testing.T) {
 
 				err := tc.req.Dial(ep)
 				if err != nil {
-					return errors.Wrapf(err, "could not dial")
+					return xerrors.Errorf("could not dial: %w", err)
 				}
 
 				for _, msg := range []struct {
@@ -123,22 +123,22 @@ func TestReqRep(t *testing.T) {
 				} {
 					err = tc.req.Send(msg.req)
 					if err != nil {
-						return errors.Wrapf(err, "could not send REQ message %v", msg.req)
+						return xerrors.Errorf("could not send REQ message %v: %w", msg.req, err)
 					}
 					rep, err := tc.req.Recv()
 					if err != nil {
-						return errors.Wrapf(err, "could not recv REP message %v", msg.req)
+						return xerrors.Errorf("could not recv REP message %v: %w", msg.req, err)
 					}
 
 					if got, want := rep, msg.rep; !reflect.DeepEqual(got, want) {
-						return errors.Errorf("got = %v, want= %v", got, want)
+						return xerrors.Errorf("got = %v, want= %v", got, want)
 					}
 				}
 
 				return err
 			})
 			if err := grp.Wait(); err != nil {
-				t.Fatal(err)
+				t.Fatalf("error: %+v", err)
 			}
 		})
 	}

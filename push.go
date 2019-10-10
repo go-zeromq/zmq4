@@ -7,7 +7,7 @@ package zmq4
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	"golang.org/x/xerrors"
 )
 
 // NewPush returns a new PUSH ZeroMQ socket.
@@ -36,7 +36,7 @@ func (push *pushSocket) Send(msg Msg) error {
 
 // Recv receives a complete message.
 func (*pushSocket) Recv() (Msg, error) {
-	return Msg{}, errors.Errorf("zmq4: PUSH sockets can't recv messages")
+	return Msg{}, xerrors.Errorf("zmq4: PUSH sockets can't recv messages")
 }
 
 // Listen connects a local endpoint to the Socket.

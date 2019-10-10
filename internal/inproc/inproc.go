@@ -10,14 +10,14 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/pkg/errors"
+	"golang.org/x/xerrors"
 )
 
 var (
 	mgr = context{db: make(map[string]*Listener)}
 
-	ErrClosed      = errors.New("inproc: connection closed")
-	ErrConnRefused = errors.New("inproc: connection refused")
+	ErrClosed      = xerrors.New("inproc: connection closed")
+	ErrConnRefused = xerrors.New("inproc: connection refused")
 )
 
 func init() {
@@ -92,7 +92,7 @@ func Listen(addr string) (*Listener, error) {
 	_, dup := mgr.db[addr]
 	if dup {
 		mgr.mu.Unlock()
-		return nil, errors.Errorf("inproc: address %q already in use", addr)
+		return nil, xerrors.Errorf("inproc: address %q already in use", addr)
 	}
 
 	l := &Listener{

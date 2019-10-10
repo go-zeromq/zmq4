@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/go-zeromq/zmq4"
-	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/xerrors"
 )
 
 var (
@@ -74,17 +74,17 @@ func TestPushPull(t *testing.T) {
 
 				err := tc.push.Listen(ep)
 				if err != nil {
-					return errors.Wrapf(err, "could not listen")
+					return xerrors.Errorf("could not listen: %w", err)
 				}
 
 				err = tc.push.Send(hello)
 				if err != nil {
-					return errors.Wrapf(err, "could not send %v", hello)
+					return xerrors.Errorf("could not send %v: %w", hello, err)
 				}
 
 				err = tc.push.Send(bye)
 				if err != nil {
-					return errors.Wrapf(err, "could not send %v", bye)
+					return xerrors.Errorf("could not send %v: %w", bye, err)
 				}
 				return err
 			})
@@ -92,31 +92,31 @@ func TestPushPull(t *testing.T) {
 
 				err := tc.pull.Dial(ep)
 				if err != nil {
-					return errors.Wrapf(err, "could not dial")
+					return xerrors.Errorf("could not dial: %w", err)
 				}
 
 				msg, err := tc.pull.Recv()
 				if err != nil {
-					return errors.Wrapf(err, "could not recv %v", hello)
+					return xerrors.Errorf("could not recv %v: %w", hello, err)
 				}
 
 				if got, want := msg, hello; !reflect.DeepEqual(got, want) {
-					return errors.Errorf("recv1: got = %v, want= %v", got, want)
+					return xerrors.Errorf("recv1: got = %v, want= %v", got, want)
 				}
 
 				msg, err = tc.pull.Recv()
 				if err != nil {
-					return errors.Wrapf(err, "could not recv %v", bye)
+					return xerrors.Errorf("could not recv %v: %w", bye, err)
 				}
 
 				if got, want := msg, bye; !reflect.DeepEqual(got, want) {
-					return errors.Errorf("recv2: got = %v, want= %v", got, want)
+					return xerrors.Errorf("recv2: got = %v, want= %v", got, want)
 				}
 
 				return err
 			})
 			if err := grp.Wait(); err != nil {
-				t.Fatal(err)
+				t.Fatalf("error: %+v", err)
 			}
 		})
 	}

@@ -10,19 +10,19 @@ import (
 	"io"
 	"strings"
 
-	"github.com/pkg/errors"
+	"golang.org/x/xerrors"
 )
 
 var (
-	errGreeting      = errors.New("zmq4: invalid greeting received")
-	errSecMech       = errors.New("zmq4: invalid security mechanism")
-	errBadSec        = errors.New("zmq4: invalid or unsupported security mechanism")
-	ErrBadCmd        = errors.New("zmq4: invalid command name")
-	ErrBadFrame      = errors.New("zmq4: invalid frame")
-	errOverflow      = errors.New("zmq4: overflow")
-	errEmptyAppMDKey = errors.New("zmq4: empty application metadata key")
-	errDupAppMDKey   = errors.New("zmq4: duplicate application metadata key")
-	errBoolCnv       = errors.New("zmq4: invalid byte to bool conversion")
+	errGreeting      = xerrors.New("zmq4: invalid greeting received")
+	errSecMech       = xerrors.New("zmq4: invalid security mechanism")
+	errBadSec        = xerrors.New("zmq4: invalid or unsupported security mechanism")
+	ErrBadCmd        = xerrors.New("zmq4: invalid command name")
+	ErrBadFrame      = xerrors.New("zmq4: invalid frame")
+	errOverflow      = xerrors.New("zmq4: overflow")
+	errEmptyAppMDKey = xerrors.New("zmq4: empty application metadata key")
+	errDupAppMDKey   = xerrors.New("zmq4: duplicate application metadata key")
+	errBoolCnv       = xerrors.New("zmq4: invalid byte to bool conversion")
 )
 
 const (

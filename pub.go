@@ -8,8 +8,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/xerrors"
 )
 
 // NewPub returns a new PUB ZeroMQ socket.
@@ -41,7 +41,7 @@ func (pub *pubSocket) Send(msg Msg) error {
 
 // Recv receives a complete message.
 func (*pubSocket) Recv() (Msg, error) {
-	msg := Msg{err: errors.Errorf("zmq4: PUB sockets can't recv messages")}
+	msg := Msg{err: xerrors.Errorf("zmq4: PUB sockets can't recv messages")}
 	return msg, msg.err
 }
 

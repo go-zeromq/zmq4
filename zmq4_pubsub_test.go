@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/go-zeromq/zmq4"
-	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/xerrors"
 )
 
 var (
@@ -62,7 +62,7 @@ func TestNotBlockingSendOnPub(t *testing.T) {
 
 	err := pub.Listen(must(EndPoint("tcp")))
 	if err != nil {
-		t.Fatalf("could not listen on end point: %v", err)
+		t.Fatalf("could not listen on end point: %+v", err)
 	}
 
 	errc := make(chan error)
@@ -75,7 +75,7 @@ func TestNotBlockingSendOnPub(t *testing.T) {
 		t.Fatalf("pub socket should not block!")
 	case err := <-errc:
 		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+			t.Fatalf("unexpected error: %+v", err)
 		}
 	}
 }
@@ -126,7 +126,7 @@ func TestPubSub(t *testing.T) {
 
 				err := tc.pub.Listen(ep)
 				if err != nil {
-					return errors.Wrapf(err, "could not listen")
+					return xerrors.Errorf("could not listen: %w", err)
 				}
 
 				wg1.Wait()
@@ -137,7 +137,7 @@ func TestPubSub(t *testing.T) {
 				for _, msg := range msgs[0] {
 					err = tc.pub.Send(msg)
 					if err != nil {
-						return errors.Wrapf(err, "could not send message %v", msg)
+						return xerrors.Errorf("could not send message %v: %w", msg, err)
 					}
 				}
 
@@ -150,14 +150,14 @@ func TestPubSub(t *testing.T) {
 						var err error
 						err = sub.Dial(ep)
 						if err != nil {
-							return errors.Wrapf(err, "could not dial")
+							return xerrors.Errorf("could not dial: %w", err)
 						}
 						wg1.Done()
 						wg1.Wait()
 
 						err = sub.SetOption(zmq4.OptionSubscribe, topics[isub])
 						if err != nil {
-							return errors.Wrapf(err, "could not subscribe to topic %q", topics[isub])
+							return xerrors.Errorf("could not subscribe to topic %q: %w", topics[isub], err)
 						}
 
 						wg2.Done()
@@ -167,10 +167,10 @@ func TestPubSub(t *testing.T) {
 						for imsg, want := range msgs {
 							msg, err := sub.Recv()
 							if err != nil {
-								return errors.Wrapf(err, "could not recv message %v", want)
+								return xerrors.Errorf("could not recv message %v: %w", want, err)
 							}
 							if !reflect.DeepEqual(msg, want) {
-								return errors.Errorf("sub[%d][msg=%d]: got = %v, want= %v", isub, imsg, msg, want)
+								return xerrors.Errorf("sub[%d][msg=%d]: got = %v, want= %v", isub, imsg, msg, want)
 							}
 							nmsgs[isub]++
 						}
@@ -181,7 +181,7 @@ func TestPubSub(t *testing.T) {
 			}
 
 			if err := grp.Wait(); err != nil {
-				t.Fatal(err)
+				t.Fatalf("error: %+v", err)
 			}
 
 			for i, want := range wantNumMsgs {

@@ -10,7 +10,7 @@ import (
 	"io"
 
 	"github.com/go-zeromq/zmq4"
-	"github.com/pkg/errors"
+	"golang.org/x/xerrors"
 )
 
 // security implements the PLAIN security mechanism.
@@ -40,44 +40,44 @@ func (sec *security) Handshake(conn *zmq4.Conn, server bool) error {
 	case server:
 		cmd, err := conn.RecvCmd()
 		if err != nil {
-			return errors.WithMessage(err, "could not receive HELLO from client")
+			return xerrors.Errorf("security/plain: could not receive HELLO from client: %w", err)
 		}
 
 		if cmd.Name != zmq4.CmdHello {
-			return errors.Errorf("security/plain: expected HELLO command")
+			return xerrors.Errorf("security/plain: expected HELLO command")
 		}
 
 		// FIXME(sbinet): perform a real authentication
 		err = validateHello(cmd.Body)
 		if err != nil {
 			conn.SendCmd(zmq4.CmdError, []byte("invalid")) // FIXME(sbinet) correct ERROR reason
-			return errors.WithMessage(err, "could not authenticate client")
+			return xerrors.Errorf("security/plain: could not authenticate client: %w", err)
 		}
 
 		err = conn.SendCmd(zmq4.CmdWelcome, nil)
 		if err != nil {
-			return errors.WithMessage(err, "could not send WELCOME to client")
+			return xerrors.Errorf("security/plain: could not send WELCOME to client: %w", err)
 		}
 
 		cmd, err = conn.RecvCmd()
 		if err != nil {
-			return errors.WithMessage(err, "could not receive INITIATE from client")
+			return xerrors.Errorf("security/plain: could not receive INITIATE from client: %w", err)
 		}
 
 		err = conn.Peer.Meta.UnmarshalZMTP(cmd.Body)
 		if err != nil {
-			return errors.WithMessage(err, "could not unmarshal peer metadata")
+			return xerrors.Errorf("security/plain: could not unmarshal peer metadata: %w", err)
 		}
 
 		raw, err := conn.Meta.MarshalZMTP()
 		if err != nil {
 			conn.SendCmd(zmq4.CmdError, []byte("invalid")) // FIXME(sbinet) correct ERROR reason
-			return errors.WithMessage(err, "could not serialize metadata")
+			return xerrors.Errorf("security/plain: could not serialize metadata: %w", err)
 		}
 
 		err = conn.SendCmd(zmq4.CmdReady, raw)
 		if err != nil {
-			return errors.WithMessage(err, "could not send READY to client")
+			return xerrors.Errorf("security/plain: could not send READY to client: %w", err)
 		}
 
 	case !server:
@@ -89,41 +89,41 @@ func (sec *security) Handshake(conn *zmq4.Conn, server bool) error {
 
 		err := conn.SendCmd(zmq4.CmdHello, hello)
 		if err != nil {
-			return errors.WithMessage(err, "could not send HELLO to server")
+			return xerrors.Errorf("security/plain: could not send HELLO to server: %w", err)
 		}
 
 		cmd, err := conn.RecvCmd()
 		if err != nil {
-			return errors.WithMessage(err, "could not receive WELCOME from server")
+			return xerrors.Errorf("security/plain: could not receive WELCOME from server: %w", err)
 		}
 		if cmd.Name != zmq4.CmdWelcome {
 			conn.SendCmd(zmq4.CmdError, []byte("invalid command")) // FIXME(sbinet) correct ERROR reason
-			return errors.WithMessage(err, "expected a WELCOME command from server")
+			return xerrors.Errorf("security/plain: expected a WELCOME command from server: %w", err)
 		}
 
 		raw, err := conn.Meta.MarshalZMTP()
 		if err != nil {
 			conn.SendCmd(zmq4.CmdError, []byte("internal error")) // FIXME(sbinet) correct ERROR reason
-			return errors.WithMessage(err, "could not serialize metadata")
+			return xerrors.Errorf("security/plain: could not serialize metadata: %w", err)
 		}
 
 		err = conn.SendCmd(zmq4.CmdInitiate, raw)
 		if err != nil {
-			return errors.WithMessage(err, "could not send INITIATE to server")
+			return xerrors.Errorf("security/plain: could not send INITIATE to server: %w", err)
 		}
 
 		cmd, err = conn.RecvCmd()
 		if err != nil {
-			return errors.WithMessage(err, "could not receive READY from server")
+			return xerrors.Errorf("security/plain: could not receive READY from server: %w", err)
 		}
 		if cmd.Name != zmq4.CmdReady {
 			conn.SendCmd(zmq4.CmdError, []byte("invalid command")) // FIXME(sbinet) correct ERROR reason
-			return errors.WithMessage(err, "expected a READY command from server")
+			return xerrors.Errorf("security/plain: expected a READY command from server: %w", err)
 		}
 
 		err = conn.Peer.Meta.UnmarshalZMTP(cmd.Body)
 		if err != nil {
-			return errors.WithMessage(err, "could not unmarshal peer metadata")
+			return xerrors.Errorf("security/plain: could not unmarshal peer metadata: %w", err)
 		}
 
 		sec.user = nil

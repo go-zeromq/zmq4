@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/pkg/errors"
+	"golang.org/x/xerrors"
 )
 
 // Conn implements the ZeroMQ Message Transport Protocol as defined
@@ -48,11 +48,11 @@ func (c *Conn) Write(p []byte) (int, error) {
 // Open performs a complete ZMTP handshake.
 func Open(rw io.ReadWriteCloser, sec Security, sockType SocketType, sockID SocketIdentity, server bool) (*Conn, error) {
 	if rw == nil {
-		return nil, errors.Errorf("zmq4: invalid nil read-writer")
+		return nil, xerrors.Errorf("zmq4: invalid nil read-writer")
 	}
 
 	if sec == nil {
-		return nil, errors.Errorf("zmq4: invalid nil security")
+		return nil, xerrors.Errorf("zmq4: invalid nil security")
 	}
 
 	conn := &Conn{
@@ -82,17 +82,17 @@ func (conn *Conn) init(sec Security) error {
 
 	err = conn.greet(conn.Server)
 	if err != nil {
-		return errors.Wrapf(err, "zmq4: could not exchange greetings")
+		return xerrors.Errorf("zmq4: could not exchange greetings: %w", err)
 	}
 
 	err = conn.sec.Handshake(conn, conn.Server)
 	if err != nil {
-		return errors.Wrapf(err, "zmq4: could not perform security handshake")
+		return xerrors.Errorf("zmq4: could not perform security handshake: %w", err)
 	}
 
 	peer := SocketType(conn.Peer.Meta[sysSockType])
 	if !peer.IsCompatible(conn.typ) {
-		return errors.Errorf("zmq4: peer=%q not compatible with %q", peer, conn.typ)
+		return xerrors.Errorf("zmq4: peer=%q not compatible with %q", peer, conn.typ)
 	}
 
 	// FIXME(sbinet): if security mechanism does not define a client/server
@@ -116,13 +116,13 @@ func (conn *Conn) greet(server bool) error {
 
 	err = send.write(conn.rw)
 	if err != nil {
-		return errors.Wrapf(err, "zmq4: could not send greeting")
+		return xerrors.Errorf("zmq4: could not send greeting: %w", err)
 	}
 
 	var recv greeting
 	err = recv.read(conn.rw)
 	if err != nil {
-		return errors.Wrapf(err, "zmq4: could not recv greeting")
+		return xerrors.Errorf("zmq4: could not recv greeting: %w", err)
 	}
 
 	peerKind := asString(recv.Mechanism[:])
@@ -132,7 +132,7 @@ func (conn *Conn) greet(server bool) error {
 
 	conn.Peer.Server, err = asBool(recv.Server)
 	if err != nil {
-		return errors.Wrapf(err, "zmq4: could not get peer server flag")
+		return xerrors.Errorf("zmq4: could not get peer server flag: %w", err)
 	}
 
 	return nil
@@ -158,7 +158,7 @@ func (c *Conn) SendMsg(msg Msg) error {
 		}
 		err := c.send(false, frame, flag)
 		if err != nil {
-			return errors.Wrapf(err, "zmq4: error sending frame %d/%d", i+1, nframes)
+			return xerrors.Errorf("zmq4: error sending frame %d/%d: %w", i+1, nframes, err)
 		}
 	}
 	return nil
@@ -168,7 +168,7 @@ func (c *Conn) SendMsg(msg Msg) error {
 func (c *Conn) RecvMsg() (Msg, error) {
 	msg := c.read()
 	if msg.err != nil {
-		return msg, errors.WithStack(msg.err)
+		return msg, xerrors.Errorf("zmq4: could not read recv msg: %w", msg.err)
 	}
 
 	if !msg.isCmd() {
@@ -177,19 +177,19 @@ func (c *Conn) RecvMsg() (Msg, error) {
 
 	switch len(msg.Frames) {
 	case 0:
-		msg.err = errors.Errorf("zmq4: empty command")
+		msg.err = xerrors.Errorf("zmq4: empty command")
 		return msg, msg.err
 	case 1:
 		// ok
 	default:
-		msg.err = errors.Errorf("zmq4: invalid length command")
+		msg.err = xerrors.Errorf("zmq4: invalid length command")
 		return msg, msg.err
 	}
 
 	var cmd Cmd
 	msg.err = cmd.unmarshalZMTP(msg.Frames[0])
 	if msg.err != nil {
-		return msg, errors.WithStack(msg.err)
+		return msg, xerrors.Errorf("zmq4: could not unmarshal ZMTP recv msg: %w", msg.err)
 	}
 
 	switch cmd.Name {
@@ -215,7 +215,7 @@ func (c *Conn) RecvCmd() (Cmd, error) {
 	var cmd Cmd
 	msg := c.read()
 	if msg.err != nil {
-		return cmd, errors.WithStack(msg.err)
+		return cmd, xerrors.Errorf("zmq4: could not read recv cmd: %w", msg.err)
 	}
 
 	if !msg.isCmd() {
@@ -224,18 +224,18 @@ func (c *Conn) RecvCmd() (Cmd, error) {
 
 	switch len(msg.Frames) {
 	case 0:
-		msg.err = errors.Errorf("zmq4: empty command")
+		msg.err = xerrors.Errorf("zmq4: empty command")
 		return cmd, msg.err
 	case 1:
 		// ok
 	default:
-		msg.err = errors.Errorf("zmq4: invalid length command")
+		msg.err = xerrors.Errorf("zmq4: invalid length command")
 		return cmd, msg.err
 	}
 
 	err := cmd.unmarshalZMTP(msg.Frames[0])
 	if err != nil {
-		return cmd, errors.WithStack(err)
+		return cmd, xerrors.Errorf("zmq4: could not unmarshal ZMTP recv cmd: %w", err)
 	}
 
 	return cmd, nil

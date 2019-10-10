@@ -15,8 +15,8 @@ import (
 
 	"github.com/go-zeromq/zmq4"
 	"github.com/go-zeromq/zmq4/security/null"
-	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/xerrors"
 )
 
 func TestSecurity(t *testing.T) {
@@ -28,7 +28,7 @@ func TestSecurity(t *testing.T) {
 	data := []byte("hello world")
 	wenc := new(bytes.Buffer)
 	if _, err := sec.Encrypt(wenc, data); err != nil {
-		t.Fatalf("error encrypting data: %v", err)
+		t.Fatalf("error encrypting data: %+v", err)
 	}
 
 	if !bytes.Equal(wenc.Bytes(), data) {
@@ -37,7 +37,7 @@ func TestSecurity(t *testing.T) {
 
 	wdec := new(bytes.Buffer)
 	if _, err := sec.Decrypt(wdec, wenc.Bytes()); err != nil {
-		t.Fatalf("error decrypting data: %v", err)
+		t.Fatalf("error decrypting data: %+v", err)
 	}
 
 	if !bytes.Equal(wdec.Bytes(), data) {
@@ -68,21 +68,21 @@ func TestHandshakeReqRep(t *testing.T) {
 	grp.Go(func() error {
 		err := rep.Listen(ep)
 		if err != nil {
-			return errors.Wrap(err, "could not listen")
+			return xerrors.Errorf("could not listen: %w", err)
 		}
 
 		msg, err := rep.Recv()
 		if err != nil {
-			return errors.Wrap(err, "could not recv REQ message")
+			return xerrors.Errorf("could not recv REQ message: %w", err)
 		}
 
 		if !reflect.DeepEqual(msg, reqQuit) {
-			return errors.Errorf("got = %v, want = %v", msg, repQuit)
+			return xerrors.Errorf("got = %v, want = %v", msg, repQuit)
 		}
 
 		err = rep.Send(repQuit)
 		if err != nil {
-			return errors.Wrap(err, "could not send REP message")
+			return xerrors.Errorf("could not send REP message: %w", err)
 		}
 
 		return nil
@@ -91,18 +91,18 @@ func TestHandshakeReqRep(t *testing.T) {
 	grp.Go(func() error {
 		err := req.Dial(ep)
 		if err != nil {
-			return errors.Wrap(err, "could not dial")
+			return xerrors.Errorf("could not dial: %w", err)
 		}
 
 		err = req.Send(reqQuit)
 		if err != nil {
-			return errors.Wrap(err, "could not send REQ message")
+			return xerrors.Errorf("could not send REQ message: %w", err)
 		}
 		return nil
 	})
 
 	if err := grp.Wait(); err != nil {
-		t.Fatal(err)
+		t.Fatalf("error: %+v", err)
 	}
 }
 
