@@ -16,8 +16,8 @@ env:
  - TAGS="-tags czmq4"
 
 before_script:
- - curl http://download.opensuse.org/repositories/network:/messaging:/zeromq:/git-stable/xUbuntu_14.04/Release.key | sudo apt-key add -
- - echo "deb http://download.opensuse.org/repositories/network:/messaging:/zeromq:/git-stable/xUbuntu_14.04/ ./" | sudo tee -a /etc/apt/sources.list > /dev/null
+ - curl http://download.opensuse.org/repositories/network:/messaging:/zeromq:/git-stable/xUbuntu_16.04/Release.key | sudo apt-key add -
+ - echo "deb http://download.opensuse.org/repositories/network:/messaging:/zeromq:/git-stable/xUbuntu_16.04/ ./" | sudo tee -a /etc/apt/sources.list > /dev/null
  - sudo apt-get update -qq -y
  - sudo apt-get install -y libsodium-dev libczmq-dev
 
