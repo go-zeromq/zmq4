@@ -6,6 +6,7 @@ package zmq4
 
 import (
 	"context"
+	"net"
 )
 
 // NewDealer returns a new DEALER ZeroMQ socket.
@@ -49,6 +50,12 @@ func (dealer *dealerSocket) Dial(ep string) error {
 // Type returns the type of this Socket (PUB, SUB, ...)
 func (dealer *dealerSocket) Type() SocketType {
 	return dealer.sck.Type()
+}
+
+// Addr returns the listener's address.
+// Addr returns nil if the socket isn't a listener.
+func (dealer *dealerSocket) Addr() net.Addr {
+	return dealer.sck.Addr()
 }
 
 // GetOption is used to retrieve an option for a socket.

@@ -126,6 +126,12 @@ func (sck *csocket) Type() SocketType {
 	panic("invalid C-socket type")
 }
 
+// Addr returns the listener's address.
+// Addr returns nil if the socket isn't a listener.
+func (sck *csocket) Addr() net.Addr {
+	panic("not implemented")
+}
+
 // Conn returns the underlying net.Conn the socket is bound to.
 func (sck *csocket) Conn() net.Conn {
 	panic("not implemented")

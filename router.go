@@ -7,6 +7,7 @@ package zmq4
 import (
 	"bytes"
 	"context"
+	"net"
 	"sync"
 
 	"golang.org/x/sync/errgroup"
@@ -57,6 +58,12 @@ func (router *routerSocket) Dial(ep string) error {
 // Type returns the type of this Socket (PUB, SUB, ...)
 func (router *routerSocket) Type() SocketType {
 	return router.sck.Type()
+}
+
+// Addr returns the listener's address.
+// Addr returns nil if the socket isn't a listener.
+func (router *routerSocket) Addr() net.Addr {
+	return router.sck.Addr()
 }
 
 // GetOption is used to retrieve an option for a socket.
