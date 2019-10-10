@@ -1,3 +1,5 @@
+go_import_path: github.com/go-zeromq/zmq4
+
 sudo: true
 language: go
 go:
@@ -13,7 +15,7 @@ matrix:
    - go: master
 
 env:
- - TAGS="-tags czmq4"
+ - TAGS="-tags czmq4" GO111MODULE="on"
 
 before_script:
  - curl http://download.opensuse.org/repositories/network:/messaging:/zeromq:/git-stable/xUbuntu_16.04/Release.key | sudo apt-key add -
