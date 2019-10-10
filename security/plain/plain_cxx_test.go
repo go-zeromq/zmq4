@@ -16,8 +16,8 @@ import (
 	"github.com/go-zeromq/zmq4"
 	"github.com/go-zeromq/zmq4/security/plain"
 	"github.com/pkg/errors"
+	czmq4 "github.com/zeromq/goczmq/v4"
 	"golang.org/x/sync/errgroup"
-	czmq4 "gopkg.in/zeromq/goczmq.v4"
 )
 
 func TestMain(m *testing.M) {

@@ -10,7 +10,7 @@ import (
 	"context"
 	"net"
 
-	czmq4 "gopkg.in/zeromq/goczmq.v4"
+	czmq4 "github.com/zeromq/goczmq/v4"
 )
 
 func NewCPair(ctx context.Context, opts ...czmq4.SockOption) Socket {
