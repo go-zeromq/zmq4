@@ -6,6 +6,7 @@ package zmq4
 
 import (
 	"context"
+	"net"
 )
 
 // NewPair returns a new PAIR ZeroMQ socket.
@@ -49,6 +50,12 @@ func (pair *pairSocket) Dial(ep string) error {
 // Type returns the type of this Socket (PUB, SUB, ...)
 func (pair *pairSocket) Type() SocketType {
 	return pair.sck.Type()
+}
+
+// Addr returns the listener's address.
+// Addr returns nil if the socket isn't a listener.
+func (pair *pairSocket) Addr() net.Addr {
+	return pair.sck.Addr()
 }
 
 // GetOption is used to retrieve an option for a socket.

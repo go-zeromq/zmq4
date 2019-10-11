@@ -6,6 +6,7 @@ package zmq4
 
 import (
 	"context"
+	"net"
 )
 
 // NewRep returns a new REP ZeroMQ socket.
@@ -54,6 +55,12 @@ func (rep *repSocket) Dial(ep string) error {
 // Type returns the type of this Socket (PUB, SUB, ...)
 func (rep *repSocket) Type() SocketType {
 	return rep.sck.Type()
+}
+
+// Addr returns the listener's address.
+// Addr returns nil if the socket isn't a listener.
+func (rep *repSocket) Addr() net.Addr {
+	return rep.sck.Addr()
 }
 
 // GetOption is used to retrieve an option for a socket.

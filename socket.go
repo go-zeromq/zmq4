@@ -257,6 +257,15 @@ func (sck *socket) Type() SocketType {
 	return sck.typ
 }
 
+// Addr returns the listener's address.
+// Addr returns nil if the socket isn't a listener.
+func (sck *socket) Addr() net.Addr {
+	if sck.listener == nil {
+		return nil
+	}
+	return sck.listener.Addr()
+}
+
 // GetOption is used to retrieve an option for a socket.
 func (sck *socket) GetOption(name string) (interface{}, error) {
 	v, ok := sck.props[name]
