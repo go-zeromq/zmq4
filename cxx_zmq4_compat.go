@@ -8,7 +8,9 @@ package zmq4
 
 import (
 	"context"
+	"fmt"
 	"net"
+	"strings"
 
 	czmq4 "github.com/zeromq/goczmq/v4"
 )
@@ -59,10 +61,11 @@ func NewCXSub(ctx context.Context, opts ...czmq4.SockOption) Socket {
 
 type csocket struct {
 	sock *czmq4.Sock
+	addr net.Addr
 }
 
 func newCSocket(ctyp int, opts ...czmq4.SockOption) *csocket {
-	sck := &csocket{czmq4.NewSock(ctyp)}
+	sck := &csocket{sock: czmq4.NewSock(ctyp)}
 	for _, opt := range opts {
 		opt(sck.sock)
 	}
@@ -88,8 +91,12 @@ func (sck *csocket) Recv() (Msg, error) {
 
 // Listen connects a local endpoint to the Socket.
 func (sck *csocket) Listen(addr string) error {
-	_, err := sck.sock.Bind(addr)
-	return err
+	port, err := sck.sock.Bind(addr)
+	if err != nil {
+		return err
+	}
+	sck.addr = netAddrFrom(port, addr)
+	return nil
 }
 
 // Dial connects a remote endpoint to the Socket.
@@ -129,7 +136,7 @@ func (sck *csocket) Type() SocketType {
 // Addr returns the listener's address.
 // Addr returns nil if the socket isn't a listener.
 func (sck *csocket) Addr() net.Addr {
-	panic("not implemented")
+	return sck.addr
 }
 
 // Conn returns the underlying net.Conn the socket is bound to.
@@ -164,6 +171,41 @@ func CWithID(id SocketIdentity) czmq4.SockOption {
 	return czmq4.SockSetIdentity(string(id))
 }
 
+func netAddrFrom(port int, ep string) net.Addr {
+	network, addr, err := splitAddr(ep)
+	if err != nil {
+		panic(err)
+	}
+	switch network {
+	case "ipc":
+		network = "unix"
+	case "tcp":
+		network = "tcp"
+	case "udp":
+		network = "udp"
+	case "inproc":
+		network = "inproc"
+	default:
+		panic("zmq4: unknown protocol [" + network + "]")
+	}
+	if idx := strings.Index(addr, ":"); idx != -1 {
+		addr = string(addr[:idx])
+	}
+	return caddr{host: addr, port: fmt.Sprintf("%d", port), net: network}
+}
+
+type caddr struct {
+	host string
+	port string
+	net  string
+}
+
+func (addr caddr) Network() string { return addr.net }
+func (addr caddr) String() string {
+	return addr.host + ":" + addr.port
+}
+
 var (
-	_ Socket = (*csocket)(nil)
+	_ Socket   = (*csocket)(nil)
+	_ net.Addr = (*caddr)(nil)
 )
