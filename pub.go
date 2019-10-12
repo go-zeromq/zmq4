@@ -82,7 +82,7 @@ type pubQReader struct {
 	ctx context.Context
 
 	mu sync.RWMutex
-	rs []*msgReader
+	rs []*Conn
 	c  chan Msg
 
 	sem *semaphore // ready when a connection is live.
@@ -111,7 +111,7 @@ func (q *pubQReader) Close() error {
 	return err
 }
 
-func (q *pubQReader) addConn(r *msgReader) {
+func (q *pubQReader) addConn(r *Conn) {
 	go q.listen(q.ctx, r)
 	q.mu.Lock()
 	q.sem.enable()
@@ -119,7 +119,7 @@ func (q *pubQReader) addConn(r *msgReader) {
 	q.mu.Unlock()
 }
 
-func (q *pubQReader) rmConn(r *msgReader) {
+func (q *pubQReader) rmConn(r *Conn) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
@@ -144,23 +144,22 @@ func (q *pubQReader) read(ctx context.Context, msg *Msg) error {
 	return msg.err
 }
 
-func (q *pubQReader) listen(ctx context.Context, r *msgReader) {
+func (q *pubQReader) listen(ctx context.Context, r *Conn) {
 	defer q.rmConn(r)
 	defer r.Close()
 
 	for {
-		var msg Msg
-		err := r.read(ctx, &msg)
+		msg := r.read()
 		select {
 		case <-ctx.Done():
 			return
 		default:
-			if err != nil {
+			if msg.err != nil {
 				return
 			}
 			switch {
 			case q.topic(msg):
-				r.r.subscribe(msg)
+				r.subscribe(msg)
 			default:
 				q.c <- msg
 			}
@@ -183,7 +182,7 @@ func (q *pubQReader) topic(msg Msg) bool {
 type pubMWriter struct {
 	ctx context.Context
 	mu  sync.Mutex
-	ws  []*msgWriter
+	ws  []*Conn
 }
 
 func newPubMWriter(ctx context.Context) *pubMWriter {
@@ -206,13 +205,13 @@ func (w *pubMWriter) Close() error {
 	return err
 }
 
-func (mw *pubMWriter) addConn(w *msgWriter) {
+func (mw *pubMWriter) addConn(w *Conn) {
 	mw.mu.Lock()
 	mw.ws = append(mw.ws, w)
 	mw.mu.Unlock()
 }
 
-func (mw *pubMWriter) rmConn(w *msgWriter) {
+func (mw *pubMWriter) rmConn(w *Conn) {
 	mw.mu.Lock()
 	defer mw.mu.Unlock()
 
@@ -235,10 +234,14 @@ func (w *pubMWriter) write(ctx context.Context, msg Msg) error {
 	for i := range w.ws {
 		ww := w.ws[i]
 		grp.Go(func() error {
-			if !ww.w.subscribed(topic) {
+			if !ww.subscribed(topic) {
 				return nil
 			}
-			return ww.write(ctx, msg)
+			err := ww.SendMsg(msg)
+			if err != nil && ww.Closed() {
+				err = nil
+			}
+			return err
 		})
 	}
 	err := grp.Wait()

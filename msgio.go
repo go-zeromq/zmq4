@@ -16,8 +16,8 @@ import (
 type rpool interface {
 	io.Closer
 
-	addConn(r *msgReader)
-	rmConn(r *msgReader)
+	addConn(r *Conn)
+	rmConn(r *Conn)
 	read(ctx context.Context, msg *Msg) error
 }
 
@@ -25,52 +25,16 @@ type rpool interface {
 type wpool interface {
 	io.Closer
 
-	addConn(w *msgWriter)
-	rmConn(r *msgWriter)
+	addConn(w *Conn)
+	rmConn(r *Conn)
 	write(ctx context.Context, msg Msg) error
-}
-
-type msgReader struct {
-	r *Conn
-}
-
-func newMsgReader(c *Conn) *msgReader {
-	return &msgReader{r: c}
-}
-
-// read reads data over the wire and assembles it into a complete message
-func (r *msgReader) read(ctx context.Context, msg *Msg) error {
-	*msg = r.r.read()
-	return msg.err
-}
-
-func (r *msgReader) Close() error {
-	return r.r.Close()
-}
-
-type msgWriter struct {
-	w *Conn
-}
-
-func newMsgWriter(c *Conn) *msgWriter {
-	return &msgWriter{w: c}
-}
-
-func (w *msgWriter) Close() error {
-	return w.w.Close()
-}
-
-// write sends data over the wire.
-func (w *msgWriter) write(ctx context.Context, msg Msg) error {
-	err := w.w.SendMsg(msg)
-	return err
 }
 
 // qreader is a queued-message reader.
 type qreader struct {
 	ctx context.Context
 	mu  sync.RWMutex
-	rs  []*msgReader
+	rs  []*Conn
 	c   chan Msg
 
 	sem *semaphore // ready when a connection is live.
@@ -98,7 +62,7 @@ func (q *qreader) Close() error {
 	return err
 }
 
-func (q *qreader) addConn(r *msgReader) {
+func (q *qreader) addConn(r *Conn) {
 	go q.listen(q.ctx, r)
 	q.mu.Lock()
 	q.sem.enable()
@@ -106,7 +70,7 @@ func (q *qreader) addConn(r *msgReader) {
 	q.mu.Unlock()
 }
 
-func (q *qreader) rmConn(r *msgReader) {
+func (q *qreader) rmConn(r *Conn) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
@@ -131,19 +95,18 @@ func (q *qreader) read(ctx context.Context, msg *Msg) error {
 	return msg.err
 }
 
-func (q *qreader) listen(ctx context.Context, r *msgReader) {
+func (q *qreader) listen(ctx context.Context, r *Conn) {
 	defer q.rmConn(r)
 	defer r.Close()
 
 	for {
-		var msg Msg
-		err := r.read(ctx, &msg)
+		msg := r.read()
 		select {
 		case <-ctx.Done():
 			return
 		default:
 			q.c <- msg
-			if err != nil {
+			if msg.err != nil {
 				return
 			}
 		}
@@ -153,7 +116,7 @@ func (q *qreader) listen(ctx context.Context, r *msgReader) {
 type mwriter struct {
 	ctx context.Context
 	mu  sync.Mutex
-	ws  []*msgWriter
+	ws  []*Conn
 	sem *semaphore
 }
 
@@ -178,14 +141,14 @@ func (w *mwriter) Close() error {
 	return err
 }
 
-func (mw *mwriter) addConn(w *msgWriter) {
+func (mw *mwriter) addConn(w *Conn) {
 	mw.mu.Lock()
 	mw.sem.enable()
 	mw.ws = append(mw.ws, w)
 	mw.mu.Unlock()
 }
 
-func (mw *mwriter) rmConn(w *msgWriter) {
+func (mw *mwriter) rmConn(w *Conn) {
 	mw.mu.Lock()
 	defer mw.mu.Unlock()
 
@@ -208,7 +171,7 @@ func (w *mwriter) write(ctx context.Context, msg Msg) error {
 	for i := range w.ws {
 		ww := w.ws[i]
 		grp.Go(func() error {
-			return ww.write(ctx, msg)
+			return ww.SendMsg(msg)
 		})
 	}
 	err := grp.Wait()
@@ -236,12 +199,12 @@ func (lw *lbwriter) Close() error {
 	return nil
 }
 
-func (lw *lbwriter) addConn(w *msgWriter) {
+func (lw *lbwriter) addConn(w *Conn) {
 	lw.sem.enable()
 	go lw.listen(lw.ctx, w)
 }
 
-func (*lbwriter) rmConn(w *msgWriter) {}
+func (*lbwriter) rmConn(w *Conn) {}
 
 func (lw *lbwriter) write(ctx context.Context, msg Msg) error {
 	lw.sem.lock()
@@ -253,7 +216,7 @@ func (lw *lbwriter) write(ctx context.Context, msg Msg) error {
 	}
 }
 
-func (lw *lbwriter) listen(ctx context.Context, w *msgWriter) {
+func (lw *lbwriter) listen(ctx context.Context, w *Conn) {
 	defer lw.rmConn(w)
 	defer w.Close()
 
@@ -265,7 +228,7 @@ func (lw *lbwriter) listen(ctx context.Context, w *msgWriter) {
 			if !ok {
 				return
 			}
-			err := w.write(ctx, msg)
+			err := w.SendMsg(msg)
 			if err != nil {
 				// try another msg writer
 				lw.c <- msg

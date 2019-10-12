@@ -7,19 +7,24 @@ package zmq4
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"io"
+	"net"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"golang.org/x/xerrors"
 )
+
+var ErrClosedConn = errors.New("read/write on closed connection")
 
 // Conn implements the ZeroMQ Message Transport Protocol as defined
 // in https://rfc.zeromq.org/spec:23/ZMTP/.
 type Conn struct {
 	typ    SocketType
 	id     SocketIdentity
-	rw     io.ReadWriteCloser
+	rw     net.Conn
 	sec    Security
 	Server bool
 	Meta   Metadata
@@ -30,6 +35,9 @@ type Conn struct {
 
 	mu     sync.RWMutex
 	topics map[string]struct{} // set of subscribed topics
+
+	closed         int32
+	onCloseErrorCB func(c *Conn)
 }
 
 func (c *Conn) Close() error {
@@ -37,16 +45,26 @@ func (c *Conn) Close() error {
 }
 
 func (c *Conn) Read(p []byte) (int, error) {
-	return io.ReadFull(c.rw, p)
+	if c.Closed() {
+		return 0, ErrClosedConn
+	}
+	n, err := io.ReadFull(c.rw, p)
+	c.checkIO(err)
+	return n, err
 }
 
 func (c *Conn) Write(p []byte) (int, error) {
-	return c.rw.Write(p)
+	if c.Closed() {
+		return 0, ErrClosedConn
+	}
+	n, err := c.rw.Write(p)
+	c.checkIO(err)
+	return n, err
 }
 
 // Open opens a ZMTP connection over rw with the given security, socket type and identity.
 // Open performs a complete ZMTP handshake.
-func Open(rw io.ReadWriteCloser, sec Security, sockType SocketType, sockID SocketIdentity, server bool) (*Conn, error) {
+func Open(rw net.Conn, sec Security, sockType SocketType, sockID SocketIdentity, server bool, onCloseErrorCB func(c *Conn)) (*Conn, error) {
 	if rw == nil {
 		return nil, xerrors.Errorf("zmq4: invalid nil read-writer")
 	}
@@ -56,13 +74,14 @@ func Open(rw io.ReadWriteCloser, sec Security, sockType SocketType, sockID Socke
 	}
 
 	conn := &Conn{
-		typ:    sockType,
-		id:     sockID,
-		rw:     rw,
-		sec:    sec,
-		Server: server,
-		Meta:   make(Metadata),
-		topics: make(map[string]struct{}),
+		typ:            sockType,
+		id:             sockID,
+		rw:             rw,
+		sec:            sec,
+		Server:         server,
+		Meta:           make(Metadata),
+		topics:         make(map[string]struct{}),
+		onCloseErrorCB: onCloseErrorCB,
 	}
 	conn.Meta[sysSockType] = string(conn.typ)
 	conn.Meta[sysSockID] = conn.id.String()
@@ -116,12 +135,14 @@ func (conn *Conn) greet(server bool) error {
 
 	err = send.write(conn.rw)
 	if err != nil {
+		conn.checkIO(err)
 		return xerrors.Errorf("zmq4: could not send greeting: %w", err)
 	}
 
 	var recv greeting
 	err = recv.read(conn.rw)
 	if err != nil {
+		conn.checkIO(err)
 		return xerrors.Errorf("zmq4: could not recv greeting: %w", err)
 	}
 
@@ -140,6 +161,9 @@ func (conn *Conn) greet(server bool) error {
 
 // SendCmd sends a ZMTP command over the wire.
 func (c *Conn) SendCmd(name string, body []byte) error {
+	if c.Closed() {
+		return ErrClosedConn
+	}
 	cmd := Cmd{Name: name, Body: body}
 	buf, err := cmd.marshalZMTP()
 	if err != nil {
@@ -150,6 +174,9 @@ func (c *Conn) SendCmd(name string, body []byte) error {
 
 // SendMsg sends a ZMTP message over the wire.
 func (c *Conn) SendMsg(msg Msg) error {
+	if c.Closed() {
+		return ErrClosedConn
+	}
 	nframes := len(msg.Frames)
 	for i, frame := range msg.Frames {
 		var flag byte
@@ -166,6 +193,9 @@ func (c *Conn) SendMsg(msg Msg) error {
 
 // RecvMsg receives a ZMTP message from the wire.
 func (c *Conn) RecvMsg() (Msg, error) {
+	if c.Closed() {
+		return Msg{}, ErrClosedConn
+	}
 	msg := c.read()
 	if msg.err != nil {
 		return msg, xerrors.Errorf("zmq4: could not read recv msg: %w", msg.err)
@@ -213,6 +243,11 @@ func (c *Conn) RecvMsg() (Msg, error) {
 
 func (c *Conn) RecvCmd() (Cmd, error) {
 	var cmd Cmd
+
+	if c.Closed() {
+		return cmd, ErrClosedConn
+	}
+
 	msg := c.read()
 	if msg.err != nil {
 		return cmd, xerrors.Errorf("zmq4: could not read recv cmd: %w", msg.err)
@@ -267,10 +302,12 @@ func (c *Conn) send(isCommand bool, body []byte, flag byte) error {
 		hdr[1] = uint8(size)
 	}
 	if _, err := c.rw.Write(hdr[:hsz]); err != nil {
+		c.checkIO(err)
 		return err
 	}
 
 	if _, err := c.sec.Encrypt(c.rw, body); err != nil {
+		c.checkIO(err)
 		return err
 	}
 
@@ -293,6 +330,7 @@ func (c *Conn) read() Msg {
 		// Read out the header
 		_, msg.err = io.ReadFull(c.rw, header[:])
 		if msg.err != nil {
+			c.checkIO(msg.err)
 			return msg
 		}
 
@@ -311,6 +349,7 @@ func (c *Conn) read() Msg {
 
 			_, msg.err = io.ReadFull(c.rw, longHdr[1:])
 			if msg.err != nil {
+				c.checkIO(msg.err)
 				return msg
 			}
 
@@ -325,6 +364,7 @@ func (c *Conn) read() Msg {
 		body := make([]byte, size)
 		_, msg.err = io.ReadFull(c.rw, body)
 		if msg.err != nil {
+			c.checkIO(msg.err)
 			return msg
 		}
 
@@ -373,4 +413,30 @@ func (conn *Conn) subscribed(topic string) bool {
 		}
 	}
 	return false
+}
+
+func (conn *Conn) SetClosed() {
+	if wasClosed := atomic.CompareAndSwapInt32(&conn.closed, 0, 1); wasClosed {
+		conn.notifyOnCloseError()
+	}
+}
+
+func (conn *Conn) Closed() bool {
+	return atomic.LoadInt32(&conn.closed) == 1
+}
+
+func (conn *Conn) checkIO(err error) {
+	if err == nil {
+		return
+	}
+
+	if e, ok := err.(net.Error); ok && !e.Timeout() {
+		conn.SetClosed()
+	}
+}
+
+func (conn *Conn) notifyOnCloseError() {
+	if conn.onCloseErrorCB != nil {
+		conn.onCloseErrorCB(conn)
+	}
 }
