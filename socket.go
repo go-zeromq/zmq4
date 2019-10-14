@@ -264,7 +264,7 @@ func (sck *socket) rmConn(c *Conn) {
 	sck.mu.Lock()
 	defer sck.mu.Unlock()
 
-	cur := 0
+	cur := -1
 	for i := range sck.conns {
 		if sck.conns[i] == c {
 			cur = i

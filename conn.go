@@ -7,7 +7,6 @@ package zmq4
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"io"
 	"net"
 	"strings"
@@ -17,7 +16,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
-var ErrClosedConn = errors.New("read/write on closed connection")
+var ErrClosedConn = xerrors.New("zmq4: read/write on closed connection")
 
 // Conn implements the ZeroMQ Message Transport Protocol as defined
 // in https://rfc.zeromq.org/spec:23/ZMTP/.
@@ -63,6 +62,7 @@ func (c *Conn) Write(p []byte) (int, error) {
 }
 
 // Open opens a ZMTP connection over rw with the given security, socket type and identity.
+// An optional onCloseErrorCB can be provided to inform the caller when this Conn is closed.
 // Open performs a complete ZMTP handshake.
 func Open(rw net.Conn, sec Security, sockType SocketType, sockID SocketIdentity, server bool, onCloseErrorCB func(c *Conn)) (*Conn, error) {
 	if rw == nil {
@@ -430,13 +430,15 @@ func (conn *Conn) checkIO(err error) {
 		return
 	}
 
-	if e, ok := err.(net.Error); ok && !e.Timeout() {
+	var e net.Error
+	if xerrors.As(err, &e); e != nil && !e.Timeout() {
 		conn.SetClosed()
 	}
 }
 
 func (conn *Conn) notifyOnCloseError() {
-	if conn.onCloseErrorCB != nil {
-		conn.onCloseErrorCB(conn)
+	if conn.onCloseErrorCB == nil {
+		return
 	}
+	conn.onCloseErrorCB(conn)
 }
