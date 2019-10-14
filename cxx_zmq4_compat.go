@@ -12,7 +12,7 @@ import (
 	"net"
 	"strings"
 
-	czmq4 "github.com/zeromq/goczmq/v4"
+	czmq4 "github.com/go-zeromq/goczmq/v4"
 )
 
 func NewCPair(ctx context.Context, opts ...czmq4.SockOption) Socket {
