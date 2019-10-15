@@ -6,7 +6,6 @@ package zmq4
 
 import (
 	"context"
-
 	"net"
 
 	"golang.org/x/xerrors"
