@@ -371,6 +371,7 @@ func TestPubSubDeadPub(t *testing.T) {
 	defer sub.Close()
 
 	subReady := make(chan struct{})
+	subDoneReading := make(chan struct{})
 	pubClosed := make(chan struct{})
 
 	const nmsgs = 4 // the number of messages do not matter
@@ -393,6 +394,7 @@ func TestPubSubDeadPub(t *testing.T) {
 				return xerrors.Errorf("could not send message %v: %w", msg, err)
 			}
 		}
+		<-subDoneReading
 
 		return err
 	})
@@ -421,6 +423,7 @@ func TestPubSubDeadPub(t *testing.T) {
 			}
 		}
 
+		close(subDoneReading)
 		<-pubClosed
 
 		_, err = sub.Recv() // make sure we aren't deadlocked
@@ -434,4 +437,199 @@ func TestPubSubDeadPub(t *testing.T) {
 	if err := grp.Wait(); err != nil {
 		t.Fatalf("error: %+v", err)
 	}
+}
+
+func TestPubOptionHWM(t *testing.T) {
+	topic := "msg"
+	pub := zmq4.NewPub(bkg)
+
+	subCtx, subCancel := context.WithCancel(bkg)
+	sub := zmq4.NewSub(subCtx)
+
+	defer pub.Close()
+	defer sub.Close()
+
+	msgCount := 100
+	hwm := 10
+	if err := pub.SetOption(zmq4.OptionHWM, hwm); err != nil {
+		t.Fatalf("unable to set HWM")
+	}
+
+	ep := must(EndPoint("tcp"))
+	cleanUp(ep)
+
+	ctx, timeout := context.WithTimeout(context.Background(), 20*time.Second)
+	defer timeout()
+
+	grp, ctx := errgroup.WithContext(ctx)
+	pss := newPubSubSync(1)
+
+	grp.Go(func() error {
+		var err error
+		err = pub.Listen(ep)
+		if err != nil {
+			return xerrors.Errorf("could not listen on end point: %+v", err)
+		}
+
+		pss.WaitForSubscriptions()
+
+		for i := 1; i <= msgCount; i++ {
+			msg := zmq4.NewMsgFrom([]byte("msg"), []byte(string(i)))
+			err = pub.Send(msg)
+			if err != nil {
+				return xerrors.Errorf("error sending message. [%d] got: %v", i, err)
+			}
+		}
+
+		// give the subscriber time to receive the last message
+		time.Sleep(time.Second * 2)
+		// Inform the subscriber that there are no more messages, otherwise it'll wait indefinitely while trying to receive dropped messages
+		subCancel()
+		return nil
+	})
+
+	grp.Go(func() error {
+		var err error
+		err = sub.Dial(ep)
+		if err != nil {
+			return xerrors.Errorf("could not dial end point: %+v", err)
+		}
+
+		pss.DialComplete()
+		pss.WaitForDialers()
+
+		err = sub.SetOption(zmq4.OptionSubscribe, topic)
+		if err != nil {
+			return xerrors.Errorf("could not subscribe to topic %q: %w", topic, err)
+		}
+
+		pss.SubscriptionComplete()
+		pss.WaitForSubscriptions()
+
+		time.Sleep(time.Second * 1) // slow down for a bit
+
+		nmsgs := 0
+
+		for i := 1; i <= msgCount; i++ {
+			_, err = sub.Recv()
+			if err != nil {
+				return xerrors.Errorf("could not recv message: %v", err)
+			}
+			if subCtx.Err() != nil {
+				break
+			}
+			nmsgs++
+		}
+
+		if nmsgs >= msgCount {
+			return xerrors.Errorf("Expected dropped messages")
+		}
+
+		return err
+	})
+
+	if err := grp.Wait(); err != nil {
+		t.Fatalf("error: %+v", err)
+	}
+}
+
+func BenchmarkPubSub(b *testing.B) {
+	topic := "msg"
+	msg := zmq4.NewMsg([]byte("msg"))
+	pub := zmq4.NewPub(bkg)
+	sub := zmq4.NewSub(bkg)
+
+	defer pub.Close()
+	defer sub.Close()
+
+	ep := must(EndPoint("tcp"))
+	cleanUp(ep)
+
+	ctx, timeout := context.WithTimeout(context.Background(), 20*time.Second)
+	defer timeout()
+
+	grp, ctx := errgroup.WithContext(ctx)
+
+	msgCount := 1 << 18
+	pss := newPubSubSync(1)
+
+	grp.Go(func() error {
+		var err error
+		err = pub.Listen(ep)
+		if err != nil {
+			return xerrors.Errorf("could not listen on end point: %+v", err)
+		}
+
+		pss.WaitForSubscriptions()
+		time.Sleep(1 * time.Second)
+
+		for i := 0; i < msgCount; i++ {
+			err = pub.Send(msg)
+			if err != nil {
+				return xerrors.Errorf("error sending message: %v\n", err)
+			}
+		}
+
+		return err
+	})
+
+	grp.Go(func() error {
+		var err error
+		err = sub.Dial(ep)
+		if err != nil {
+			return xerrors.Errorf("could not dial end point: %+v", err)
+		}
+
+		pss.DialComplete()
+		pss.WaitForDialers()
+
+		err = sub.SetOption(zmq4.OptionSubscribe, topic)
+		if err != nil {
+			return xerrors.Errorf("could not subscribe to topic %q: %w", topic, err)
+		}
+
+		pss.SubscriptionComplete()
+		pss.WaitForSubscriptions()
+
+		for i := 0; i < msgCount; i++ {
+			_, err := sub.Recv()
+			if err != nil {
+				return xerrors.Errorf("could not recv message: %v", err)
+			}
+		}
+
+		return err
+	})
+
+	if err := grp.Wait(); err != nil {
+		b.Fatalf("error: %+v", err)
+	}
+}
+
+type pubSubSync struct {
+	wg1 sync.WaitGroup
+	wg2 sync.WaitGroup
+}
+
+func newPubSubSync(nrSubs int) *pubSubSync {
+	p := &pubSubSync{}
+	p.wg1.Add(nrSubs)
+	p.wg2.Add(nrSubs)
+	return p
+}
+
+func (p *pubSubSync) DialComplete() {
+	p.wg1.Done()
+}
+
+func (p *pubSubSync) WaitForDialers() {
+	p.wg1.Wait()
+}
+
+func (p *pubSubSync) SubscriptionComplete() {
+	p.wg2.Done()
+}
+
+func (p *pubSubSync) WaitForSubscriptions() {
+	p.wg2.Wait()
 }
