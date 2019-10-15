@@ -81,6 +81,10 @@ func TestReqRep(t *testing.T) {
 					return xerrors.Errorf("could not listen: %w", err)
 				}
 
+				if addr := tc.rep.Addr(); addr == nil {
+					return xerrors.Errorf("listener with nil Addr")
+				}
+
 				loop := true
 				for loop {
 					msg, err := tc.rep.Recv()
@@ -111,6 +115,10 @@ func TestReqRep(t *testing.T) {
 				err := tc.req.Dial(ep)
 				if err != nil {
 					return xerrors.Errorf("could not dial: %w", err)
+				}
+
+				if addr := tc.req.Addr(); addr != nil {
+					return xerrors.Errorf("dialer with non-nil Addr")
 				}
 
 				for _, msg := range []struct {

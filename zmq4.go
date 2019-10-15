@@ -7,6 +7,8 @@
 // For more informations, see http://zeromq.org.
 package zmq4
 
+import "net"
+
 // Socket represents a ZeroMQ socket.
 type Socket interface {
 	// Close closes the open Socket
@@ -28,9 +30,16 @@ type Socket interface {
 	// Type returns the type of this Socket (PUB, SUB, ...)
 	Type() SocketType
 
+	// Addr returns the listener's address.
+	// Addr returns nil if the socket isn't a listener.
+	Addr() net.Addr
+
 	// GetOption is used to retrieve an option for a socket.
 	GetOption(name string) (interface{}, error)
 
 	// SetOption is used to set an option for a socket.
 	SetOption(name string, value interface{}) error
+
+	// GetTopics is used to retrieve subscribed topics for a pub socket.
+	GetTopics(filter bool) ([]string, error)
 }

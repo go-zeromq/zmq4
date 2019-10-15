@@ -6,6 +6,10 @@ package zmq4
 
 import (
 	"context"
+
+	"net"
+
+	"golang.org/x/xerrors"
 )
 
 // NewPair returns a new PAIR ZeroMQ socket.
@@ -51,6 +55,12 @@ func (pair *pairSocket) Type() SocketType {
 	return pair.sck.Type()
 }
 
+// Addr returns the listener's address.
+// Addr returns nil if the socket isn't a listener.
+func (pair *pairSocket) Addr() net.Addr {
+	return pair.sck.Addr()
+}
+
 // GetOption is used to retrieve an option for a socket.
 func (pair *pairSocket) GetOption(name string) (interface{}, error) {
 	return pair.sck.GetOption(name)
@@ -59,6 +69,12 @@ func (pair *pairSocket) GetOption(name string) (interface{}, error) {
 // SetOption is used to set an option for a socket.
 func (pair *pairSocket) SetOption(name string, value interface{}) error {
 	return pair.sck.SetOption(name, value)
+}
+
+// GetTopics is used to retrieve subscribed topics for a pub socket.
+func (pair *pairSocket) GetTopics(filter bool) ([]string, error) {
+	err := xerrors.Errorf("zmq4: Only available for PUB sockets")
+	return nil, err
 }
 
 var (

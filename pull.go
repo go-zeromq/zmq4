@@ -6,6 +6,7 @@ package zmq4
 
 import (
 	"context"
+	"net"
 
 	"golang.org/x/xerrors"
 )
@@ -54,6 +55,12 @@ func (pull *pullSocket) Type() SocketType {
 	return pull.sck.Type()
 }
 
+// Addr returns the listener's address.
+// Addr returns nil if the socket isn't a listener.
+func (pull *pullSocket) Addr() net.Addr {
+	return pull.sck.Addr()
+}
+
 // GetOption is used to retrieve an option for a socket.
 func (pull *pullSocket) GetOption(name string) (interface{}, error) {
 	return pull.sck.GetOption(name)
@@ -62,6 +69,12 @@ func (pull *pullSocket) GetOption(name string) (interface{}, error) {
 // SetOption is used to set an option for a socket.
 func (pull *pullSocket) SetOption(name string, value interface{}) error {
 	return pull.sck.SetOption(name, value)
+}
+
+// GetTopics is used to retrieve subscribed topics for a pub socket.
+func (pull *pullSocket) GetTopics(filter bool) ([]string, error) {
+	err := xerrors.Errorf("zmq4: Only available for PUB sockets")
+	return nil, err
 }
 
 var (

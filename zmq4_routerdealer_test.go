@@ -132,6 +132,10 @@ func TestRouterDealer(t *testing.T) {
 					return xerrors.Errorf("could not listen: %w", err)
 				}
 
+				if addr := router.Addr(); addr == nil {
+					return xerrors.Errorf("listener with nil Addr")
+				}
+
 				wgd.Wait()
 				wgr.Done()
 
@@ -178,6 +182,10 @@ func TestRouterDealer(t *testing.T) {
 						err := dealer.Dial(ep)
 						if err != nil {
 							return xerrors.Errorf("could not dial: %w", err)
+						}
+
+						if addr := dealer.Addr(); addr != nil {
+							return xerrors.Errorf("dialer with non-nil Addr")
 						}
 
 						wgd.Done()

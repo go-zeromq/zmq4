@@ -77,6 +77,10 @@ func TestPushPull(t *testing.T) {
 					return xerrors.Errorf("could not listen: %w", err)
 				}
 
+				if addr := tc.push.Addr(); addr == nil {
+					return xerrors.Errorf("listener with nil Addr")
+				}
+
 				err = tc.push.Send(hello)
 				if err != nil {
 					return xerrors.Errorf("could not send %v: %w", hello, err)
@@ -93,6 +97,10 @@ func TestPushPull(t *testing.T) {
 				err := tc.pull.Dial(ep)
 				if err != nil {
 					return xerrors.Errorf("could not dial: %w", err)
+				}
+
+				if addr := tc.pull.Addr(); addr != nil {
+					return xerrors.Errorf("dialer with non-nil Addr")
 				}
 
 				msg, err := tc.pull.Recv()

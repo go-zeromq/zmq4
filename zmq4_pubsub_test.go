@@ -129,6 +129,10 @@ func TestPubSub(t *testing.T) {
 					return xerrors.Errorf("could not listen: %w", err)
 				}
 
+				if addr := tc.pub.Addr(); addr == nil {
+					return xerrors.Errorf("listener with nil Addr")
+				}
+
 				wg1.Wait()
 				wg2.Wait()
 
@@ -152,6 +156,11 @@ func TestPubSub(t *testing.T) {
 						if err != nil {
 							return xerrors.Errorf("could not dial: %w", err)
 						}
+
+						if addr := sub.Addr(); addr != nil {
+							return xerrors.Errorf("dialer with non-nil Addr")
+						}
+
 						wg1.Done()
 						wg1.Wait()
 

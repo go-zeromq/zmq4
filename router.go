@@ -7,9 +7,11 @@ package zmq4
 import (
 	"bytes"
 	"context"
+	"net"
 	"sync"
 
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/xerrors"
 )
 
 // NewRouter returns a new ROUTER ZeroMQ socket.
@@ -59,6 +61,12 @@ func (router *routerSocket) Type() SocketType {
 	return router.sck.Type()
 }
 
+// Addr returns the listener's address.
+// Addr returns nil if the socket isn't a listener.
+func (router *routerSocket) Addr() net.Addr {
+	return router.sck.Addr()
+}
+
 // GetOption is used to retrieve an option for a socket.
 func (router *routerSocket) GetOption(name string) (interface{}, error) {
 	return router.sck.GetOption(name)
@@ -67,6 +75,12 @@ func (router *routerSocket) GetOption(name string) (interface{}, error) {
 // SetOption is used to set an option for a socket.
 func (router *routerSocket) SetOption(name string, value interface{}) error {
 	return router.sck.SetOption(name, value)
+}
+
+// GetTopics is used to retrieve subscribed topics for a pub socket.
+func (router *routerSocket) GetTopics(filter bool) ([]string, error) {
+	err := xerrors.Errorf("zmq4: Only available for PUB sockets")
+	return nil, err
 }
 
 // routerQReader is a queued-message reader.

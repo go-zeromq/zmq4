@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
+	czmq4 "github.com/go-zeromq/goczmq/v4"
 	"github.com/go-zeromq/zmq4"
 	"github.com/go-zeromq/zmq4/security/plain"
-	czmq4 "github.com/zeromq/goczmq/v4"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/xerrors"
 )

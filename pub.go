@@ -6,6 +6,7 @@ package zmq4
 
 import (
 	"context"
+	"net"
 	"sync"
 
 	"golang.org/x/sync/errgroup"
@@ -60,6 +61,12 @@ func (pub *pubSocket) Type() SocketType {
 	return pub.sck.Type()
 }
 
+// Addr returns the listener's address.
+// Addr returns nil if the socket isn't a listener.
+func (pub *pubSocket) Addr() net.Addr {
+	return pub.sck.Addr()
+}
+
 // GetOption is used to retrieve an option for a socket.
 func (pub *pubSocket) GetOption(name string) (interface{}, error) {
 	return pub.sck.GetOption(name)
@@ -68,6 +75,32 @@ func (pub *pubSocket) GetOption(name string) (interface{}, error) {
 // SetOption is used to set an option for a socket.
 func (pub *pubSocket) SetOption(name string, value interface{}) error {
 	return pub.sck.SetOption(name, value)
+}
+
+// GetTopics is used to retrieve subscribed topics for a pub socket.
+func (pub *pubSocket) GetTopics(filter bool) ([]string, error) {
+	pub.sck.mu.Lock()
+	allTopics := []string{}
+	for _, con := range pub.sck.conns {
+		for topic := range con.topics {
+			allTopics = append(allTopics, topic)
+		}
+	}
+	pub.sck.mu.Unlock()
+	if filter {
+		// Filter out duplicates
+		keys := make(map[string]bool)
+		filteredTopics := []string{}
+		for _, entry := range allTopics {
+			if _, value := keys[entry]; !value {
+				keys[entry] = true
+				filteredTopics = append(filteredTopics, entry)
+			}
+		}
+		return filteredTopics, nil
+	}
+
+	return allTopics, nil
 }
 
 // pubQReader is a queued-message reader.

@@ -257,6 +257,15 @@ func (sck *socket) Type() SocketType {
 	return sck.typ
 }
 
+// Addr returns the listener's address.
+// Addr returns nil if the socket isn't a listener.
+func (sck *socket) Addr() net.Addr {
+	if sck.listener == nil {
+		return nil
+	}
+	return sck.listener.Addr()
+}
+
 // GetOption is used to retrieve an option for a socket.
 func (sck *socket) GetOption(name string) (interface{}, error) {
 	v, ok := sck.props[name]
@@ -271,6 +280,12 @@ func (sck *socket) SetOption(name string, value interface{}) error {
 	// FIXME(sbinet) different socket types support different options.
 	sck.props[name] = value
 	return nil
+}
+
+// GetTopics is used to retrieve subscribed topics for a pub socket.
+func (sck *socket) GetTopics(filter bool) ([]string, error) {
+	err := xerrors.Errorf("zmq4: Only available for PUB sockets")
+	return nil, err
 }
 
 func (sck *socket) timeout() time.Duration {
