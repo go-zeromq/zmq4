@@ -79,14 +79,14 @@ func (pub *pubSocket) SetOption(name string, value interface{}) error {
 
 // GetTopics is used to retrieve subscribed topics for a pub socket.
 func (pub *pubSocket) GetTopics(filter bool) ([]string, error) {
-	pub.sck.mu.Lock()
+	pub.sck.mu.RLock()
 	allTopics := []string{}
 	for _, con := range pub.sck.conns {
 		for topic := range con.topics {
 			allTopics = append(allTopics, topic)
 		}
 	}
-	pub.sck.mu.Unlock()
+	pub.sck.mu.RUnlock()
 	if filter {
 		// Filter out duplicates
 		keys := make(map[string]bool)
