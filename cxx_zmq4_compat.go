@@ -166,6 +166,12 @@ func (sck *csocket) SetOption(name string, value interface{}) error {
 	panic("not implemented")
 }
 
+// GetTopics is used to retrieve subscribed topics for a pub socket.
+func (sck *csocket) GetTopics(filter bool) ([]string, error) {
+	err := xerrors.Errorf("zmq4: Only available for PUB sockets")
+	return nil, err
+}
+
 // CWithID configures a ZeroMQ socket identity.
 func CWithID(id SocketIdentity) czmq4.SockOption {
 	return czmq4.SockSetIdentity(string(id))
