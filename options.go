@@ -62,4 +62,5 @@ func WithRecvBufferSize(size int) Option {
 const (
 	OptionSubscribe   = "SUBSCRIBE"
 	OptionUnsubscribe = "UNSUBSCRIBE"
+	OptionHWM         = "HWM"
 )

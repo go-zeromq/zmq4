@@ -10,7 +10,6 @@ import (
 	"sort"
 	"sync"
 
-	"golang.org/x/sync/errgroup"
 	"golang.org/x/xerrors"
 )
 
@@ -81,7 +80,25 @@ func (pub *pubSocket) GetOption(name string) (interface{}, error) {
 
 // SetOption is used to set an option for a socket.
 func (pub *pubSocket) SetOption(name string, value interface{}) error {
-	return pub.sck.SetOption(name, value)
+	err := pub.sck.SetOption(name, value)
+	if err != nil {
+		return err
+	}
+
+	if name != OptionHWM {
+		return ErrBadProperty
+	}
+
+	hwm, ok := value.(int)
+	if !ok {
+		return ErrBadProperty
+	}
+
+	w := pub.sck.w.(*pubMWriter)
+	w.qmu.Lock()
+	w.hwm = hwm
+	w.qmu.Unlock()
+	return nil
 }
 
 // Topics returns the sorted list of topics a socket is subscribed to.
@@ -213,15 +230,46 @@ type pubMWriter struct {
 	ctx context.Context
 	mu  sync.Mutex
 	ws  []*Conn
+
+	qmu    sync.Mutex
+	qcond  *sync.Cond
+	q      *Queue
+	hwm    int
+	closed bool
 }
 
 func newPubMWriter(ctx context.Context) *pubMWriter {
-	return &pubMWriter{
+	p := &pubMWriter{
 		ctx: ctx,
+		q:   NewQueue(),
+	}
+	p.qcond = sync.NewCond(&p.qmu)
+	go p.run()
+	return p
+}
+
+func (w *pubMWriter) run() {
+	for {
+		w.qmu.Lock()
+		for w.q.Len() == 0 {
+			w.qcond.Wait()
+			if w.closed {
+				return
+			}
+		}
+		msg, _ := w.q.Peek()
+		w.q.Pop()
+		w.qmu.Unlock()
+		w.sendMsg(msg)
 	}
 }
 
 func (w *pubMWriter) Close() error {
+	w.qmu.Lock()
+	w.closed = true
+	w.qcond.Signal()
+	w.qmu.Unlock()
+
 	w.mu.Lock()
 	var err error
 	for _, ww := range w.ws {
@@ -249,6 +297,7 @@ func (mw *pubMWriter) rmConn(w *Conn) {
 	for i := range mw.ws {
 		if mw.ws[i] == w {
 			cur = i
+			mw.ws[i].Close()
 			break
 		}
 	}
@@ -258,25 +307,27 @@ func (mw *pubMWriter) rmConn(w *Conn) {
 }
 
 func (w *pubMWriter) write(ctx context.Context, msg Msg) error {
-	grp, ctx := errgroup.WithContext(ctx)
-	w.mu.Lock()
+	w.qmu.Lock()
+	defer w.qmu.Unlock()
+	if w.hwm != 0 && w.q.Len() >= w.hwm {
+		//TODO(inphi): per subscriber hwm
+		return nil
+	}
+	w.q.Push(msg)
+	w.qcond.Signal()
+	return nil
+}
+
+func (w *pubMWriter) sendMsg(msg Msg) {
 	topic := string(msg.Frames[0])
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	for i := range w.ws {
 		ww := w.ws[i]
-		grp.Go(func() error {
-			if !ww.subscribed(topic) {
-				return nil
-			}
-			err := ww.SendMsg(msg)
-			if err != nil && ww.Closed() {
-				err = nil
-			}
-			return err
-		})
+		if ww.subscribed(topic) {
+			_ = ww.SendMsg(msg)
+		}
 	}
-	err := grp.Wait()
-	w.mu.Unlock()
-	return err
 }
 
 var (
