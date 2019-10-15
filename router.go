@@ -88,7 +88,7 @@ type routerQReader struct {
 	ctx context.Context
 
 	mu sync.RWMutex
-	rs []*msgReader
+	rs []*Conn
 	c  chan Msg
 
 	sem *semaphore // ready when a connection is live.
@@ -117,7 +117,7 @@ func (q *routerQReader) Close() error {
 	return err
 }
 
-func (q *routerQReader) addConn(r *msgReader) {
+func (q *routerQReader) addConn(r *Conn) {
 	go q.listen(q.ctx, r)
 	q.mu.Lock()
 	q.sem.enable()
@@ -125,7 +125,7 @@ func (q *routerQReader) addConn(r *msgReader) {
 	q.mu.Unlock()
 }
 
-func (q *routerQReader) rmConn(r *msgReader) {
+func (q *routerQReader) rmConn(r *Conn) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
@@ -150,19 +150,18 @@ func (q *routerQReader) read(ctx context.Context, msg *Msg) error {
 	return msg.err
 }
 
-func (q *routerQReader) listen(ctx context.Context, r *msgReader) {
+func (q *routerQReader) listen(ctx context.Context, r *Conn) {
 	defer q.rmConn(r)
 	defer r.Close()
 
-	id := []byte(r.r.Peer.Meta[sysSockID])
+	id := []byte(r.Peer.Meta[sysSockID])
 	for {
-		var msg Msg
-		err := r.read(ctx, &msg)
+		msg := r.read()
 		select {
 		case <-ctx.Done():
 			return
 		default:
-			if err != nil {
+			if msg.err != nil {
 				return
 			}
 			msg.Frames = append([][]byte{id}, msg.Frames...)
@@ -174,7 +173,7 @@ func (q *routerQReader) listen(ctx context.Context, r *msgReader) {
 type routerMWriter struct {
 	ctx context.Context
 	mu  sync.Mutex
-	ws  []*msgWriter
+	ws  []*Conn
 	sem *semaphore
 }
 
@@ -199,14 +198,14 @@ func (w *routerMWriter) Close() error {
 	return err
 }
 
-func (mw *routerMWriter) addConn(w *msgWriter) {
+func (mw *routerMWriter) addConn(w *Conn) {
 	mw.mu.Lock()
 	mw.sem.enable()
 	mw.ws = append(mw.ws, w)
 	mw.mu.Unlock()
 }
 
-func (mw *routerMWriter) rmConn(w *msgWriter) {
+func (mw *routerMWriter) rmConn(w *Conn) {
 	mw.mu.Lock()
 	defer mw.mu.Unlock()
 
@@ -230,12 +229,12 @@ func (w *routerMWriter) write(ctx context.Context, msg Msg) error {
 	dmsg := NewMsgFrom(msg.Frames[1:]...)
 	for i := range w.ws {
 		ww := w.ws[i]
-		pid := []byte(ww.w.Peer.Meta[sysSockID])
+		pid := []byte(ww.Peer.Meta[sysSockID])
 		if !bytes.Equal(pid, id) {
 			continue
 		}
 		grp.Go(func() error {
-			return ww.write(ctx, dmsg)
+			return ww.SendMsg(dmsg)
 		})
 	}
 	err := grp.Wait()

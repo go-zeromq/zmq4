@@ -48,6 +48,8 @@ type socket struct {
 	cancel   context.CancelFunc
 	listener net.Listener
 	dialer   net.Dialer
+
+	closedConns chan *Conn
 }
 
 func newDefaultSocket(ctx context.Context, sockType SocketType) *socket {
@@ -56,17 +58,18 @@ func newDefaultSocket(ctx context.Context, sockType SocketType) *socket {
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	return &socket{
-		typ:    sockType,
-		retry:  defaultRetry,
-		sec:    nullSecurity{},
-		ids:    make(map[string]*Conn),
-		conns:  nil,
-		r:      newQReader(ctx),
-		w:      newMWriter(ctx),
-		props:  make(map[string]interface{}),
-		ctx:    ctx,
-		cancel: cancel,
-		dialer: net.Dialer{Timeout: defaultTimeout},
+		typ:         sockType,
+		retry:       defaultRetry,
+		sec:         nullSecurity{},
+		ids:         make(map[string]*Conn),
+		conns:       nil,
+		r:           newQReader(ctx),
+		w:           newMWriter(ctx),
+		props:       make(map[string]interface{}),
+		ctx:         ctx,
+		cancel:      cancel,
+		dialer:      net.Dialer{Timeout: defaultTimeout},
+		closedConns: make(chan *Conn),
 	}
 }
 
@@ -85,6 +88,10 @@ func newSocket(ctx context.Context, sockType SocketType, opts ...Option) *socket
 // Close closes the open Socket
 func (sck *socket) Close() error {
 	sck.cancel()
+	defer func() {
+		close(sck.closedConns)
+	}()
+
 	if sck.listener != nil {
 		defer sck.listener.Close()
 	}
@@ -155,6 +162,7 @@ func (sck *socket) Listen(endpoint string) error {
 	sck.listener = l
 
 	go sck.accept()
+	go sck.connReaper()
 
 	return nil
 }
@@ -173,7 +181,7 @@ func (sck *socket) accept() {
 				continue
 			}
 
-			zconn, err := Open(conn, sck.sec, sck.typ, sck.id, true)
+			zconn, err := Open(conn, sck.sec, sck.typ, sck.id, true, sck.scheduleRmConn)
 			if err != nil {
 				panic(err)
 				//		return xerrors.Errorf("zmq4: could not open a ZMTP connection: %w", err)
@@ -222,7 +230,7 @@ connect:
 		return xerrors.Errorf("zmq4: got a nil dial-conn to %q", endpoint)
 	}
 
-	zconn, err := Open(conn, sck.sec, sck.typ, sck.id, false)
+	zconn, err := Open(conn, sck.sec, sck.typ, sck.id, false, sck.scheduleRmConn)
 	if err != nil {
 		return xerrors.Errorf("zmq4: could not open a ZMTP connection: %w", err)
 	}
@@ -244,12 +252,43 @@ func (sck *socket) addConn(c *Conn) {
 	}
 	sck.ids[uuid] = c
 	if sck.r != nil {
-		sck.r.addConn(newMsgReader(c))
+		sck.r.addConn(c)
 	}
 	if sck.w != nil {
-		sck.w.addConn(newMsgWriter(c))
+		sck.w.addConn(c)
 	}
 	sck.mu.Unlock()
+}
+
+func (sck *socket) rmConn(c *Conn) {
+	sck.mu.Lock()
+	defer sck.mu.Unlock()
+
+	cur := -1
+	for i := range sck.conns {
+		if sck.conns[i] == c {
+			cur = i
+			break
+		}
+	}
+
+	if cur == -1 {
+		return
+	}
+
+	sck.conns = append(sck.conns[:cur], sck.conns[cur+1:]...)
+	if sck.r != nil {
+		sck.r.rmConn(c)
+	}
+	if sck.w != nil {
+		sck.w.rmConn(c)
+	}
+}
+
+func (sck *socket) scheduleRmConn(c *Conn) {
+	if sck.ctx.Err() != context.Canceled { // otherwise we've closed the chan
+		sck.closedConns <- c
+	}
 }
 
 // Type returns the type of this Socket (PUB, SUB, ...)
@@ -291,6 +330,16 @@ func (sck *socket) GetTopics(filter bool) ([]string, error) {
 func (sck *socket) timeout() time.Duration {
 	// FIXME(sbinet): extract from options
 	return defaultTimeout
+}
+
+func (sck *socket) connReaper() {
+	for {
+		conn, ok := <-sck.closedConns
+		if !ok {
+			return
+		}
+		sck.rmConn(conn)
+	}
 }
 
 var (

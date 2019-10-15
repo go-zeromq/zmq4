@@ -201,3 +201,93 @@ func TestPubSub(t *testing.T) {
 		})
 	}
 }
+
+// TestPubSubClosedSub ensures that publishers do not return errors even after a subscriber is closed/disconnected.
+func TestPubSubClosedSub(t *testing.T) {
+	ep := must(EndPoint("tcp"))
+	topic := "msg"
+	msg := zmq4.NewMsgString("msg")
+
+	bkg := context.Background()
+	ctx, timeout := context.WithTimeout(bkg, 20*time.Second)
+	defer timeout()
+
+	pub := zmq4.NewPub(ctx)
+	defer pub.Close()
+
+	subCtx, cancelSub := context.WithCancel(ctx)
+	sub := zmq4.NewSub(subCtx)
+
+	subReady := make(chan struct{})
+	subClosed := make(chan struct{})
+
+	const nmsgs = 100 // the number of messages do not matter
+
+	grp, ctx := errgroup.WithContext(ctx)
+	grp.Go(func() error {
+		err := pub.Listen(ep)
+		if err != nil {
+			return xerrors.Errorf("could not listen on end point: %+v", err)
+		}
+
+		<-subReady
+		time.Sleep(time.Second * 1)
+
+		for i := 0; i < nmsgs; i++ {
+			if err := pub.Send(msg); err != nil {
+				return xerrors.Errorf("could not send message %v: %w", msg, err)
+			}
+		}
+
+		cancelSub()
+		<-subClosed
+		time.Sleep(time.Second * 1)
+
+		for i := 0; i < nmsgs; i++ {
+			if err := pub.Send(msg); err != nil {
+				return xerrors.Errorf("could not send message %v: %w", msg, err)
+			}
+		}
+
+		return err
+	})
+
+	grp.Go(func() error {
+		defer func() {
+			sub.Close()
+			close(subClosed)
+		}()
+
+		var err error
+		err = sub.Dial(ep)
+		if err != nil {
+			return xerrors.Errorf("could not dial: %w", err)
+		}
+
+		err = sub.SetOption(zmq4.OptionSubscribe, topic)
+		if err != nil {
+			return xerrors.Errorf("could not subscribe to topic %q: %w", topic, err)
+		}
+
+		close(subReady)
+
+		for {
+			rmsg, err := sub.Recv()
+			if err != nil {
+				return xerrors.Errorf("could not recv message: %w", err)
+			}
+			if subCtx.Err() == context.Canceled {
+				break
+			}
+			if !reflect.DeepEqual(rmsg, msg) {
+				return xerrors.Errorf("sub: got = %v, want= %v", rmsg, msg)
+			}
+		}
+
+		return err
+	})
+
+	if err := grp.Wait(); err != nil {
+		t.Fatalf("error: %+v", err)
+	}
+}
