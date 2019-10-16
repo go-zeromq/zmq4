@@ -14,9 +14,9 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// Topics is an interface to extend the PUB socket methods with (zmq4.Topics).Topics()
+// Topics is an interface that wraps the basic Topics method.
 type Topics interface {
-	// Topics returns the topics this socket is subscribed to as a sorted list.
+	// Topics returns the sorted list of topics a socket is subscribed to.
 	Topics() []string
 }
 
@@ -84,7 +84,7 @@ func (pub *pubSocket) SetOption(name string, value interface{}) error {
 	return pub.sck.SetOption(name, value)
 }
 
-// Topics returns the topics this socket is subscribed to as a sorted list.
+// Topics returns the sorted list of topics a socket is subscribed to.
 func (pub *pubSocket) Topics() []string {
 	var (
 		keys   = make(map[string]struct{})

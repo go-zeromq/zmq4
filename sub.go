@@ -7,6 +7,7 @@ package zmq4
 import (
 	"context"
 	"net"
+	"sort"
 	"sync"
 )
 
@@ -118,6 +119,25 @@ func (sub *subSocket) SetOption(name string, value interface{}) error {
 	return err
 }
 
+// Topics returns the sorted list of topics a socket is subscribed to.
+func (sub *subSocket) Topics() []string {
+	var (
+		keys   = make(map[string]struct{})
+		topics []string
+	)
+	sub.mu.RLock()
+	for topic := range sub.topics {
+		if _, dup := keys[topic]; dup {
+			continue
+		}
+		keys[topic] = struct{}{}
+		topics = append(topics, topic)
+	}
+	sub.mu.RUnlock()
+	sort.Strings(topics)
+	return topics
+}
+
 func (sub *subSocket) subscribe(topic string, v int) {
 	sub.mu.Lock()
 	switch v {
@@ -131,4 +151,5 @@ func (sub *subSocket) subscribe(topic string, v int) {
 
 var (
 	_ Socket = (*subSocket)(nil)
+	_ Topics = (*subSocket)(nil)
 )

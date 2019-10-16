@@ -312,6 +312,9 @@ func TestTopics(t *testing.T) {
 	defer sub0.Close()
 	defer sub1.Close()
 	defer sub2.Close()
+	defer sub3.Close()
+	defer sub4.Close()
+	defer sub5.Close()
 
 	err := pub.Listen(ep)
 	if err != nil {
@@ -331,17 +334,23 @@ func TestTopics(t *testing.T) {
 			t.Fatalf("could not subscribe to topic %q: %+v", topics[isub], err)
 		}
 		time.Sleep(500 * time.Millisecond)
-		got := pub.(zmq4.Topics).Topics()
+
+		got := sub.(zmq4.Topics).Topics()
+		want := []string{topics[isub]}
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("Missing or wrong topics.\ngot= %q\nwant=%q", got, want)
+		}
+
+		got = pub.(zmq4.Topics).Topics()
 		if len(got) != isub+1 {
 			t.Fatalf("got %d topics, want %d topics", len(got), isub+1)
 		}
 
-		want := make([]string, isub+1)
+		want = make([]string, isub+1)
 		copy(want, topics)
 		sort.Strings(want)
 		if !reflect.DeepEqual(got, want) {
-			t.Fatalf("Missing or wrong topics. Got %v, want %v", got, want)
+			t.Fatalf("Missing or wrong topics.\ngot= %q\nwant=%q", got, want)
 		}
-
 	}
 }
