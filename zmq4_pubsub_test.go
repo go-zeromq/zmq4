@@ -7,6 +7,7 @@ package zmq4_test
 import (
 	"context"
 	"reflect"
+	"sort"
 	"sync"
 	"testing"
 	"time"
@@ -292,12 +293,7 @@ func TestPubSubClosedSub(t *testing.T) {
 	}
 }
 
-func TestGetTopics(t *testing.T) {
-	var (
-		topics    = []string{"", "topic1", "topic2"}
-		getTopics []string
-	)
-
+func TestTopics(t *testing.T) {
 	ctx, timeout := context.WithTimeout(context.Background(), 20*time.Second)
 	defer timeout()
 
@@ -306,8 +302,11 @@ func TestGetTopics(t *testing.T) {
 	sub0 := zmq4.NewSub(ctx, zmq4.WithID(zmq4.SocketIdentity("sub0")))
 	sub1 := zmq4.NewSub(ctx, zmq4.WithID(zmq4.SocketIdentity("sub1")))
 	sub2 := zmq4.NewSub(ctx, zmq4.WithID(zmq4.SocketIdentity("sub2")))
+	sub3 := zmq4.NewSub(ctx, zmq4.WithID(zmq4.SocketIdentity("sub3")))
+	sub4 := zmq4.NewSub(ctx, zmq4.WithID(zmq4.SocketIdentity("sub4")))
+	sub5 := zmq4.NewSub(ctx, zmq4.WithID(zmq4.SocketIdentity("sub5")))
 
-	subs := []zmq4.Socket{sub0, sub1, sub2}
+	subs := []zmq4.Socket{sub0, sub1, sub2, sub3, sub4, sub5}
 
 	defer pub.Close()
 	defer sub0.Close()
@@ -316,38 +315,33 @@ func TestGetTopics(t *testing.T) {
 
 	err := pub.Listen(ep)
 	if err != nil {
-		t.Errorf("could not listen: %+v", err)
+		t.Fatalf("could not listen: %+v", err)
 	}
 
 	for isub, sub := range subs {
+		topics := []string{"", "a", "b", "c", "2", "A_2"}
+
 		err = sub.Dial(ep)
 		if err != nil {
-			t.Errorf("could not dial: %+v", err)
+			t.Fatalf("could not dial: %+v", err)
 		}
 
 		err = sub.SetOption(zmq4.OptionSubscribe, topics[isub])
 		if err != nil {
-			t.Errorf("could not subscribe to topic %q: %+v", topics[isub], err)
+			t.Fatalf("could not subscribe to topic %q: %+v", topics[isub], err)
 		}
 		time.Sleep(500 * time.Millisecond)
-		getTopics = pub.(zmq4.Topics).Topics()
-		if len(getTopics) != isub+1 {
-			t.Errorf("got %d topics, want %d topics", len(getTopics), isub+1)
-		} else {
-			for _, wt := range topics[:isub+1] {
-				contains := false
-				for _, gt := range getTopics {
-					if wt != gt && !contains {
-						contains = false
-					} else {
-						contains = true
-						break
-					}
-				}
-				if !contains {
-					t.Errorf("Missing or wrong topic")
-				}
-			}
+		got := pub.(zmq4.Topics).Topics()
+		if len(got) != isub+1 {
+			t.Fatalf("got %d topics, want %d topics", len(got), isub+1)
 		}
+
+		want := make([]string, isub+1)
+		copy(want, topics)
+		sort.Strings(want)
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("Missing or wrong topics. Got %v, want %v", got, want)
+		}
+
 	}
 }

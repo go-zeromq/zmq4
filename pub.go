@@ -7,14 +7,16 @@ package zmq4
 import (
 	"context"
 	"net"
+	"sort"
 	"sync"
 
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/xerrors"
 )
 
-// Topics interface
+// Topics is an interface to extend the PUB socket methods with (zmq4.Topics).Topics()
 type Topics interface {
+	// Topics returns the topics this socket is subscribed to as a sorted list.
 	Topics() []string
 }
 
@@ -82,27 +84,26 @@ func (pub *pubSocket) SetOption(name string, value interface{}) error {
 	return pub.sck.SetOption(name, value)
 }
 
-// GetTopics is used to retrieve subscribed topics for a pub socket.
+// Topics returns the topics this socket is subscribed to as a sorted list.
 func (pub *pubSocket) Topics() []string {
+	var (
+		keys   = make(map[string]struct{})
+		topics []string
+	)
 	pub.sck.mu.RLock()
-	t := []string{}
 	for _, con := range pub.sck.conns {
 		con.mu.RLock()
 		for topic := range con.topics {
-			t = append(t, topic)
+			if _, dup := keys[topic]; dup {
+				continue
+			}
+			keys[topic] = struct{}{}
+			topics = append(topics, topic)
 		}
-		con.mu.RLock()
+		con.mu.RUnlock()
 	}
 	pub.sck.mu.RUnlock()
-	// Filter out duplicates
-	keys := make(map[string]bool)
-	topics := []string{}
-	for _, entry := range t {
-		if _, value := keys[entry]; !value {
-			keys[entry] = true
-			topics = append(topics, entry)
-		}
-	}
+	sort.Strings(topics)
 	return topics
 }
 
