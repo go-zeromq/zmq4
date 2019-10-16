@@ -306,21 +306,19 @@ func TestGetTopics(t *testing.T) {
 		}
 	)
 
+	ctx, timeout := context.WithTimeout(context.Background(), 20*time.Second)
+	defer timeout()
+
 	ep := must(EndPoint("tcp"))
-	pub := zmq4.NewPub(bkg)
-	sub0 := zmq4.NewSub(bkg, zmq4.WithID(zmq4.SocketIdentity("sub0")))
-	sub1 := zmq4.NewSub(bkg, zmq4.WithID(zmq4.SocketIdentity("sub1")))
-	sub2 := zmq4.NewSub(bkg, zmq4.WithID(zmq4.SocketIdentity("sub2")))
+	pub := zmq4.NewPub(ctx)
+	sub0 := zmq4.NewSub(ctx, zmq4.WithID(zmq4.SocketIdentity("sub0")))
+	sub1 := zmq4.NewSub(ctx, zmq4.WithID(zmq4.SocketIdentity("sub1")))
+	sub2 := zmq4.NewSub(ctx, zmq4.WithID(zmq4.SocketIdentity("sub2")))
 
 	defer pub.Close()
 	defer sub0.Close()
 	defer sub1.Close()
 	defer sub2.Close()
-
-	cleanUp(ep)
-
-	ctx, timeout := context.WithTimeout(context.Background(), 20*time.Second)
-	defer timeout()
 
 	nmsgs := []int{0, 0, 0}
 	subs := []zmq4.Socket{sub0, sub1, sub2}
@@ -330,7 +328,7 @@ func TestGetTopics(t *testing.T) {
 	wg1.Add(len(subs))
 	wg2.Add(len(subs))
 
-	grp, ctx := errgroup.WithContext(ctx)
+	grp, _ := errgroup.WithContext(ctx)
 	grp.Go(func() error {
 
 		err := pub.Listen(ep)
@@ -409,7 +407,6 @@ func TestGetTopics(t *testing.T) {
 	}
 
 	tpcks := pub.(zmq4.Topics).Topics()
-
 	if len(topics) != len(tpcks) {
 		t.Errorf("got %d topics, want %d topics", len(tpcks), len(topics))
 	} else {
