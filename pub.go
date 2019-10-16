@@ -87,9 +87,11 @@ func (pub *pubSocket) Topics() []string {
 	pub.sck.mu.RLock()
 	t := []string{}
 	for _, con := range pub.sck.conns {
+		con.mu.RLock()
 		for topic := range con.topics {
 			t = append(t, topic)
 		}
+		con.mu.RLock()
 	}
 	pub.sck.mu.RUnlock()
 	// Filter out duplicates
