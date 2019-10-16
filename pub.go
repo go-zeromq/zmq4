@@ -13,6 +13,11 @@ import (
 	"golang.org/x/xerrors"
 )
 
+// Topics interface
+type Topics interface {
+	Topics() []string
+}
+
 // NewPub returns a new PUB ZeroMQ socket.
 // The returned socket value is initially unbound.
 func NewPub(ctx context.Context, opts ...Option) Socket {
@@ -78,29 +83,25 @@ func (pub *pubSocket) SetOption(name string, value interface{}) error {
 }
 
 // GetTopics is used to retrieve subscribed topics for a pub socket.
-func (pub *pubSocket) GetTopics(filter bool) ([]string, error) {
+func (pub *pubSocket) Topics() []string {
 	pub.sck.mu.RLock()
-	allTopics := []string{}
+	t := []string{}
 	for _, con := range pub.sck.conns {
 		for topic := range con.topics {
-			allTopics = append(allTopics, topic)
+			t = append(t, topic)
 		}
 	}
 	pub.sck.mu.RUnlock()
-	if filter {
-		// Filter out duplicates
-		keys := make(map[string]bool)
-		filteredTopics := []string{}
-		for _, entry := range allTopics {
-			if _, value := keys[entry]; !value {
-				keys[entry] = true
-				filteredTopics = append(filteredTopics, entry)
-			}
+	// Filter out duplicates
+	keys := make(map[string]bool)
+	topics := []string{}
+	for _, entry := range t {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			topics = append(topics, entry)
 		}
-		return filteredTopics, nil
 	}
-
-	return allTopics, nil
+	return topics
 }
 
 // pubQReader is a queued-message reader.
@@ -279,4 +280,5 @@ var (
 	_ rpool  = (*pubQReader)(nil)
 	_ wpool  = (*pubMWriter)(nil)
 	_ Socket = (*pubSocket)(nil)
+	_ Topics = (*pubSocket)(nil)
 )

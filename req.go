@@ -7,8 +7,6 @@ package zmq4
 import (
 	"context"
 	"net"
-
-	"golang.org/x/xerrors"
 )
 
 // NewReq returns a new REQ ZeroMQ socket.
@@ -73,12 +71,6 @@ func (req *reqSocket) GetOption(name string) (interface{}, error) {
 // SetOption is used to set an option for a socket.
 func (req *reqSocket) SetOption(name string, value interface{}) error {
 	return req.sck.SetOption(name, value)
-}
-
-// GetTopics is used to retrieve subscribed topics for a pub socket.
-func (req *reqSocket) GetTopics(filter bool) ([]string, error) {
-	err := xerrors.Errorf("zmq4: Only available for PUB sockets")
-	return nil, err
 }
 
 var (

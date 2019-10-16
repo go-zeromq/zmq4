@@ -39,7 +39,4 @@ type Socket interface {
 
 	// SetOption is used to set an option for a socket.
 	SetOption(name string, value interface{}) error
-
-	// GetTopics is used to retrieve subscribed topics for a pub socket.
-	GetTopics(filter bool) ([]string, error)
 }

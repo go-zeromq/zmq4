@@ -7,8 +7,6 @@ package zmq4
 import (
 	"context"
 	"net"
-
-	"golang.org/x/xerrors"
 )
 
 // NewDealer returns a new DEALER ZeroMQ socket.
@@ -68,12 +66,6 @@ func (dealer *dealerSocket) GetOption(name string) (interface{}, error) {
 // SetOption is used to set an option for a socket.
 func (dealer *dealerSocket) SetOption(name string, value interface{}) error {
 	return dealer.sck.SetOption(name, value)
-}
-
-// GetTopics is used to retrieve subscribed topics for a pub socket.
-func (dealer *dealerSocket) GetTopics(filter bool) ([]string, error) {
-	err := xerrors.Errorf("zmq4: Only available for PUB sockets")
-	return nil, err
 }
 
 var (

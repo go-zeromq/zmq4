@@ -71,12 +71,6 @@ func (pull *pullSocket) SetOption(name string, value interface{}) error {
 	return pull.sck.SetOption(name, value)
 }
 
-// GetTopics is used to retrieve subscribed topics for a pub socket.
-func (pull *pullSocket) GetTopics(filter bool) ([]string, error) {
-	err := xerrors.Errorf("zmq4: Only available for PUB sockets")
-	return nil, err
-}
-
 var (
 	_ Socket = (*pullSocket)(nil)
 )

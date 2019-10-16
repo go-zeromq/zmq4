@@ -321,12 +321,6 @@ func (sck *socket) SetOption(name string, value interface{}) error {
 	return nil
 }
 
-// GetTopics is used to retrieve subscribed topics for a pub socket.
-func (sck *socket) GetTopics(filter bool) ([]string, error) {
-	err := xerrors.Errorf("zmq4: Only available for PUB sockets")
-	return nil, err
-}
-
 func (sck *socket) timeout() time.Duration {
 	// FIXME(sbinet): extract from options
 	return defaultTimeout

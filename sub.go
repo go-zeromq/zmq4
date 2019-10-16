@@ -8,8 +8,6 @@ import (
 	"context"
 	"net"
 	"sync"
-
-	"golang.org/x/xerrors"
 )
 
 // NewSub returns a new SUB ZeroMQ socket.
@@ -118,12 +116,6 @@ func (sub *subSocket) SetOption(name string, value interface{}) error {
 	}
 	sub.sck.mu.RUnlock()
 	return err
-}
-
-// GetTopics is used to retrieve subscribed topics for a pub socket.
-func (sub *subSocket) GetTopics(filter bool) ([]string, error) {
-	err := xerrors.Errorf("zmq4: Only available for PUB sockets")
-	return nil, err
 }
 
 func (sub *subSocket) subscribe(topic string, v int) {
