@@ -7,6 +7,7 @@ package zmq4_test
 import (
 	"context"
 	"reflect"
+	"sort"
 	"sync"
 	"testing"
 	"time"
@@ -289,5 +290,67 @@ func TestPubSubClosedSub(t *testing.T) {
 
 	if err := grp.Wait(); err != nil {
 		t.Fatalf("error: %+v", err)
+	}
+}
+
+func TestTopics(t *testing.T) {
+	ctx, timeout := context.WithTimeout(context.Background(), 20*time.Second)
+	defer timeout()
+
+	ep := must(EndPoint("tcp"))
+	pub := zmq4.NewPub(ctx)
+	sub0 := zmq4.NewSub(ctx, zmq4.WithID(zmq4.SocketIdentity("sub0")))
+	sub1 := zmq4.NewSub(ctx, zmq4.WithID(zmq4.SocketIdentity("sub1")))
+	sub2 := zmq4.NewSub(ctx, zmq4.WithID(zmq4.SocketIdentity("sub2")))
+	sub3 := zmq4.NewSub(ctx, zmq4.WithID(zmq4.SocketIdentity("sub3")))
+	sub4 := zmq4.NewSub(ctx, zmq4.WithID(zmq4.SocketIdentity("sub4")))
+	sub5 := zmq4.NewSub(ctx, zmq4.WithID(zmq4.SocketIdentity("sub5")))
+
+	subs := []zmq4.Socket{sub0, sub1, sub2, sub3, sub4, sub5}
+
+	defer pub.Close()
+	defer sub0.Close()
+	defer sub1.Close()
+	defer sub2.Close()
+	defer sub3.Close()
+	defer sub4.Close()
+	defer sub5.Close()
+
+	err := pub.Listen(ep)
+	if err != nil {
+		t.Fatalf("could not listen: %+v", err)
+	}
+
+	for isub, sub := range subs {
+		topics := []string{"", "a", "b", "c", "2", "A_2"}
+
+		err = sub.Dial(ep)
+		if err != nil {
+			t.Fatalf("could not dial: %+v", err)
+		}
+
+		err = sub.SetOption(zmq4.OptionSubscribe, topics[isub])
+		if err != nil {
+			t.Fatalf("could not subscribe to topic %q: %+v", topics[isub], err)
+		}
+		time.Sleep(500 * time.Millisecond)
+
+		got := sub.(zmq4.Topics).Topics()
+		want := []string{topics[isub]}
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("Missing or wrong topics.\ngot= %q\nwant=%q", got, want)
+		}
+
+		got = pub.(zmq4.Topics).Topics()
+		if len(got) != isub+1 {
+			t.Fatalf("got %d topics, want %d topics", len(got), isub+1)
+		}
+
+		want = make([]string, isub+1)
+		copy(want, topics)
+		sort.Strings(want)
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("Missing or wrong topics.\ngot= %q\nwant=%q", got, want)
+		}
 	}
 }

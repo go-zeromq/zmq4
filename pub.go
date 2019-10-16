@@ -7,11 +7,18 @@ package zmq4
 import (
 	"context"
 	"net"
+	"sort"
 	"sync"
 
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/xerrors"
 )
+
+// Topics is an interface that wraps the basic Topics method.
+type Topics interface {
+	// Topics returns the sorted list of topics a socket is subscribed to.
+	Topics() []string
+}
 
 // NewPub returns a new PUB ZeroMQ socket.
 // The returned socket value is initially unbound.
@@ -75,6 +82,29 @@ func (pub *pubSocket) GetOption(name string) (interface{}, error) {
 // SetOption is used to set an option for a socket.
 func (pub *pubSocket) SetOption(name string, value interface{}) error {
 	return pub.sck.SetOption(name, value)
+}
+
+// Topics returns the sorted list of topics a socket is subscribed to.
+func (pub *pubSocket) Topics() []string {
+	var (
+		keys   = make(map[string]struct{})
+		topics []string
+	)
+	pub.sck.mu.RLock()
+	for _, con := range pub.sck.conns {
+		con.mu.RLock()
+		for topic := range con.topics {
+			if _, dup := keys[topic]; dup {
+				continue
+			}
+			keys[topic] = struct{}{}
+			topics = append(topics, topic)
+		}
+		con.mu.RUnlock()
+	}
+	pub.sck.mu.RUnlock()
+	sort.Strings(topics)
+	return topics
 }
 
 // pubQReader is a queued-message reader.
@@ -253,4 +283,5 @@ var (
 	_ rpool  = (*pubQReader)(nil)
 	_ wpool  = (*pubMWriter)(nil)
 	_ Socket = (*pubSocket)(nil)
+	_ Topics = (*pubSocket)(nil)
 )
