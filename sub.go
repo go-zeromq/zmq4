@@ -121,16 +121,9 @@ func (sub *subSocket) SetOption(name string, value interface{}) error {
 
 // Topics returns the sorted list of topics a socket is subscribed to.
 func (sub *subSocket) Topics() []string {
-	var (
-		keys   = make(map[string]struct{})
-		topics []string
-	)
 	sub.mu.RLock()
+	var topics = make([]string, 0, len(sub.topics))
 	for topic := range sub.topics {
-		if _, dup := keys[topic]; dup {
-			continue
-		}
-		keys[topic] = struct{}{}
 		topics = append(topics, topic)
 	}
 	sub.mu.RUnlock()
