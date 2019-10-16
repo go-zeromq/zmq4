@@ -294,16 +294,8 @@ func TestPubSubClosedSub(t *testing.T) {
 
 func TestGetTopics(t *testing.T) {
 	var (
-		topics      = []string{"", "Topic1", "topic1"}
-		wantNumMsgs = []int{3, 1, 1}
-		msg0        = zmq4.NewMsgString("anything")
-		msg1        = zmq4.NewMsgString("Topic1 1")
-		msg2        = zmq4.NewMsgString("topic1 2")
-		msgs        = [][]zmq4.Msg{
-			0: {msg0, msg1, msg2},
-			1: {msg1},
-			2: {msg2},
-		}
+		topics    = []string{"", "topic1", "topic2"}
+		getTopics []string
 	)
 
 	ctx, timeout := context.WithTimeout(context.Background(), 20*time.Second)
@@ -315,112 +307,46 @@ func TestGetTopics(t *testing.T) {
 	sub1 := zmq4.NewSub(ctx, zmq4.WithID(zmq4.SocketIdentity("sub1")))
 	sub2 := zmq4.NewSub(ctx, zmq4.WithID(zmq4.SocketIdentity("sub2")))
 
+	subs := []zmq4.Socket{sub0, sub1, sub2}
+
 	defer pub.Close()
 	defer sub0.Close()
 	defer sub1.Close()
 	defer sub2.Close()
 
-	nmsgs := []int{0, 0, 0}
-	subs := []zmq4.Socket{sub0, sub1, sub2}
+	err := pub.Listen(ep)
+	if err != nil {
+		t.Errorf("could not listen: %w", err)
+	}
 
-	var wg1 sync.WaitGroup
-	var wg2 sync.WaitGroup
-	wg1.Add(len(subs))
-	wg2.Add(len(subs))
-
-	grp, _ := errgroup.WithContext(ctx)
-	grp.Go(func() error {
-
-		err := pub.Listen(ep)
+	for isub, sub := range subs {
+		err = sub.Dial(ep)
 		if err != nil {
-			return xerrors.Errorf("could not listen: %w", err)
+			t.Errorf("could not dial: %w", err)
 		}
 
-		if addr := pub.Addr(); addr == nil {
-			return xerrors.Errorf("listener with nil Addr")
+		err = sub.SetOption(zmq4.OptionSubscribe, topics[isub])
+		if err != nil {
+			t.Errorf("could not subscribe to topic %q: %w", topics[isub], err)
 		}
-
-		wg1.Wait()
-		wg2.Wait()
-
-		time.Sleep(1 * time.Second)
-
-		for _, msg := range msgs[0] {
-			err = pub.Send(msg)
-			if err != nil {
-				return xerrors.Errorf("could not send message %v: %w", msg, err)
-			}
-		}
-
-		return err
-	})
-
-	for isub := range subs {
-		func(isub int, sub zmq4.Socket) {
-			grp.Go(func() error {
-				var err error
-				err = sub.Dial(ep)
-				if err != nil {
-					return xerrors.Errorf("could not dial: %w", err)
-				}
-
-				if addr := sub.Addr(); addr != nil {
-					return xerrors.Errorf("dialer with non-nil Addr")
-				}
-
-				wg1.Done()
-				wg1.Wait()
-
-				err = sub.SetOption(zmq4.OptionSubscribe, topics[isub])
-				if err != nil {
-					return xerrors.Errorf("could not subscribe to topic %q: %w", topics[isub], err)
-				}
-
-				wg2.Done()
-				wg2.Wait()
-
-				msgs := msgs[isub]
-				for imsg, want := range msgs {
-					msg, err := sub.Recv()
-					if err != nil {
-						return xerrors.Errorf("could not recv message %v: %w", want, err)
+		time.Sleep(500 * time.Millisecond)
+		getTopics = pub.(zmq4.Topics).Topics()
+		if len(getTopics) != isub+1 {
+			t.Errorf("got %d topics, want %d topics", len(getTopics), isub+1)
+		} else {
+			for _, wt := range topics[:isub+1] {
+				contains := false
+				for _, gt := range getTopics {
+					if wt != gt && !contains {
+						contains = false
+					} else {
+						contains = true
+						break
 					}
-					if !reflect.DeepEqual(msg, want) {
-						return xerrors.Errorf("sub[%d][msg=%d]: got = %v, want= %v", isub, imsg, msg, want)
-					}
-					nmsgs[isub]++
 				}
-
-				return err
-			})
-		}(isub, subs[isub])
-	}
-
-	if err := grp.Wait(); err != nil {
-		t.Fatalf("error: %+v", err)
-	}
-
-	for i, want := range wantNumMsgs {
-		if want != nmsgs[i] {
-			t.Errorf("sub[%d]: got %d messages, want %d msgs=%v", i, nmsgs[i], want, nmsgs)
-		}
-	}
-
-	tpcks := pub.(zmq4.Topics).Topics()
-	if len(topics) != len(tpcks) {
-		t.Errorf("got %d topics, want %d topics", len(tpcks), len(topics))
-	} else {
-		for _, wt := range topics {
-			contains := false
-			for _, gt := range tpcks {
-				if wt != gt && !contains {
-					contains = false
-				} else {
-					contains = true
+				if !contains {
+					t.Errorf("Missing or wrong topic")
 				}
-			}
-			if !contains {
-				t.Errorf("Missing or wrong topic")
 			}
 		}
 	}
