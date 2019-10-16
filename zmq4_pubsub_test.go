@@ -316,18 +316,18 @@ func TestGetTopics(t *testing.T) {
 
 	err := pub.Listen(ep)
 	if err != nil {
-		t.Errorf("could not listen: %w", err)
+		t.Errorf("could not listen: %+v", err)
 	}
 
 	for isub, sub := range subs {
 		err = sub.Dial(ep)
 		if err != nil {
-			t.Errorf("could not dial: %w", err)
+			t.Errorf("could not dial: %+v", err)
 		}
 
 		err = sub.SetOption(zmq4.OptionSubscribe, topics[isub])
 		if err != nil {
-			t.Errorf("could not subscribe to topic %q: %w", topics[isub], err)
+			t.Errorf("could not subscribe to topic %q: %+v", topics[isub], err)
 		}
 		time.Sleep(500 * time.Millisecond)
 		getTopics = pub.(zmq4.Topics).Topics()
