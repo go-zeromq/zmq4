@@ -286,7 +286,7 @@ func (sck *socket) rmConn(c *Conn) {
 }
 
 func (sck *socket) scheduleRmConn(c *Conn) {
-	if sck.ctx.Err() != context.Canceled { // otherwise we've closed the chan
+	if sck.ctx.Err() == nil {
 		sck.closedConns <- c
 	}
 }
