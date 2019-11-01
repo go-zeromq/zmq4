@@ -32,6 +32,13 @@ func (pair *pairSocket) Send(msg Msg) error {
 	return pair.sck.Send(msg)
 }
 
+// SendMulti puts the message on the outbound send queue.
+// SendMulti blocks until the message can be queued or the send deadline expires.
+// The message will be sent as a multipart message.
+func (pair *pairSocket) SendMulti(msg Msg) error {
+	return pair.sck.SendMulti(msg)
+}
+
 // Recv receives a complete message.
 func (pair *pairSocket) Recv() (Msg, error) {
 	return pair.sck.Recv()

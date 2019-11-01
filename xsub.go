@@ -32,6 +32,13 @@ func (xsub *xsubSocket) Send(msg Msg) error {
 	return xsub.sck.Send(msg)
 }
 
+// SendMulti puts the message on the outbound send queue.
+// SendMulti blocks until the message can be queued or the send deadline expires.
+// The message will be sent as a multipart message.
+func (xsub *xsubSocket) SendMulti(msg Msg) error {
+	return xsub.sck.SendMulti(msg)
+}
+
 // Recv receives a complete message.
 func (xsub *xsubSocket) Recv() (Msg, error) {
 	return xsub.sck.Recv()

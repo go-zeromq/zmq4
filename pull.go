@@ -35,6 +35,13 @@ func (*pullSocket) Send(msg Msg) error {
 	return xerrors.Errorf("zmq4: PULL sockets can't send messages")
 }
 
+// SendMulti puts the message on the outbound send queue.
+// SendMulti blocks until the message can be queued or the send deadline expires.
+// The message will be sent as a multipart message.
+func (pull *pullSocket) SendMulti(msg Msg) error {
+	return xerrors.Errorf("zmq4: PULL sockets can't send messages")
+}
+
 // Recv receives a complete message.
 func (pull *pullSocket) Recv() (Msg, error) {
 	return pull.sck.Recv()

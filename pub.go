@@ -46,6 +46,16 @@ func (pub *pubSocket) Send(msg Msg) error {
 	return pub.sck.w.write(ctx, msg)
 }
 
+// SendMulti puts the message on the outbound send queue.
+// SendMulti blocks until the message can be queued or the send deadline expires.
+// The message will be sent as a multipart message.
+func (pub *pubSocket) SendMulti(msg Msg) error {
+	msg.multipart = true
+	ctx, cancel := context.WithTimeout(pub.sck.ctx, pub.sck.timeout())
+	defer cancel()
+	return pub.sck.w.write(ctx, msg)
+}
+
 // Recv receives a complete message.
 func (*pubSocket) Recv() (Msg, error) {
 	msg := Msg{err: xerrors.Errorf("zmq4: PUB sockets can't recv messages")}
@@ -322,6 +332,7 @@ func (w *pubMWriter) sendMsg(msg Msg) {
 	topic := string(msg.Frames[0])
 	w.mu.Lock()
 	defer w.mu.Unlock()
+	// TODO(inphi): distribute messages across subscribers at once
 	for i := range w.ws {
 		ww := w.ws[i]
 		if ww.subscribed(topic) {

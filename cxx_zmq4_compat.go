@@ -83,6 +83,13 @@ func (sck *csocket) Send(msg Msg) error {
 	return sck.sock.SendMessage(msg.Frames)
 }
 
+// SendMulti puts the message on the outbound send queue.
+// SendMulti blocks until the message can be queued or the send deadline expires.
+// The message will be sent as a multipart message.
+func (sck *csocket) SendMulti(msg Msg) error {
+	return sck.sock.SendMessage(msg.Frames)
+}
+
 // Recv receives a complete message.
 func (sck *csocket) Recv() (Msg, error) {
 	frames, err := sck.sock.RecvMessage()

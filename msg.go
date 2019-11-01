@@ -19,9 +19,10 @@ const (
 
 // Msg is a ZMTP message, possibly composed of multiple frames.
 type Msg struct {
-	Frames [][]byte
-	Type   MsgType
-	err    error
+	Frames    [][]byte
+	Type      MsgType
+	multipart bool
+	err       error
 }
 
 func NewMsg(frame []byte) Msg {

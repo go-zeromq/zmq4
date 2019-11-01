@@ -33,6 +33,14 @@ func (rep *repSocket) Send(msg Msg) error {
 	return rep.sck.Send(msg)
 }
 
+// SendMulti puts the message on the outbound send queue.
+// SendMulti blocks until the message can be queued or the send deadline expires.
+// The message will be sent as a multipart message.
+func (rep *repSocket) SendMulti(msg Msg) error {
+	msg.Frames = append([][]byte{nil}, msg.Frames...)
+	return rep.sck.SendMulti(msg)
+}
+
 // Recv receives a complete message.
 func (rep *repSocket) Recv() (Msg, error) {
 	msg, err := rep.sck.Recv()
