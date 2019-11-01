@@ -39,6 +39,13 @@ func (sub *subSocket) Send(msg Msg) error {
 	return sub.sck.Send(msg)
 }
 
+// SendMulti puts the message on the outbound send queue.
+// SendMulti blocks until the message can be queued or the send deadline expires.
+// The message will be sent as a multipart message.
+func (sub *subSocket) SendMulti(msg Msg) error {
+	return sub.sck.SendMulti(msg)
+}
+
 // Recv receives a complete message.
 func (sub *subSocket) Recv() (Msg, error) {
 	return sub.sck.Recv()

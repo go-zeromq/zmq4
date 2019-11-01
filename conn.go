@@ -177,6 +177,10 @@ func (c *Conn) SendMsg(msg Msg) error {
 	if c.Closed() {
 		return ErrClosedConn
 	}
+	if msg.multipart {
+		return c.sendMulti(msg)
+	}
+
 	nframes := len(msg.Frames)
 	for i, frame := range msg.Frames {
 		var flag byte
@@ -274,6 +278,54 @@ func (c *Conn) RecvCmd() (Cmd, error) {
 	}
 
 	return cmd, nil
+}
+
+func (c *Conn) sendMulti(msg Msg) error {
+	var buffers net.Buffers
+
+	nframes := len(msg.Frames)
+	for i, frame := range msg.Frames {
+		var flag byte
+		if i < nframes-1 {
+			flag ^= hasMoreBitFlag
+		}
+
+		size := len(frame)
+		isLong := size > 255
+		if isLong {
+			flag ^= isLongBitFlag
+		}
+
+		var (
+			hdr = [8 + 1]byte{flag}
+			hsz int
+		)
+		if isLong {
+			hsz = 9
+			binary.BigEndian.PutUint64(hdr[1:], uint64(size))
+		} else {
+			hsz = 2
+			hdr[1] = uint8(size)
+		}
+
+		switch c.sec.Type() {
+		case NullSecurity:
+			buffers = append(buffers, hdr[:hsz], frame)
+		default:
+			var secBuf bytes.Buffer
+			if _, err := c.sec.Encrypt(&secBuf, frame); err != nil {
+				return err
+			}
+			buffers = append(buffers, hdr[:hsz], secBuf.Bytes())
+		}
+	}
+
+	if _, err := buffers.WriteTo(c.rw); err != nil {
+		c.checkIO(err)
+		return err
+	}
+
+	return nil
 }
 
 func (c *Conn) send(isCommand bool, body []byte, flag byte) error {

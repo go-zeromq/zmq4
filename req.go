@@ -33,6 +33,14 @@ func (req *reqSocket) Send(msg Msg) error {
 	return req.sck.Send(msg)
 }
 
+// SendMulti puts the message on the outbound send queue.
+// SendMulti blocks until the message can be queued or the send deadline expires.
+// The message will be sent as a multipart message.
+func (req *reqSocket) SendMulti(msg Msg) error {
+	msg.Frames = append([][]byte{nil}, msg.Frames...)
+	return req.sck.SendMulti(msg)
+}
+
 // Recv receives a complete message.
 func (req *reqSocket) Recv() (Msg, error) {
 	msg, err := req.sck.Recv()

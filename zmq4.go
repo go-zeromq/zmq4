@@ -18,6 +18,11 @@ type Socket interface {
 	// Send blocks until the message can be queued or the send deadline expires.
 	Send(msg Msg) error
 
+	// SendMulti puts the message on the outbound send queue.
+	// SendMulti blocks until the message can be queued or the send deadline expires.
+	// The message will be sent as a multipart message.
+	SendMulti(msg Msg) error
+
 	// Recv receives a complete message.
 	Recv() (Msg, error)
 

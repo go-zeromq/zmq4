@@ -40,6 +40,14 @@ func (router *routerSocket) Send(msg Msg) error {
 	return router.sck.w.write(ctx, msg)
 }
 
+// SendMulti puts the message on the outbound send queue.
+// SendMulti blocks until the message can be queued or the send deadline expires.
+// The message will be sent as a multipart message.
+func (router *routerSocket) SendMulti(msg Msg) error {
+	msg.multipart = true
+	return router.Send(msg)
+}
+
 // Recv receives a complete message.
 func (router *routerSocket) Recv() (Msg, error) {
 	return router.sck.Recv()

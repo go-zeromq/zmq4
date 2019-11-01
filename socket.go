@@ -124,6 +124,16 @@ func (sck *socket) Send(msg Msg) error {
 	return sck.w.write(ctx, msg)
 }
 
+// SendMulti puts the message on the outbound send queue.
+// SendMulti blocks until the message can be queued or the send deadline expires.
+// The message will be sent as a multipart message.
+func (sck *socket) SendMulti(msg Msg) error {
+	msg.multipart = true
+	ctx, cancel := context.WithTimeout(sck.ctx, sck.timeout())
+	defer cancel()
+	return sck.w.write(ctx, msg)
+}
+
 // Recv receives a complete message.
 func (sck *socket) Recv() (Msg, error) {
 	ctx, cancel := context.WithCancel(sck.ctx)

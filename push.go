@@ -35,6 +35,13 @@ func (push *pushSocket) Send(msg Msg) error {
 	return push.sck.Send(msg)
 }
 
+// SendMulti puts the message on the outbound send queue.
+// SendMulti blocks until the message can be queued or the send deadline expires.
+// The message will be sent as a multipart message.
+func (push *pushSocket) SendMulti(msg Msg) error {
+	return push.sck.SendMulti(msg)
+}
+
 // Recv receives a complete message.
 func (*pushSocket) Recv() (Msg, error) {
 	return Msg{}, xerrors.Errorf("zmq4: PUSH sockets can't recv messages")

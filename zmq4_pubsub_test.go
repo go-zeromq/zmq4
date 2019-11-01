@@ -293,6 +293,82 @@ func TestPubSubClosedSub(t *testing.T) {
 	}
 }
 
+func TestPubSubMultiPart(t *testing.T) {
+	msg := zmq4.NewMsgFrom([]byte("msgA"), []byte("msgB"), []byte("msgC"))
+	pub := zmq4.NewPub(bkg)
+	sub := zmq4.NewSub(bkg)
+
+	defer pub.Close()
+	defer sub.Close()
+
+	ep := must(EndPoint("tcp"))
+	cleanUp(ep)
+
+	ctx, timeout := context.WithTimeout(context.Background(), 20*time.Second)
+	defer timeout()
+
+	grp, _ := errgroup.WithContext(ctx)
+
+	pss := newPubSubSync(1)
+
+	grp.Go(func() error {
+		var err error
+		err = pub.Listen(ep)
+		if err != nil {
+			return xerrors.Errorf("could not listen on end point: %+v", err)
+		}
+		if addr := pub.Addr(); addr == nil {
+			return xerrors.Errorf("listener with nil Addr")
+		}
+
+		pss.WaitForSubscriptions()
+		time.Sleep(1 * time.Second)
+
+		err = pub.SendMulti(msg)
+		if err != nil {
+			return xerrors.Errorf("could not send message %v: %w", msg, err)
+		}
+
+		return nil
+	})
+
+	grp.Go(func() error {
+		var err error
+		err = sub.Dial(ep)
+		if err != nil {
+			return xerrors.Errorf("could not dial: %w", err)
+		}
+
+		if addr := sub.Addr(); addr != nil {
+			return xerrors.Errorf("dialer with non-nil Addr")
+		}
+
+		pss.DialComplete()
+		pss.WaitForDialers()
+
+		err = sub.SetOption(zmq4.OptionSubscribe, "msg")
+		if err != nil {
+			return xerrors.Errorf("could not subscribe to topic: %w", err)
+		}
+
+		pss.SubscriptionComplete()
+		pss.WaitForSubscriptions()
+
+		newMsg, err := sub.Recv()
+		if err != nil {
+			return xerrors.Errorf("could not recv message %v: %w", msg, err)
+		}
+		if !reflect.DeepEqual(newMsg, msg) {
+			return xerrors.Errorf("got = %v, want= %v", newMsg, msg)
+		}
+		return err
+	})
+
+	if err := grp.Wait(); err != nil {
+		t.Fatalf("error: %+v", err)
+	}
+}
+
 func TestTopics(t *testing.T) {
 	ctx, timeout := context.WithTimeout(context.Background(), 20*time.Second)
 	defer timeout()
@@ -461,7 +537,7 @@ func TestPubOptionHWM(t *testing.T) {
 	ctx, timeout := context.WithTimeout(context.Background(), 20*time.Second)
 	defer timeout()
 
-	grp, ctx := errgroup.WithContext(ctx)
+	grp, _ := errgroup.WithContext(ctx)
 	pss := newPubSubSync(1)
 
 	grp.Go(func() error {
@@ -535,7 +611,11 @@ func TestPubOptionHWM(t *testing.T) {
 
 func BenchmarkPubSub(b *testing.B) {
 	topic := "msg"
-	msg := zmq4.NewMsg([]byte("msg"))
+	msgs := make([][]byte, 10)
+	for i := range msgs {
+		msgs[i] = []byte("msg")
+	}
+	msg := zmq4.NewMsgFrom(msgs...)
 	pub := zmq4.NewPub(bkg)
 	sub := zmq4.NewSub(bkg)
 
@@ -548,7 +628,7 @@ func BenchmarkPubSub(b *testing.B) {
 	ctx, timeout := context.WithTimeout(context.Background(), 20*time.Second)
 	defer timeout()
 
-	grp, ctx := errgroup.WithContext(ctx)
+	grp, _ := errgroup.WithContext(ctx)
 
 	msgCount := 1 << 18
 	pss := newPubSubSync(1)
@@ -564,7 +644,7 @@ func BenchmarkPubSub(b *testing.B) {
 		time.Sleep(1 * time.Second)
 
 		for i := 0; i < msgCount; i++ {
-			err = pub.Send(msg)
+			err = pub.SendMulti(msg)
 			if err != nil {
 				return xerrors.Errorf("error sending message: %v\n", err)
 			}
@@ -591,10 +671,14 @@ func BenchmarkPubSub(b *testing.B) {
 		pss.SubscriptionComplete()
 		pss.WaitForSubscriptions()
 
+		var siz int
 		for i := 0; i < msgCount; i++ {
-			_, err := sub.Recv()
+			msg, err := sub.Recv()
 			if err != nil {
 				return xerrors.Errorf("could not recv message: %v", err)
+			}
+			for _, frame := range msg.Frames {
+				siz += len(frame)
 			}
 		}
 

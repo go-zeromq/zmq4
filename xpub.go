@@ -32,6 +32,13 @@ func (xpub *xpubSocket) Send(msg Msg) error {
 	return xpub.sck.Send(msg)
 }
 
+// SendMulti puts the message on the outbound send queue.
+// SendMulti blocks until the message can be queued or the send deadline expires.
+// The message will be sent as a multipart message.
+func (xpub *xpubSocket) SendMulti(msg Msg) error {
+	return xpub.sck.SendMulti(msg)
+}
+
 // Recv receives a complete message.
 func (xpub *xpubSocket) Recv() (Msg, error) {
 	return xpub.sck.Recv()

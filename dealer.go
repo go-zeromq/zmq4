@@ -32,6 +32,13 @@ func (dealer *dealerSocket) Send(msg Msg) error {
 	return dealer.sck.Send(msg)
 }
 
+// SendMulti puts the message on the outbound send queue.
+// SendMulti blocks until the message can be queued or the send deadline expires.
+// The message will be sent as a multipart message.
+func (dealer *dealerSocket) SendMulti(msg Msg) error {
+	return dealer.sck.SendMulti(msg)
+}
+
 // Recv receives a complete message.
 func (dealer *dealerSocket) Recv() (Msg, error) {
 	return dealer.sck.Recv()
