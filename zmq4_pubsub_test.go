@@ -354,3 +354,84 @@ func TestTopics(t *testing.T) {
 		}
 	}
 }
+
+// TestPubSubDeadPub ensures that subscribers can proceed even after losing connection to the publisher
+func TestPubSubDeadPub(t *testing.T) {
+	ep := must(EndPoint("tcp"))
+	topic := "msg"
+	msg := zmq4.NewMsgString("msg")
+
+	bkg := context.Background()
+	ctx, timeout := context.WithTimeout(bkg, 20*time.Second)
+	defer timeout()
+
+	pub := zmq4.NewPub(ctx)
+	sub := zmq4.NewSub(ctx)
+
+	defer sub.Close()
+
+	subReady := make(chan struct{})
+	pubClosed := make(chan struct{})
+
+	const nmsgs = 4 // the number of messages do not matter
+
+	grp, _ := errgroup.WithContext(ctx)
+	grp.Go(func() error {
+		defer close(pubClosed)
+		defer pub.Close()
+
+		err := pub.Listen(ep)
+		if err != nil {
+			return xerrors.Errorf("could not listen on end point: %+v", err)
+		}
+
+		<-subReady
+		time.Sleep(time.Second * 1)
+
+		for i := 0; i < nmsgs; i++ {
+			if err := pub.Send(msg); err != nil {
+				return xerrors.Errorf("could not send message %v: %w", msg, err)
+			}
+		}
+
+		return err
+	})
+
+	grp.Go(func() error {
+		var err error
+		err = sub.Dial(ep)
+		if err != nil {
+			return xerrors.Errorf("could not dial: %w", err)
+		}
+
+		err = sub.SetOption(zmq4.OptionSubscribe, topic)
+		if err != nil {
+			return xerrors.Errorf("could not subscribe to topic %q: %w", topic, err)
+		}
+
+		close(subReady)
+
+		for i := 0; i < nmsgs; i++ {
+			rmsg, err := sub.Recv()
+			if err != nil {
+				return xerrors.Errorf("could not recv message: %w", err)
+			}
+			if !reflect.DeepEqual(rmsg, msg) {
+				return xerrors.Errorf("sub: got = %v, want= %v", rmsg, msg)
+			}
+		}
+
+		<-pubClosed
+
+		_, err = sub.Recv() // make sure we aren't deadlocked
+		if err == nil {
+			return xerrors.New("expected an error")
+		}
+
+		return nil
+	})
+
+	if err := grp.Wait(); err != nil {
+		t.Fatalf("error: %+v", err)
+	}
+}

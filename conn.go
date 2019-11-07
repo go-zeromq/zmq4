@@ -430,6 +430,11 @@ func (conn *Conn) checkIO(err error) {
 		return
 	}
 
+	if err == io.EOF || xerrors.Is(err, io.EOF) {
+		conn.SetClosed()
+		return
+	}
+
 	var e net.Error
 	if xerrors.As(err, &e); e != nil && !e.Timeout() {
 		conn.SetClosed()

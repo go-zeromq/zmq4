@@ -50,6 +50,7 @@ type socket struct {
 	dialer   net.Dialer
 
 	closedConns chan *Conn
+	quit        chan struct{}
 }
 
 func newDefaultSocket(ctx context.Context, sockType SocketType) *socket {
@@ -70,6 +71,7 @@ func newDefaultSocket(ctx context.Context, sockType SocketType) *socket {
 		cancel:      cancel,
 		dialer:      net.Dialer{Timeout: defaultTimeout},
 		closedConns: make(chan *Conn),
+		quit:        make(chan struct{}),
 	}
 }
 
@@ -88,27 +90,25 @@ func newSocket(ctx context.Context, sockType SocketType, opts ...Option) *socket
 // Close closes the open Socket
 func (sck *socket) Close() error {
 	sck.cancel()
-	defer func() {
-		close(sck.closedConns)
-	}()
+	close(sck.quit)
 
 	if sck.listener != nil {
 		defer sck.listener.Close()
 	}
 
+	sck.mu.RLock()
+	defer sck.mu.RUnlock()
 	if sck.conns == nil {
 		return errInvalidSocket
 	}
 
 	var err error
-	sck.mu.RLock()
 	for _, conn := range sck.conns {
 		e := conn.Close()
 		if e != nil && err == nil {
 			err = e
 		}
 	}
-	sck.mu.RUnlock()
 	if strings.HasPrefix(sck.ep, "ipc://") {
 		os.Remove(sck.ep[len("ipc://"):])
 	}
@@ -238,6 +238,7 @@ connect:
 		return xerrors.Errorf("zmq4: got a nil ZMTP connection to %q", endpoint)
 	}
 
+	go sck.connReaper()
 	sck.addConn(zconn)
 	return nil
 }
@@ -286,8 +287,9 @@ func (sck *socket) rmConn(c *Conn) {
 }
 
 func (sck *socket) scheduleRmConn(c *Conn) {
-	if sck.ctx.Err() == nil {
-		sck.closedConns <- c
+	select {
+	case sck.closedConns <- c:
+	case <-sck.quit:
 	}
 }
 
@@ -328,11 +330,12 @@ func (sck *socket) timeout() time.Duration {
 
 func (sck *socket) connReaper() {
 	for {
-		conn, ok := <-sck.closedConns
-		if !ok {
+		select {
+		case conn := <-sck.closedConns:
+			sck.rmConn(conn)
+		case <-sck.quit:
 			return
 		}
-		sck.rmConn(conn)
 	}
 }
 
