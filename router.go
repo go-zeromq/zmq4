@@ -146,6 +146,7 @@ func (q *routerQReader) read(ctx context.Context, msg *Msg) error {
 	q.sem.lock()
 	select {
 	case <-ctx.Done():
+		return ctx.Err()
 	case *msg = <-q.c:
 	}
 	return msg.err

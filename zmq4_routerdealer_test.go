@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net"
 	"reflect"
 	"sync"
 	"testing"
@@ -252,4 +253,36 @@ func TestRouterWithNoDealer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not close router: %+v", err)
 	}
+}
+
+func TestRouterClose(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	router := zmq4.NewRouter(ctx)
+	err := router.Listen("tcp://*:*")
+	if err != nil {
+		t.Fatalf("router could not listen: %+v", err)
+	}
+	_, port, _ := net.SplitHostPort(router.Addr().String())
+	dealer := zmq4.NewDealer(ctx)
+	err = dealer.Dial("tcp://*:" + port)
+	if err != nil {
+		t.Fatalf("dealer could not dial: %+v", err)
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		_, err := router.Recv()
+		if err == nil {
+			t.Errorf("expected error: context canceled")
+		}
+	}()
+
+	err = router.Close()
+	if err != nil {
+		t.Fatalf("could not close router: %+v", err)
+	}
+	wg.Wait()
 }
