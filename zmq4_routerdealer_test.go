@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net"
 	"reflect"
 	"sync"
 	"testing"
@@ -238,4 +239,31 @@ func TestRouterDealer(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRouterClose(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	router := zmq4.NewRouter(ctx)
+	router.Listen("tcp://*:*")
+	_, port, _ := net.SplitHostPort(router.Addr().String())
+	dealer := zmq4.NewDealer(ctx)
+	dealer.Dial("tcp://*:" + port)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		_, err := router.Recv()
+		if err == nil {
+			t.Errorf("expected error: context canceled")
+		}
+	}()
+
+	err := router.Close()
+	time.Sleep(1 * time.Second)
+	if err != nil {
+		t.Errorf("want error %v, got %q", nil, err)
+	}
+	wg.Wait()
 }
