@@ -245,10 +245,16 @@ func TestRouterClose(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	router := zmq4.NewRouter(ctx)
-	router.Listen("tcp://*:*")
+	err := router.Listen("tcp://*:*")
+	if err != nil {
+		t.Errorf("want error %v, got %q", nil, err)
+	}
 	_, port, _ := net.SplitHostPort(router.Addr().String())
 	dealer := zmq4.NewDealer(ctx)
-	dealer.Dial("tcp://*:" + port)
+	err = dealer.Dial("tcp://*:" + port)
+	if err != nil {
+		t.Errorf("want error %v, got %q", nil, err)
+	}
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -260,8 +266,7 @@ func TestRouterClose(t *testing.T) {
 		}
 	}()
 
-	err := router.Close()
-	time.Sleep(1 * time.Second)
+	err = router.Close()
 	if err != nil {
 		t.Errorf("want error %v, got %q", nil, err)
 	}
