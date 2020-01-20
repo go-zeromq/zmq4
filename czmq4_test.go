@@ -284,11 +284,69 @@ var (
 			},
 		},
 	}
+
+	cpairs = []testCasePair{
+		{
+			name:     "tcp-cpair-pair",
+			endpoint: must(EndPoint("tcp")),
+			srv:      zmq4.NewCPair(bkg),
+			cli:      zmq4.NewPair(bkg),
+		},
+		{
+			name:     "tcp-pair-cpair",
+			endpoint: must(EndPoint("tcp")),
+			srv:      zmq4.NewPair(bkg),
+			cli:      zmq4.NewCPair(bkg),
+		},
+		{
+			name:     "tcp-cpair-cpair",
+			endpoint: must(EndPoint("tcp")),
+			srv:      zmq4.NewCPair(bkg),
+			cli:      zmq4.NewCPair(bkg),
+		},
+		{
+			name:     "ipc-cpair-pair",
+			endpoint: "ipc://ipc-cpair-pair",
+			srv:      zmq4.NewCPair(bkg),
+			cli:      zmq4.NewPair(bkg),
+		},
+		{
+			name:     "ipc-pair-cpair",
+			endpoint: "ipc://ipc-pair-cpair",
+			srv:      zmq4.NewPair(bkg),
+			cli:      zmq4.NewCPair(bkg),
+		},
+		{
+			name:     "ipc-cpair-cpair",
+			endpoint: "ipc://ipc-cpair-cpair",
+			srv:      zmq4.NewCPair(bkg),
+			cli:      zmq4.NewCPair(bkg),
+		},
+		// { // FIXME(sbinet)
+		// 	name:     "inproc-cpair-pair",
+		// 	endpoint: "inproc://inproc-cpair-pair",
+		// 	srv:      zmq4.NewCPair(bkg),
+		// 	cli:      zmq4.NewPair(bkg),
+		// },
+		// { // FIXME(sbinet)
+		// 	name:     "inproc-pair-cpair",
+		// 	endpoint: "inproc://inproc-pair-cpair",
+		// 	srv:      zmq4.NewPair(bkg),
+		// 	cli:      zmq4.NewCPair(bkg),
+		// },
+		{
+			name:     "inproc-cpair-cpair",
+			endpoint: "inproc://inproc-cpair-cpair",
+			srv:      zmq4.NewCPair(bkg),
+			cli:      zmq4.NewCPair(bkg),
+		},
+	}
 )
 
 func init() {
 	pushpulls = append(pushpulls, cpushpulls...)
 	reqreps = append(reqreps, creqreps...)
+	pairs = append(pairs, cpairs...)
 	pubsubs = append(pubsubs, cpubsubs...)
 	routerdealers = append(routerdealers, crouterdealers...)
 }
