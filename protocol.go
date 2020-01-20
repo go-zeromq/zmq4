@@ -35,6 +35,8 @@ const (
 	hasMoreBitFlag   = 0x1
 	isLongBitFlag    = 0x2
 	isCommandBitFlag = 0x4
+
+	zmtpMsgLen = 64
 )
 
 var (
@@ -90,46 +92,42 @@ type greeting struct {
 }
 
 func (g *greeting) read(r io.Reader) error {
-	var data [64]byte
+	var data [zmtpMsgLen]byte
 	_, err := io.ReadFull(r, data[:])
 	if err != nil {
-		return err
+		return xerrors.Errorf("could not read ZMTP greeting: %w", err)
 	}
 
-	err = g.unmarshal(data[:])
-	if err != nil {
-		return err
-	}
+	g.unmarshal(data[:])
 
 	if g.Sig.Header != sigHeader {
-		return errGreeting
+		return xerrors.Errorf("invalid ZMTP signature header: %w", errGreeting)
 	}
 
 	if g.Sig.Footer != sigFooter {
-		return errGreeting
+		return xerrors.Errorf("invalid ZMTP signature footer: %w", errGreeting)
 	}
 
 	// FIXME(sbinet): handle version negotiations as per
 	// https://rfc.zeromq.org/spec:23/ZMTP/#version-negotiation
 	if g.Version != defaultVersion {
-		return errGreeting
+		return xerrors.Errorf(
+			"invalid ZMTP version (got=%v, want=%v): %w",
+			g.Version, defaultVersion, errGreeting,
+		)
 	}
 
 	return nil
 }
 
-func (g *greeting) unmarshal(data []byte) error {
-	if len(data) < 64 {
-		return io.ErrShortBuffer
-	}
-	_ = data[:64]
+func (g *greeting) unmarshal(data []byte) {
+	_ = data[:zmtpMsgLen]
 	g.Sig.Header = data[0]
 	g.Sig.Footer = data[9]
 	g.Version[0] = data[10]
 	g.Version[1] = data[11]
 	copy(g.Mechanism[:], data[12:32])
 	g.Server = data[32]
-	return nil
 }
 
 func (g *greeting) write(w io.Writer) error {
@@ -138,7 +136,7 @@ func (g *greeting) write(w io.Writer) error {
 }
 
 func (g *greeting) marshal() []byte {
-	var buf [64]byte
+	var buf [zmtpMsgLen]byte
 	buf[0] = g.Sig.Header
 	// padding 1 ignored
 	buf[9] = g.Sig.Footer
