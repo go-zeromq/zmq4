@@ -79,11 +79,43 @@ func TestGreeting(t *testing.T) {
 			want: xerrors.Errorf("invalid ZMTP signature footer: %w", errGreeting),
 		},
 		{
-			name: "invalid-version", // FIXME(sbinet): adapt for when/if we support multiple ZMTP versions
+			name: "higher-major-version",
 			data: func() []byte {
 				w := new(bytes.Buffer)
 				g := greeting{
-					Version: [2]uint8{1, 1},
+					Version: [2]uint8{defaultVersion[0] + 1, defaultVersion[1]},
+				}
+				g.Sig.Header = sigHeader
+				g.Sig.Footer = sigFooter
+				err := g.write(w)
+				if err != nil {
+					t.Fatalf("could not marshal greeting: %+v", err)
+				}
+				return w.Bytes()
+			}(),
+		},
+		{
+			name: "higher-minor-version",
+			data: func() []byte {
+				w := new(bytes.Buffer)
+				g := greeting{
+					Version: [2]uint8{defaultVersion[0], defaultVersion[1] + 1},
+				}
+				g.Sig.Header = sigHeader
+				g.Sig.Footer = sigFooter
+				err := g.write(w)
+				if err != nil {
+					t.Fatalf("could not marshal greeting: %+v", err)
+				}
+				return w.Bytes()
+			}(),
+		},
+		{
+			name: "smaller-major-version", // FIXME(sbinet): adapt for when/if we support multiple ZMTP versions
+			data: func() []byte {
+				w := new(bytes.Buffer)
+				g := greeting{
+					Version: [2]uint8{defaultVersion[0] - 1, defaultVersion[1]},
 				}
 				g.Sig.Header = sigHeader
 				g.Sig.Footer = sigFooter
@@ -94,7 +126,7 @@ func TestGreeting(t *testing.T) {
 				return w.Bytes()
 			}(),
 			want: xerrors.Errorf("invalid ZMTP version (got=%v, want=%v): %w",
-				[2]uint{1, 1},
+				[2]uint8{defaultVersion[0] - 1, defaultVersion[1]},
 				defaultVersion,
 				errGreeting,
 			),

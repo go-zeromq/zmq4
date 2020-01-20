@@ -108,9 +108,7 @@ func (g *greeting) read(r io.Reader) error {
 		return xerrors.Errorf("invalid ZMTP signature footer: %w", errGreeting)
 	}
 
-	// FIXME(sbinet): handle version negotiations as per
-	// https://rfc.zeromq.org/spec:23/ZMTP/#version-negotiation
-	if g.Version != defaultVersion {
+	if !g.validate(defaultVersion) {
 		return xerrors.Errorf(
 			"invalid ZMTP version (got=%v, want=%v): %w",
 			g.Version, defaultVersion, errGreeting,
@@ -146,6 +144,24 @@ func (g *greeting) marshal() []byte {
 	buf[32] = g.Server
 	// padding 2 ignored
 	return buf[:]
+}
+
+func (g *greeting) validate(ref [2]uint8) bool {
+	switch {
+	case g.Version == ref:
+		return true
+	case g.Version[0] > ref[0] ||
+		g.Version[0] == ref[0] && g.Version[1] > ref[1]:
+		// accept higher protocol values
+		return true
+	case g.Version[0] < ref[0] ||
+		g.Version[0] == ref[0] && g.Version[1] < ref[1]:
+		// FIXME(sbinet): handle version negotiations as per
+		// https://rfc.zeromq.org/spec:23/ZMTP/#version-negotiation
+		return false
+	default:
+		return false
+	}
 }
 
 const (
