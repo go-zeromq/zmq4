@@ -23,7 +23,6 @@ const (
 
 var (
 	errInvalidAddress = xerrors.New("zmq4: invalid address")
-	errInvalidSocket  = xerrors.New("zmq4: invalid socket")
 
 	ErrBadProperty = xerrors.New("zmq4: bad property")
 )
@@ -98,9 +97,6 @@ func (sck *socket) Close() error {
 
 	sck.mu.RLock()
 	defer sck.mu.RUnlock()
-	if sck.conns == nil {
-		return errInvalidSocket
-	}
 
 	var err error
 	for _, conn := range sck.conns {

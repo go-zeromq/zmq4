@@ -239,3 +239,16 @@ func TestRouterDealer(t *testing.T) {
 		})
 	}
 }
+
+func TestRouterWithNoDealer(t *testing.T) {
+	router := zmq4.NewRouter(context.Background())
+	err := router.Listen("tcp://*:*")
+	if err != nil {
+		t.Fatalf("could not listen: %+v", err)
+	}
+
+	err = router.Close()
+	if err != nil {
+		t.Fatalf("could not close router: %+v", err)
+	}
+}
