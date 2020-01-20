@@ -63,8 +63,11 @@ func getTCPPort() (string, error) {
 }
 
 func cleanUp(ep string) {
-	if strings.HasPrefix(ep, "ipc://") {
+	switch {
+	case strings.HasPrefix(ep, "ipc://"):
 		os.Remove(ep[len("ipc://"):])
+	case strings.HasPrefix(ep, "inproc://"):
+		os.Remove(ep[len("inproc://"):])
 	}
 }
 

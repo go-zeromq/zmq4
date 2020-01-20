@@ -62,17 +62,6 @@ func (sub *subSocket) Dial(ep string) error {
 	if err != nil {
 		return err
 	}
-	// send our subscriptions to the remote end...
-	sub.mu.RLock()
-	defer sub.mu.RUnlock()
-	for k := range sub.topics {
-		topic := append([]byte{1}, k...)
-		msg := NewMsg(topic)
-		err := sub.Send(msg)
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
