@@ -89,7 +89,7 @@ func Open(rw net.Conn, sec Security, sockType SocketType, sockID SocketIdentity,
 
 	err := conn.init(sec)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("zmq4: could not initialize ZMTP connection: %w", err)
 	}
 
 	return conn, nil

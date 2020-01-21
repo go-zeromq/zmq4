@@ -6,6 +6,7 @@ package zmq4
 
 import (
 	"context"
+	"log"
 	"net"
 	"os"
 	"strings"
@@ -183,14 +184,16 @@ func (sck *socket) accept() {
 		default:
 			conn, err := sck.listener.Accept()
 			if err != nil {
-				// log.Printf("zmq4: error accepting connection from %q: %v", sck.ep, err)
+				// FIXME(sbinet): maybe bubble up this error to application code?
+				// log.Printf("zmq4: error accepting connection from %q: %+v", sck.ep, err)
 				continue
 			}
 
 			zconn, err := Open(conn, sck.sec, sck.typ, sck.id, true, sck.scheduleRmConn)
 			if err != nil {
-				panic(err)
-				//		return xerrors.Errorf("zmq4: could not open a ZMTP connection: %w", err)
+				// FIXME(sbinet): maybe bubble up this error to application code?
+				log.Printf("zmq4: could not open a ZMTP connection with %q: %+v", sck.ep, err)
+				continue
 			}
 
 			sck.addConn(zconn)
