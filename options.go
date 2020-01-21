@@ -5,6 +5,7 @@
 package zmq4
 
 import (
+	"log"
 	"time"
 )
 
@@ -40,6 +41,13 @@ func WithDialerRetry(retry time.Duration) Option {
 func WithDialerTimeout(timeout time.Duration) Option {
 	return func(s *socket) {
 		s.dialer.Timeout = timeout
+	}
+}
+
+// WithLogger sets a dedicated log.Logger for the socket.
+func WithLogger(msg *log.Logger) Option {
+	return func(s *socket) {
+		s.log = msg
 	}
 }
 

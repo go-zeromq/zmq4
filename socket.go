@@ -35,6 +35,7 @@ type socket struct {
 	id    SocketIdentity
 	retry time.Duration
 	sec   Security
+	log   *log.Logger
 
 	mu    sync.RWMutex
 	ids   map[string]*Conn // ZMTP connection IDs
@@ -82,6 +83,9 @@ func newSocket(ctx context.Context, sockType SocketType, opts ...Option) *socket
 	}
 	if len(sck.id) == 0 {
 		sck.id = SocketIdentity(newUUID())
+	}
+	if sck.log == nil {
+		sck.log = log.New(os.Stderr, "zmq4: ", 0)
 	}
 
 	return sck
@@ -185,14 +189,14 @@ func (sck *socket) accept() {
 			conn, err := sck.listener.Accept()
 			if err != nil {
 				// FIXME(sbinet): maybe bubble up this error to application code?
-				// log.Printf("zmq4: error accepting connection from %q: %+v", sck.ep, err)
+				sck.log.Printf("error accepting connection from %q: %+v", sck.ep, err)
 				continue
 			}
 
 			zconn, err := Open(conn, sck.sec, sck.typ, sck.id, true, sck.scheduleRmConn)
 			if err != nil {
 				// FIXME(sbinet): maybe bubble up this error to application code?
-				log.Printf("zmq4: could not open a ZMTP connection with %q: %+v", sck.ep, err)
+				sck.log.Printf("could not open a ZMTP connection with %q: %+v", sck.ep, err)
 				continue
 			}
 
