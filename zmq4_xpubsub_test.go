@@ -77,13 +77,13 @@ func TestXPubSub(t *testing.T) {
 			defer tc.sub1.Close()
 			defer tc.sub2.Close()
 
+			ep := tc.endpoint
+			cleanUp(ep)
+
 			if tc.skip {
 				t.Skipf(tc.name)
 			}
-			//t.Parallel()
-
-			ep := tc.endpoint
-			cleanUp(ep)
+			t.Parallel()
 
 			ctx, timeout := context.WithTimeout(context.Background(), 20*time.Second)
 			defer timeout()

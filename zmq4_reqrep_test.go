@@ -62,13 +62,13 @@ func TestReqRep(t *testing.T) {
 			defer tc.req.Close()
 			defer tc.rep.Close()
 
+			ep := tc.endpoint
+			cleanUp(ep)
+
 			if tc.skip {
 				t.Skipf(tc.name)
 			}
 			t.Parallel()
-
-			ep := tc.endpoint
-			cleanUp(ep)
 
 			ctx, timeout := context.WithTimeout(context.Background(), 20*time.Second)
 			defer timeout()

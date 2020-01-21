@@ -65,13 +65,13 @@ func TestPair(t *testing.T) {
 			defer tc.srv.Close()
 			defer tc.cli.Close()
 
+			ep := tc.endpoint
+			cleanUp(ep)
+
 			if tc.skip {
 				t.Skipf(tc.name)
 			}
 			t.Parallel()
-
-			ep := tc.endpoint
-			cleanUp(ep)
 
 			var (
 				wg1 sync.WaitGroup
