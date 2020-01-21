@@ -189,7 +189,7 @@ func (sck *socket) accept() {
 			conn, err := sck.listener.Accept()
 			if err != nil {
 				// FIXME(sbinet): maybe bubble up this error to application code?
-				sck.log.Printf("error accepting connection from %q: %+v", sck.ep, err)
+				//sck.log.Printf("error accepting connection from %q: %+v", sck.ep, err)
 				continue
 			}
 

@@ -7,8 +7,6 @@ package zmq4_test
 import (
 	"context"
 	"io"
-	"io/ioutil"
-	"log"
 	"net"
 	"testing"
 	"time"
@@ -68,7 +66,6 @@ func TestConnPairs(t *testing.T) {
 	t.Parallel()
 
 	bkg := context.Background()
-	msg := log.New(ioutil.Discard, "zmq4: ", 0)
 
 	for _, tc := range []struct {
 		name  string
@@ -78,69 +75,69 @@ func TestConnPairs(t *testing.T) {
 	}{
 		{
 			name:  "pair",
-			srv:   zmq4.NewPair(bkg, zmq4.WithLogger(msg)),
-			wrong: zmq4.NewSub(bkg, zmq4.WithLogger(msg)),
-			cli:   zmq4.NewPair(bkg, zmq4.WithLogger(msg)),
+			srv:   zmq4.NewPair(bkg, zmq4.WithLogger(zmq4.Devnull)),
+			wrong: zmq4.NewSub(bkg, zmq4.WithLogger(zmq4.Devnull)),
+			cli:   zmq4.NewPair(bkg, zmq4.WithLogger(zmq4.Devnull)),
 		},
 		{
 			name:  "pub",
-			srv:   zmq4.NewPub(bkg, zmq4.WithLogger(msg)),
-			wrong: zmq4.NewPair(bkg, zmq4.WithLogger(msg)),
-			cli:   zmq4.NewSub(bkg, zmq4.WithLogger(msg)),
+			srv:   zmq4.NewPub(bkg, zmq4.WithLogger(zmq4.Devnull)),
+			wrong: zmq4.NewPair(bkg, zmq4.WithLogger(zmq4.Devnull)),
+			cli:   zmq4.NewSub(bkg, zmq4.WithLogger(zmq4.Devnull)),
 		},
 		{
 			name:  "sub",
-			srv:   zmq4.NewSub(bkg, zmq4.WithLogger(msg)),
-			wrong: zmq4.NewPair(bkg, zmq4.WithLogger(msg)),
-			cli:   zmq4.NewPub(bkg, zmq4.WithLogger(msg)),
+			srv:   zmq4.NewSub(bkg, zmq4.WithLogger(zmq4.Devnull)),
+			wrong: zmq4.NewPair(bkg, zmq4.WithLogger(zmq4.Devnull)),
+			cli:   zmq4.NewPub(bkg, zmq4.WithLogger(zmq4.Devnull)),
 		},
 		{
 			name:  "req",
-			srv:   zmq4.NewReq(bkg, zmq4.WithLogger(msg)),
-			wrong: zmq4.NewPair(bkg, zmq4.WithLogger(msg)),
-			cli:   zmq4.NewRep(bkg, zmq4.WithLogger(msg)),
+			srv:   zmq4.NewReq(bkg, zmq4.WithLogger(zmq4.Devnull)),
+			wrong: zmq4.NewPair(bkg, zmq4.WithLogger(zmq4.Devnull)),
+			cli:   zmq4.NewRep(bkg, zmq4.WithLogger(zmq4.Devnull)),
 		},
 		{
 			name:  "rep",
-			srv:   zmq4.NewRep(bkg, zmq4.WithLogger(msg)),
-			wrong: zmq4.NewPair(bkg, zmq4.WithLogger(msg)),
-			cli:   zmq4.NewReq(bkg, zmq4.WithLogger(msg)),
+			srv:   zmq4.NewRep(bkg, zmq4.WithLogger(zmq4.Devnull)),
+			wrong: zmq4.NewPair(bkg, zmq4.WithLogger(zmq4.Devnull)),
+			cli:   zmq4.NewReq(bkg, zmq4.WithLogger(zmq4.Devnull)),
 		},
 		{
 			name:  "dealer",
-			srv:   zmq4.NewDealer(bkg, zmq4.WithLogger(msg)),
-			wrong: zmq4.NewPair(bkg, zmq4.WithLogger(msg)),
-			cli:   zmq4.NewRouter(bkg, zmq4.WithLogger(msg)),
+			srv:   zmq4.NewDealer(bkg, zmq4.WithLogger(zmq4.Devnull)),
+			wrong: zmq4.NewPair(bkg, zmq4.WithLogger(zmq4.Devnull)),
+			cli:   zmq4.NewRouter(bkg, zmq4.WithLogger(zmq4.Devnull)),
 		},
 		{
 			name:  "router",
-			srv:   zmq4.NewRouter(bkg, zmq4.WithLogger(msg)),
-			wrong: zmq4.NewPair(bkg, zmq4.WithLogger(msg)),
-			cli:   zmq4.NewDealer(bkg, zmq4.WithLogger(msg)),
+			srv:   zmq4.NewRouter(bkg, zmq4.WithLogger(zmq4.Devnull)),
+			wrong: zmq4.NewPair(bkg, zmq4.WithLogger(zmq4.Devnull)),
+			cli:   zmq4.NewDealer(bkg, zmq4.WithLogger(zmq4.Devnull)),
 		},
 		{
 			name:  "pull",
-			srv:   zmq4.NewPull(bkg, zmq4.WithLogger(msg)),
-			wrong: zmq4.NewPair(bkg, zmq4.WithLogger(msg)),
-			cli:   zmq4.NewPush(bkg, zmq4.WithLogger(msg)),
+			srv:   zmq4.NewPull(bkg, zmq4.WithLogger(zmq4.Devnull)),
+			wrong: zmq4.NewPair(bkg, zmq4.WithLogger(zmq4.Devnull)),
+			cli:   zmq4.NewPush(bkg, zmq4.WithLogger(zmq4.Devnull)),
 		},
 		{
 			name:  "push",
-			srv:   zmq4.NewPush(bkg, zmq4.WithLogger(msg)),
-			wrong: zmq4.NewPair(bkg, zmq4.WithLogger(msg)),
-			cli:   zmq4.NewPull(bkg, zmq4.WithLogger(msg)),
+			srv:   zmq4.NewPush(bkg, zmq4.WithLogger(zmq4.Devnull)),
+			wrong: zmq4.NewPair(bkg, zmq4.WithLogger(zmq4.Devnull)),
+			cli:   zmq4.NewPull(bkg, zmq4.WithLogger(zmq4.Devnull)),
 		},
 		{
 			name:  "xpub",
-			srv:   zmq4.NewXPub(bkg, zmq4.WithLogger(msg)),
-			wrong: zmq4.NewPair(bkg, zmq4.WithLogger(msg)),
-			cli:   zmq4.NewXSub(bkg, zmq4.WithLogger(msg)),
+			srv:   zmq4.NewXPub(bkg, zmq4.WithLogger(zmq4.Devnull)),
+			wrong: zmq4.NewPair(bkg, zmq4.WithLogger(zmq4.Devnull)),
+			cli:   zmq4.NewXSub(bkg, zmq4.WithLogger(zmq4.Devnull)),
 		},
 		{
 			name:  "xsub",
-			srv:   zmq4.NewXSub(bkg, zmq4.WithLogger(msg)),
-			wrong: zmq4.NewPair(bkg, zmq4.WithLogger(msg)),
-			cli:   zmq4.NewXPub(bkg, zmq4.WithLogger(msg)),
+			srv:   zmq4.NewXSub(bkg, zmq4.WithLogger(zmq4.Devnull)),
+			wrong: zmq4.NewPair(bkg, zmq4.WithLogger(zmq4.Devnull)),
+			cli:   zmq4.NewXPub(bkg, zmq4.WithLogger(zmq4.Devnull)),
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

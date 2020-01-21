@@ -56,10 +56,10 @@ func TestNullHandshakeReqRep(t *testing.T) {
 	ep := "ipc://ipc-req-rep-null-sec"
 	cleanUp(ep)
 
-	req := NewReq(ctx, WithSecurity(sec))
+	req := NewReq(ctx, WithSecurity(sec), WithLogger(Devnull))
 	defer req.Close()
 
-	rep := NewRep(ctx, WithSecurity(sec))
+	rep := NewRep(ctx, WithSecurity(sec), WithLogger(Devnull))
 	defer rep.Close()
 
 	grp, ctx := errgroup.WithContext(ctx)
