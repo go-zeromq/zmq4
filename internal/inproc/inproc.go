@@ -2,6 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Copyright 2010 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 // Package inproc provides tools to implement an in-process asynchronous pipe of net.Conns.
 package inproc
 
@@ -42,8 +46,8 @@ type Listener struct {
 }
 
 type pipe struct {
-	p1 net.Conn
-	p2 net.Conn
+	p1 *conn
+	p2 *conn
 }
 
 func newPipe(addr Addr) *pipe {

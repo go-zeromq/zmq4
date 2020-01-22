@@ -8,7 +8,11 @@ import (
 	"bytes"
 	"io"
 	"math/rand"
+	"reflect"
 	"testing"
+
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/xerrors"
 )
 
 func TestBasicIO(t *testing.T) {
@@ -59,4 +63,111 @@ func chunkedCopy(w io.Writer, r io.Reader) error {
 	//	_, err := io.CopyBuffer(struct{ io.Writer }{w}, struct{ io.Reader }{r}, b)
 	_, err := io.Copy(w, r)
 	return err
+}
+
+func TestRW(t *testing.T) {
+	const ep = "inproc://rw-srv"
+	lst, err := Listen(ep)
+	if err != nil {
+		t.Fatalf("could not create server: %+v", err)
+	}
+	defer lst.Close()
+
+	if addr := lst.Addr(); addr == nil {
+		t.Fatalf("listener with nil address")
+	}
+	if got, want := lst.Addr().String(), ep[len("inproc://"):]; got != want {
+		t.Fatalf("invalid listener address: got=%q, want=%q", got, want)
+	}
+
+	var grp errgroup.Group
+	grp.Go(func() error {
+		conn, err := lst.Accept()
+		if err != nil {
+			return xerrors.Errorf("could not accept connection: %w", err)
+		}
+		defer conn.Close()
+
+		if addr := conn.LocalAddr(); addr == nil {
+			t.Fatalf("accept-conn with nil address")
+		}
+		if got, want := conn.LocalAddr().String(), ep[len("inproc://"):]; got != want {
+			t.Fatalf("invalid accept-con address: got=%q, want=%q", got, want)
+		}
+		if got, want := conn.RemoteAddr().String(), ep[len("inproc://"):]; got != want {
+			t.Fatalf("invalid accept-con address: got=%q, want=%q", got, want)
+		}
+
+		raw := make([]byte, len("HELLO"))
+		_, err = io.ReadFull(conn, raw)
+		if err != nil {
+			return xerrors.Errorf("could not read request: %w", err)
+		}
+
+		if got, want := raw, []byte("HELLO"); !reflect.DeepEqual(got, want) {
+			return xerrors.Errorf("invalid request: got=%v, want=%v", got, want)
+		}
+
+		_, err = conn.Write([]byte("HELLO"))
+		if err != nil {
+			return xerrors.Errorf("could not write reply: %w", err)
+		}
+
+		raw = make([]byte, len("QUIT"))
+		_, err = io.ReadFull(conn, raw)
+		if err != nil {
+			return xerrors.Errorf("could not read final request: %w", err)
+		}
+
+		if got, want := raw, []byte("QUIT"); !reflect.DeepEqual(got, want) {
+			return xerrors.Errorf("invalid request: got=%v, want=%v", got, want)
+		}
+
+		return nil
+	})
+
+	grp.Go(func() error {
+		conn, err := Dial("inproc://rw-srv")
+		if err != nil {
+			return xerrors.Errorf("could not dial server: %w", err)
+		}
+		defer conn.Close()
+
+		if addr := conn.LocalAddr(); addr == nil {
+			t.Fatalf("dial-conn with nil address")
+		}
+		if got, want := conn.LocalAddr().String(), ep[len("inproc://"):]; got != want {
+			t.Fatalf("invalid dial-con address: got=%q, want=%q", got, want)
+		}
+		if got, want := conn.RemoteAddr().String(), ep[len("inproc://"):]; got != want {
+			t.Fatalf("invalid dial-con address: got=%q, want=%q", got, want)
+		}
+
+		_, err = conn.Write([]byte("HELLO"))
+		if err != nil {
+			return xerrors.Errorf("could not send request: %w", err)
+		}
+
+		raw := make([]byte, len("HELLO"))
+		_, err = io.ReadFull(conn, raw)
+		if err != nil {
+			return xerrors.Errorf("could not read reply: %w", err)
+		}
+
+		if got, want := raw, []byte("HELLO"); !reflect.DeepEqual(got, want) {
+			return xerrors.Errorf("invalid reply: got=%v, want=%v", got, want)
+		}
+
+		_, err = conn.Write([]byte("QUIT"))
+		if err != nil {
+			return xerrors.Errorf("could not write final request: %w", err)
+		}
+
+		return nil
+	})
+
+	err = grp.Wait()
+	if err != nil {
+		t.Fatalf("error: %+v", err)
+	}
 }
