@@ -274,11 +274,11 @@ func TestPubSubClosedSub(t *testing.T) {
 
 		for {
 			rmsg, err := sub.Recv()
-			if err != nil {
-				return xerrors.Errorf("could not recv message: %w", err)
-			}
 			if subCtx.Err() == context.Canceled {
 				break
+			}
+			if err != nil {
+				return xerrors.Errorf("could not recv message: %w", err)
 			}
 			if !reflect.DeepEqual(rmsg, msg) {
 				return xerrors.Errorf("sub: got = %v, want= %v", rmsg, msg)
