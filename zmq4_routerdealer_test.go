@@ -255,34 +255,48 @@ func TestRouterWithNoDealer(t *testing.T) {
 	}
 }
 
-func TestRouterClose(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	router := zmq4.NewRouter(ctx)
-	err := router.Listen("tcp://*:*")
-	if err != nil {
-		t.Fatalf("router could not listen: %+v", err)
+func TestRouterDealerClose(t *testing.T) {
+	tests := []struct {
+		name string
+	}{
+		{name: "router"},
+		{name: "dealer"},
 	}
-	_, port, _ := net.SplitHostPort(router.Addr().String())
-	dealer := zmq4.NewDealer(ctx)
-	err = dealer.Dial("tcp://*:" + port)
-	if err != nil {
-		t.Fatalf("dealer could not dial: %+v", err)
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			socks := map[string]zmq4.Socket{
+				"router": zmq4.NewRouter(ctx),
+				"dealer": zmq4.NewDealer(ctx),
+			}
+			router := socks["router"]
+			dealer := socks["dealer"]
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		_, err := router.Recv()
-		if err == nil {
-			t.Errorf("expected error: context canceled")
-		}
-	}()
+			err := router.Listen("tcp://*:*")
+			if err != nil {
+				t.Fatalf("router could not listen: %+v", err)
+			}
+			_, port, _ := net.SplitHostPort(router.Addr().String())
+			err = dealer.Dial("tcp://*:" + port)
+			if err != nil {
+				t.Fatalf("dealer could not dial: %+v", err)
+			}
+			var wg sync.WaitGroup
+			wg.Add(1)
+			go func(sock zmq4.Socket) {
+				defer wg.Done()
+				_, err := sock.Recv()
+				if err == nil {
+					t.Error("expected error: context canceled")
+				}
+			}(socks[tt.name])
 
-	err = router.Close()
-	if err != nil {
-		t.Fatalf("could not close router: %+v", err)
+			err = socks[tt.name].Close()
+			if err != nil {
+				t.Fatalf("could not close %s: %+v", tt.name, err)
+			}
+			wg.Wait()
+		})
 	}
-	wg.Wait()
 }

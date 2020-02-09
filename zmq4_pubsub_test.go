@@ -587,12 +587,12 @@ func TestPubOptionHWM(t *testing.T) {
 		nmsgs := 0
 
 		for i := 1; i <= msgCount; i++ {
-			_, err = sub.Recv()
-			if err != nil {
-				return xerrors.Errorf("could not recv message: %v", err)
-			}
+			_, err := sub.Recv()
 			if subCtx.Err() != nil {
 				break
+			}
+			if err != nil {
+				return xerrors.Errorf("could not recv message: %v", err)
 			}
 			nmsgs++
 		}
