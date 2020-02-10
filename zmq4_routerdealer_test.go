@@ -282,16 +282,19 @@ func TestRouterDealerClose(t *testing.T) {
 			if err != nil {
 				t.Fatalf("dealer could not dial: %+v", err)
 			}
+			start := make(chan bool)
 			var wg sync.WaitGroup
 			wg.Add(1)
-			go func(sock zmq4.Socket) {
+			go func(sock zmq4.Socket, start chan<- bool) {
 				defer wg.Done()
+				start <- true
 				_, err := sock.Recv()
 				if err == nil {
 					t.Error("expected error: context canceled")
 				}
-			}(socks[tt.name])
+			}(socks[tt.name], start)
 
+			<-start
 			err = socks[tt.name].Close()
 			if err != nil {
 				t.Fatalf("could not close %s: %+v", tt.name, err)
