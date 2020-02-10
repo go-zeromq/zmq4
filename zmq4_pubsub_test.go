@@ -274,11 +274,11 @@ func TestPubSubClosedSub(t *testing.T) {
 
 		for {
 			rmsg, err := sub.Recv()
-			if err != nil {
-				return xerrors.Errorf("could not recv message: %w", err)
-			}
 			if subCtx.Err() == context.Canceled {
 				break
+			}
+			if err != nil {
+				return xerrors.Errorf("could not recv message: %w", err)
 			}
 			if !reflect.DeepEqual(rmsg, msg) {
 				return xerrors.Errorf("sub: got = %v, want= %v", rmsg, msg)
@@ -587,12 +587,12 @@ func TestPubOptionHWM(t *testing.T) {
 		nmsgs := 0
 
 		for i := 1; i <= msgCount; i++ {
-			_, err = sub.Recv()
-			if err != nil {
-				return xerrors.Errorf("could not recv message: %v", err)
-			}
+			_, err := sub.Recv()
 			if subCtx.Err() != nil {
 				break
+			}
+			if err != nil {
+				return xerrors.Errorf("could not recv message: %v", err)
 			}
 			nmsgs++
 		}
