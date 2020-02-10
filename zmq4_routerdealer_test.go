@@ -282,7 +282,7 @@ func TestRouterDealerClose(t *testing.T) {
 			if err != nil {
 				t.Fatalf("dealer could not dial: %+v", err)
 			}
-			start := make(chan bool)
+			start := make(chan bool, 1)
 			var wg sync.WaitGroup
 			wg.Add(1)
 			go func(sock zmq4.Socket, start chan<- bool) {
