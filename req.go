@@ -92,21 +92,14 @@ func (req *reqSocket) SetOption(name string, value interface{}) error {
 }
 
 type reqWriter struct {
-	ctx      context.Context
 	mu       sync.Mutex
 	conns    []*Conn
 	nextConn int
 	state    *reqState
 }
 
-type reqReader struct {
-	ctx   context.Context
-	state *reqState
-}
-
 func newReqWriter(ctx context.Context, state *reqState) *reqWriter {
 	return &reqWriter{
-		ctx:   ctx,
 		state: state,
 	}
 }
@@ -169,9 +162,12 @@ func (r *reqWriter) Close() error {
 	return err
 }
 
+type reqReader struct {
+	state *reqState
+}
+
 func newReqReader(ctx context.Context, state *reqState) *reqReader {
 	return &reqReader{
-		ctx:   ctx,
 		state: state,
 	}
 }
@@ -199,8 +195,8 @@ func (r *reqReader) read(ctx context.Context, msg *Msg) error {
 }
 
 type reqState struct {
-	lastConn *Conn
 	mu       sync.Mutex
+	lastConn *Conn
 }
 
 func (r *reqState) Set(conn *Conn) {

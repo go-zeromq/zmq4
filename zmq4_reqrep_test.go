@@ -20,19 +20,19 @@ var (
 		{
 			name:     "tcp-req-rep",
 			endpoint: must(EndPoint("tcp")),
-			req:      zmq4.NewReq(bkg),
+			req1:     zmq4.NewReq(bkg),
 			rep:      zmq4.NewRep(bkg),
 		},
 		{
 			name:     "ipc-req-rep",
 			endpoint: "ipc://ipc-req-rep",
-			req:      zmq4.NewReq(bkg),
+			req1:     zmq4.NewReq(bkg),
 			rep:      zmq4.NewRep(bkg),
 		},
 		{
 			name:     "inproc-req-rep",
 			endpoint: "inproc://inproc-req-rep",
-			req:      zmq4.NewReq(bkg),
+			req1:     zmq4.NewReq(bkg),
 			rep:      zmq4.NewRep(bkg),
 		},
 	}
@@ -42,7 +42,7 @@ type testCaseReqRep struct {
 	name     string
 	skip     bool
 	endpoint string
-	req      zmq4.Socket
+	req1     zmq4.Socket
 	req2     zmq4.Socket
 	rep      zmq4.Socket
 }
@@ -60,7 +60,7 @@ func TestReqRep(t *testing.T) {
 	for i := range reqreps {
 		tc := reqreps[i]
 		t.Run(tc.name, func(t *testing.T) {
-			defer tc.req.Close()
+			defer tc.req1.Close()
 			defer tc.rep.Close()
 
 			ep := tc.endpoint
@@ -74,7 +74,7 @@ func TestReqRep(t *testing.T) {
 			ctx, timeout := context.WithTimeout(context.Background(), 20*time.Second)
 			defer timeout()
 
-			grp, ctx := errgroup.WithContext(ctx)
+			grp, _ := errgroup.WithContext(ctx)
 			grp.Go(func() error {
 
 				err := tc.rep.Listen(ep)
@@ -113,12 +113,12 @@ func TestReqRep(t *testing.T) {
 			})
 			grp.Go(func() error {
 
-				err := tc.req.Dial(ep)
+				err := tc.req1.Dial(ep)
 				if err != nil {
 					return xerrors.Errorf("could not dial: %w", err)
 				}
 
-				if addr := tc.req.Addr(); addr != nil {
+				if addr := tc.req1.Addr(); addr != nil {
 					return xerrors.Errorf("dialer with non-nil Addr")
 				}
 
@@ -130,11 +130,11 @@ func TestReqRep(t *testing.T) {
 					{reqLang, repLang},
 					{reqQuit, repQuit},
 				} {
-					err = tc.req.Send(msg.req)
+					err = tc.req1.Send(msg.req)
 					if err != nil {
 						return xerrors.Errorf("could not send REQ message %v: %w", msg.req, err)
 					}
-					rep, err := tc.req.Recv()
+					rep, err := tc.req1.Recv()
 					if err != nil {
 						return xerrors.Errorf("could not recv REP message %v: %w", msg.req, err)
 					}
@@ -155,15 +155,15 @@ func TestReqRep(t *testing.T) {
 
 func TestMultiReqRepIssue70(t *testing.T) {
 	var (
-		reqName  = zmq4.NewMsgString("NAME")
-		reqLang  = zmq4.NewMsgString("LANG")
-		reqQuit  = zmq4.NewMsgString("QUIT")
+		reqName1 = zmq4.NewMsgString("NAME")
+		reqLang1 = zmq4.NewMsgString("LANG")
+		reqQuit1 = zmq4.NewMsgString("QUIT")
 		reqName2 = zmq4.NewMsgString("NAME2")
 		reqLang2 = zmq4.NewMsgString("LANG2")
 		reqQuit2 = zmq4.NewMsgString("QUIT2")
-		repName  = zmq4.NewMsgString("zmq4")
-		repLang  = zmq4.NewMsgString("Go")
-		repQuit  = zmq4.NewMsgString("bye")
+		repName1 = zmq4.NewMsgString("zmq4")
+		repLang1 = zmq4.NewMsgString("Go")
+		repQuit1 = zmq4.NewMsgString("bye")
 		repName2 = zmq4.NewMsgString("zmq42")
 		repLang2 = zmq4.NewMsgString("Go2")
 		repQuit2 = zmq4.NewMsgString("bye2")
@@ -173,21 +173,21 @@ func TestMultiReqRepIssue70(t *testing.T) {
 		{
 			name:     "tcp-req-rep",
 			endpoint: must(EndPoint("tcp")),
-			req:      zmq4.NewReq(bkg),
+			req1:     zmq4.NewReq(bkg),
 			req2:     zmq4.NewReq(bkg),
 			rep:      zmq4.NewRep(bkg),
 		},
 		{
 			name:     "ipc-req-rep",
 			endpoint: "ipc://ipc-req-rep",
-			req:      zmq4.NewReq(bkg),
+			req1:     zmq4.NewReq(bkg),
 			req2:     zmq4.NewReq(bkg),
 			rep:      zmq4.NewRep(bkg),
 		},
 		{
 			name:     "inproc-req-rep",
 			endpoint: "inproc://inproc-req-rep",
-			req:      zmq4.NewReq(bkg),
+			req1:     zmq4.NewReq(bkg),
 			req2:     zmq4.NewReq(bkg),
 			rep:      zmq4.NewRep(bkg),
 		},
@@ -196,7 +196,7 @@ func TestMultiReqRepIssue70(t *testing.T) {
 	for i := range reqreps {
 		tc := reqreps[i]
 		t.Run(tc.name, func(t *testing.T) {
-			defer tc.req.Close()
+			defer tc.req1.Close()
 			defer tc.req2.Close()
 			defer tc.rep.Close()
 
@@ -211,7 +211,7 @@ func TestMultiReqRepIssue70(t *testing.T) {
 			ctx, timeout := context.WithTimeout(context.Background(), 20*time.Second)
 			defer timeout()
 
-			grp, ctx := errgroup.WithContext(ctx)
+			grp, _ := errgroup.WithContext(ctx)
 			grp.Go(func() error {
 				err := tc.rep.Listen(ep)
 				if err != nil {
@@ -231,11 +231,11 @@ func TestMultiReqRepIssue70(t *testing.T) {
 					var rep zmq4.Msg
 					switch string(msg.Frames[0]) {
 					case "NAME":
-						rep = repName
+						rep = repName1
 					case "LANG":
-						rep = repLang
+						rep = repLang1
 					case "QUIT":
-						rep = repQuit
+						rep = repQuit1
 						loop1 = false
 					case "NAME2":
 						rep = repName2
@@ -289,12 +289,12 @@ func TestMultiReqRepIssue70(t *testing.T) {
 			})
 			grp.Go(func() error {
 
-				err := tc.req.Dial(ep)
+				err := tc.req1.Dial(ep)
 				if err != nil {
 					return xerrors.Errorf("could not dial: %w", err)
 				}
 
-				if addr := tc.req.Addr(); addr != nil {
+				if addr := tc.req1.Addr(); addr != nil {
 					return xerrors.Errorf("dialer with non-nil Addr")
 				}
 
@@ -302,15 +302,15 @@ func TestMultiReqRepIssue70(t *testing.T) {
 					req zmq4.Msg
 					rep zmq4.Msg
 				}{
-					{reqName, repName},
-					{reqLang, repLang},
-					{reqQuit, repQuit},
+					{reqName1, repName1},
+					{reqLang1, repLang1},
+					{reqQuit1, repQuit1},
 				} {
-					err = tc.req.Send(msg.req)
+					err = tc.req1.Send(msg.req)
 					if err != nil {
 						return xerrors.Errorf("could not send REQ message %v: %w", msg.req, err)
 					}
-					rep, err := tc.req.Recv()
+					rep, err := tc.req1.Recv()
 					if err != nil {
 						return xerrors.Errorf("could not recv REP message %v: %w", msg.req, err)
 					}

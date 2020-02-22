@@ -100,17 +100,19 @@ type repMsg struct {
 
 type repReader struct {
 	ctx   context.Context
+	state *repState
+
 	mu    sync.Mutex
 	conns []*Conn
-	msgC  chan repMsg
-	state *repState
+
+	msgCh chan repMsg
 }
 
 func newRepReader(ctx context.Context, state *repState) *repReader {
 	const qsize = 10
 	return &repReader{
 		ctx:   ctx,
-		msgC:  make(chan repMsg, qsize),
+		msgCh: make(chan repMsg, qsize),
 		state: state,
 	}
 }
@@ -142,7 +144,7 @@ func (r *repReader) read(ctx context.Context, msg *Msg) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
-	case repMsg := <-r.msgC:
+	case repMsg := <-r.msgCh:
 		if repMsg.msg.err != nil {
 			return repMsg.msg.err
 		}
@@ -169,7 +171,7 @@ func (r *repReader) listen(ctx context.Context, conn *Conn) {
 			if msg.err != nil {
 				return
 			}
-			r.msgC <- repMsg{conn, msg}
+			r.msgCh <- repMsg{conn, msg}
 		}
 	}
 }
@@ -191,11 +193,12 @@ func (r *repReader) Close() error {
 
 func splitReq(envelope Msg) (preamble [][]byte, msg Msg) {
 	for i, frame := range envelope.Frames {
-		if len(frame) == 0 {
-			preamble = envelope.Frames[:i+1]
-			if i+1 < len(envelope.Frames) {
-				msg = NewMsgFrom(envelope.Frames[i+1:]...)
-			}
+		if len(frame) != 0 {
+			continue
+		}
+		preamble = envelope.Frames[:i+1]
+		if i+1 < len(envelope.Frames) {
+			msg = NewMsgFrom(envelope.Frames[i+1:]...)
 		}
 	}
 	return
@@ -210,14 +213,15 @@ type repSendPayload struct {
 type repWriter struct {
 	ctx   context.Context
 	state *repState
-	conns []*Conn
+
 	mu    sync.Mutex
+	conns []*Conn
 
 	sendCh chan repSendPayload
 }
 
 func (r repSendPayload) buildReplyMsg() Msg {
-	var frames [][]byte
+	var frames = make([][]byte, 0, len(r.preamble)+len(r.msg.Frames))
 	frames = append(frames, r.preamble...)
 	frames = append(frames, r.msg.Frames...)
 	return NewMsgFrom(frames...)
@@ -305,9 +309,9 @@ func (r *repWriter) Close() error {
 }
 
 type repState struct {
+	mu       sync.Mutex
 	conn     *Conn
 	preamble [][]byte // includes delimiter
-	mu       sync.Mutex
 }
 
 func newRepState() *repState {
