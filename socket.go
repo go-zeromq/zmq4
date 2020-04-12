@@ -110,7 +110,9 @@ func (sck *socket) Close() error {
 			err = e
 		}
 	}
-	if strings.HasPrefix(sck.ep, "ipc://") {
+
+	// Remove the unix socket file if created by net.Listen
+	if sck.listener != nil && strings.HasPrefix(sck.ep, "ipc://") {
 		os.Remove(sck.ep[len("ipc://"):])
 	}
 
