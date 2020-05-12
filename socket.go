@@ -38,7 +38,7 @@ type socket struct {
 	log   *log.Logger
 
 	mu    sync.RWMutex
-	conns []*Conn          // ZMTP connections
+	conns []*Conn // ZMTP connections
 	r     rpool
 	w     wpool
 
