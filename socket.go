@@ -38,7 +38,6 @@ type socket struct {
 	log   *log.Logger
 
 	mu    sync.RWMutex
-	ids   map[string]*Conn // ZMTP connection IDs
 	conns []*Conn          // ZMTP connections
 	r     rpool
 	w     wpool
@@ -63,7 +62,6 @@ func newDefaultSocket(ctx context.Context, sockType SocketType) *socket {
 		typ:         sockType,
 		retry:       defaultRetry,
 		sec:         nullSecurity{},
-		ids:         make(map[string]*Conn),
 		conns:       nil,
 		r:           newQReader(ctx),
 		w:           newMWriter(ctx),
@@ -262,11 +260,12 @@ func (sck *socket) addConn(c *Conn) {
 	sck.mu.Lock()
 	sck.conns = append(sck.conns, c)
 	uuid, ok := c.Peer.Meta[sysSockID]
-	if !ok {
+	if !ok || uuid == "" {
+		// if empty Identity metadata is received from some client
+		// need to assign a uuid such that router socket can reply to the correct client
 		uuid = newUUID()
 		c.Peer.Meta[sysSockID] = uuid
 	}
-	sck.ids[uuid] = c
 	if sck.r != nil {
 		sck.r.addConn(c)
 	}
