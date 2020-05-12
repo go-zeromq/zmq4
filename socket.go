@@ -42,8 +42,7 @@ type socket struct {
 	autoReconnect bool
 
 	mu    sync.RWMutex
-	ids   map[string]*Conn // ZMTP connection IDs
-	conns []*Conn          // ZMTP connections
+	conns []*Conn // ZMTP connections
 	r     rpool
 	w     wpool
 
@@ -69,7 +68,6 @@ func newDefaultSocket(ctx context.Context, sockType SocketType) *socket {
 		retry:      defaultRetry,
 		maxRetries: defaultMaxRetries,
 		sec:        nullSecurity{},
-		ids:        make(map[string]*Conn),
 		conns:      nil,
 		r:          newQReader(ctx),
 		w:          newMWriter(ctx),
@@ -279,12 +277,14 @@ func (sck *socket) addConn(c *Conn) {
 	sck.mu.Lock()
 	defer sck.mu.Unlock()
 	sck.conns = append(sck.conns, c)
-	uuid, ok := c.Peer.Meta[sysSockID]
-	if !ok {
-		uuid = newUUID()
-		c.Peer.Meta[sysSockID] = uuid
+	if len(c.Peer.Meta[sysSockID]) == 0 {
+		switch c.typ {
+		case Router: // TODO: STREAM type when implemented
+			// if empty Identity metadata is received from some client
+			// need to assign an uuid such that router socket can reply to the correct client
+			c.Peer.Meta[sysSockID] = newUUID()
+		}
 	}
-	sck.ids[uuid] = c
 	if sck.w != nil {
 		sck.w.addConn(c)
 	}
