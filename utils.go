@@ -41,7 +41,7 @@ func splitAddr(v string) (network, addr string, err error) {
 		case "", "*":
 			host = "0.0.0.0"
 		}
-		addr = host + ":" + port
+		addr = net.JoinHostPort(host, port)
 		return network, addr, err
 
 	case "ipc":
