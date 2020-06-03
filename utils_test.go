@@ -1,6 +1,13 @@
+// Copyright 2018 The go-zeromq Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package zmq4
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func TestSplitAddr(t *testing.T) {
 	testCases := []struct {
@@ -32,17 +39,17 @@ func TestSplitAddr(t *testing.T) {
 			err:     nil,
 		},
 	}
-	for _, tC := range testCases {
-		t.Run(tC.desc, func(t *testing.T) {
-			network, addr, err := splitAddr(tC.v)
-			if network != tC.network {
-				t.Fatalf("unexpected network: %v", addr)
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			network, addr, err := splitAddr(tc.v)
+			if network != tc.network {
+				t.Fatalf("unexpected network: got=%v, want=%v", network, tc.network)
 			}
-			if addr != tC.addr {
-				t.Fatalf("unexpected address: %v", addr)
+			if addr != tc.addr {
+				t.Fatalf("unexpected address: got=%q, want=%q", addr, tc.addr)
 			}
-			if err != tC.err {
-				t.Fatalf("unexpected error: %+v", err)
+			if fmt.Sprintf("%+v", err) != fmt.Sprintf("%+v", tc.err) { // nil-safe comparison errors by value
+				t.Fatalf("unexpected error: got=%+v, want=%+v", err, tc.err)
 			}
 		})
 	}
