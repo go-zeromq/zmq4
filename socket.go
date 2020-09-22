@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -89,6 +90,28 @@ func newSocket(ctx context.Context, sockType SocketType, opts ...Option) *socket
 	}
 
 	return sck
+}
+
+func (sck *socket) topics() []string {
+	var (
+		keys   = make(map[string]struct{})
+		topics []string
+	)
+	sck.mu.RLock()
+	for _, con := range sck.conns {
+		con.mu.RLock()
+		for topic := range con.topics {
+			if _, dup := keys[topic]; dup {
+				continue
+			}
+			keys[topic] = struct{}{}
+			topics = append(topics, topic)
+		}
+		con.mu.RUnlock()
+	}
+	sck.mu.RUnlock()
+	sort.Strings(topics)
+	return topics
 }
 
 // Close closes the open Socket
