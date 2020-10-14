@@ -95,7 +95,7 @@ func TestRouterDealer(t *testing.T) {
 	for i := range routerdealers {
 		tc := routerdealers[i]
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+			// t.Parallel()
 			ep := tc.endpoint()
 			cleanUp(ep)
 
