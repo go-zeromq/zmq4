@@ -83,7 +83,7 @@ func TestXPubSub(t *testing.T) {
 			if tc.skip {
 				t.Skipf(tc.name)
 			}
-			t.Parallel()
+			// t.Parallel()
 
 			ctx, timeout := context.WithTimeout(context.Background(), 20*time.Second)
 			defer timeout()

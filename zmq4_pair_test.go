@@ -71,7 +71,7 @@ func TestPair(t *testing.T) {
 			if tc.skip {
 				t.Skipf(tc.name)
 			}
-			t.Parallel()
+			// t.Parallel()
 
 			var (
 				wg1 sync.WaitGroup

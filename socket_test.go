@@ -17,7 +17,7 @@ import (
 )
 
 func TestInvalidConn(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 
 	ep := must(EndPoint("tcp"))
 	cleanUp(ep)
@@ -63,7 +63,7 @@ func TestInvalidConn(t *testing.T) {
 }
 
 func TestConnPairs(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 
 	bkg := context.Background()
 
