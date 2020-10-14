@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    - cron: '0 2 * * 1-5'
+
+env:
+  GOPROXY: "https://proxy.golang.org"
+  GO111MODULE: "on"
+  TAGS: "-tags=czmq4"
+
+jobs:
+
+  build:
+    name: Build
+    strategy:
+      matrix:
+        go-version: [1.15.x, 1.14.x]
+        platform: [ubuntu-latest]
+        #platform: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+    - name: Install Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go-version }}
+ 
+    - name: Cache-Go
+      uses: actions/cache@v1
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+ 
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Install Linux packages
+      if: matrix.platform == 'ubuntu-latest'
+      run: |
+        curl http://download.opensuse.org/repositories/network:/messaging:/zeromq:/git-stable/xUbuntu_16.04/Release.key | sudo apt-key add -
+        echo "deb http://download.opensuse.org/repositories/network:/messaging:/zeromq:/git-stable/xUbuntu_16.04/ ./" | sudo tee -a /etc/apt/sources.list > /dev/null
+        sudo apt-get update -qq -y
+        sudo apt-get install -y libsodium-dev libczmq-dev
+    
+    - name: Build-Linux-64b
+      run: |
+        GOARCH=amd64 go install -v $TAGS ./...       
+    - name: Test Linux
+      run: |
+        ./.ci/code-coverage.sh
+    - name: Upload-Coverage
+      uses: codecov/codecov-action@v1
