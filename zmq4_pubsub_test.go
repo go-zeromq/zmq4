@@ -550,7 +550,7 @@ func TestPubOptionHWM(t *testing.T) {
 		pss.WaitForSubscriptions()
 
 		for i := 1; i <= msgCount; i++ {
-			msg := zmq4.NewMsgFrom([]byte("msg"), []byte(string(i)))
+			msg := zmq4.NewMsgFrom([]byte("msg"), []byte(string(rune(i))))
 			err = pub.Send(msg)
 			if err != nil {
 				return xerrors.Errorf("error sending message. [%d] got: %v", i, err)

@@ -10,7 +10,7 @@ import (
 )
 
 func makeMsg(i int) Msg {
-	return NewMsgString(string(i))
+	return NewMsgString(string(rune(i)))
 }
 
 func TestQueue(t *testing.T) {
