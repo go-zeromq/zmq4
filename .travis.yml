@@ -25,10 +25,7 @@ before_script:
 script:
  - go get -d -t -v $TAGS ./...
  - go install -v $TAGS ./...
- - ./.ci/code-coverage.sh
-
-after_success:
- - bash <(curl -s https://codecov.io/bash)
+ - go test -v $TAGS ./...
 
 notifications:
   email:
