@@ -113,9 +113,11 @@ func TestXPubSub(t *testing.T) {
 
 				time.Sleep(1 * time.Second)
 
-				gotTopics := tc.xpub.(zmq4.Topics).Topics()
-				if !reflect.DeepEqual(gotTopics, topics) {
-					t.Fatalf("Missing or wrong topics.\ngot= %q\nwant=%q", gotTopics, topics)
+				if sck, ok := tc.xpub.(zmq4.Topics); ok {
+					got := sck.Topics()
+					if !reflect.DeepEqual(got, topics) {
+						t.Fatalf("invalid topics.\ngot= %q\nwant=%q", got, topics)
+					}
 				}
 
 				for _, msg := range msgs[0] {
