@@ -7,7 +7,6 @@ package zmq4
 import (
 	"context"
 	"net"
-	"sort"
 	"sync"
 
 	"golang.org/x/xerrors"
@@ -113,25 +112,7 @@ func (pub *pubSocket) SetOption(name string, value interface{}) error {
 
 // Topics returns the sorted list of topics a socket is subscribed to.
 func (pub *pubSocket) Topics() []string {
-	var (
-		keys   = make(map[string]struct{})
-		topics []string
-	)
-	pub.sck.mu.RLock()
-	for _, con := range pub.sck.conns {
-		con.mu.RLock()
-		for topic := range con.topics {
-			if _, dup := keys[topic]; dup {
-				continue
-			}
-			keys[topic] = struct{}{}
-			topics = append(topics, topic)
-		}
-		con.mu.RUnlock()
-	}
-	pub.sck.mu.RUnlock()
-	sort.Strings(topics)
-	return topics
+	return pub.sck.topics()
 }
 
 // pubQReader is a queued-message reader.

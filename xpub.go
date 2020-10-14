@@ -77,6 +77,10 @@ func (xpub *xpubSocket) SetOption(name string, value interface{}) error {
 	return xpub.sck.SetOption(name, value)
 }
 
+func (xpub *xpubSocket) Topics() []string {
+	return xpub.sck.topics()
+}
+
 var (
 	_ Socket = (*xpubSocket)(nil)
 )
