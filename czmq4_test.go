@@ -264,6 +264,7 @@ var (
 		},
 		{
 			name:     "tcp-crouter-cdealer",
+			skip:     true,
 			endpoint: func() string { return must(EndPoint("tcp")) },
 			router: func(ctx context.Context) zmq4.Socket {
 				return zmq4.NewCRouter(ctx, zmq4.CWithID(zmq4.SocketIdentity("router")))
