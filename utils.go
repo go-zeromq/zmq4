@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"strings"
 )
 
@@ -20,39 +19,15 @@ func splitAddr(v string) (network, addr string, err error) {
 		err = errInvalidAddress
 		return network, addr, err
 	}
-	var (
-		host string
-		port string
-	)
 	network = ep[0]
-	switch network {
-	case "tcp", "udp":
-		host, port, err = net.SplitHostPort(ep[1])
-		if err != nil {
-			return network, addr, err
-		}
-		switch port {
-		case "0", "*", "":
-			port = "0"
-		}
-		switch host {
-		case "", "*":
-			host = "0.0.0.0"
-		}
-		addr = net.JoinHostPort(host, port)
-		return network, addr, err
 
-	case "ipc":
-		host = ep[1]
-		port = ""
-		return network, host, nil
-	case "inproc":
-		host = ep[1]
-		return "inproc", host, nil
-	default:
-		err = fmt.Errorf("zmq4: unknown protocol %q", network)
+	trans, ok := drivers.get(network)
+	if !ok {
+		err = fmt.Errorf("zmq4: unknown transport %q", network)
+		return network, addr, err
 	}
 
+	addr, err = trans.Addr(ep[1])
 	return network, addr, err
 }
 

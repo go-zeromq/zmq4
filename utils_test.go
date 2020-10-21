@@ -38,6 +38,20 @@ func TestSplitAddr(t *testing.T) {
 			addr:    "[::1]:7000",
 			err:     nil,
 		},
+		{
+			desc:    "ipc",
+			v:       "ipc://some-ep",
+			network: "ipc",
+			addr:    "some-ep",
+			err:     nil,
+		},
+		{
+			desc:    "inproc",
+			v:       "inproc://some-ep",
+			network: "inproc",
+			addr:    "some-ep",
+			err:     nil,
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
