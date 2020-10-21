@@ -65,8 +65,14 @@ var drivers = transports{
 }
 
 func init() {
-	RegisterTransport("ipc", transport.New("unix"))
-	RegisterTransport("tcp", transport.New("tcp"))
-	RegisterTransport("udp", transport.New("udp"))
-	RegisterTransport("inproc", inproc.Transport{})
+	must := func(err error) {
+		if err != nil {
+			panic(fmt.Errorf("%+v", err))
+		}
+	}
+
+	must(RegisterTransport("ipc", transport.New("unix")))
+	must(RegisterTransport("tcp", transport.New("tcp")))
+	must(RegisterTransport("udp", transport.New("udp")))
+	must(RegisterTransport("inproc", inproc.Transport{}))
 }

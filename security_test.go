@@ -62,7 +62,7 @@ func TestNullHandshakeReqRep(t *testing.T) {
 	rep := NewRep(ctx, WithSecurity(sec), WithLogger(Devnull))
 	defer rep.Close()
 
-	grp, ctx := errgroup.WithContext(ctx)
+	grp, _ := errgroup.WithContext(ctx)
 	grp.Go(func() error {
 		err := rep.Listen(ep)
 		if err != nil {

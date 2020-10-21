@@ -20,6 +20,10 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+var (
+	repQuit = zmq4.NewMsgString("bye")
+)
+
 func TestMain(m *testing.M) {
 	auth := czmq4.NewAuth()
 

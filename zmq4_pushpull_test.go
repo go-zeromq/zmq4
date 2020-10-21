@@ -69,7 +69,7 @@ func TestPushPull(t *testing.T) {
 			ctx, timeout := context.WithTimeout(context.Background(), 20*time.Second)
 			defer timeout()
 
-			grp, ctx := errgroup.WithContext(ctx)
+			grp, _ := errgroup.WithContext(ctx)
 			grp.Go(func() error {
 
 				err := tc.push.Listen(ep)

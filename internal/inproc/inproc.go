@@ -171,7 +171,6 @@ func Dial(addr string) (net.Conn, error) {
 		}
 		mgr.cv.Wait()
 	}
-	panic("unreachable")
 }
 
 // Addr represents an in-process "network" end-point address.
@@ -179,11 +178,7 @@ type Addr string
 
 // String implements net.Addr.String
 func (a Addr) String() string {
-	s := string(a)
-	if strings.HasPrefix(s, "inproc://") {
-		s = s[len("inproc://"):]
-	}
-	return s
+	return strings.TrimPrefix(string(a), "inproc://")
 }
 
 // Network returns the name of the network.

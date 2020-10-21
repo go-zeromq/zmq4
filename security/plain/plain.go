@@ -50,7 +50,7 @@ func (sec *security) Handshake(conn *zmq4.Conn, server bool) error {
 		// FIXME(sbinet): perform a real authentication
 		err = validateHello(cmd.Body)
 		if err != nil {
-			conn.SendCmd(zmq4.CmdError, []byte("invalid")) // FIXME(sbinet) correct ERROR reason
+			_ = conn.SendCmd(zmq4.CmdError, []byte("invalid")) // FIXME(sbinet) correct ERROR reason
 			return fmt.Errorf("security/plain: could not authenticate client: %w", err)
 		}
 
@@ -71,7 +71,7 @@ func (sec *security) Handshake(conn *zmq4.Conn, server bool) error {
 
 		raw, err := conn.Meta.MarshalZMTP()
 		if err != nil {
-			conn.SendCmd(zmq4.CmdError, []byte("invalid")) // FIXME(sbinet) correct ERROR reason
+			_ = conn.SendCmd(zmq4.CmdError, []byte("invalid")) // FIXME(sbinet) correct ERROR reason
 			return fmt.Errorf("security/plain: could not serialize metadata: %w", err)
 		}
 
@@ -97,13 +97,13 @@ func (sec *security) Handshake(conn *zmq4.Conn, server bool) error {
 			return fmt.Errorf("security/plain: could not receive WELCOME from server: %w", err)
 		}
 		if cmd.Name != zmq4.CmdWelcome {
-			conn.SendCmd(zmq4.CmdError, []byte("invalid command")) // FIXME(sbinet) correct ERROR reason
+			_ = conn.SendCmd(zmq4.CmdError, []byte("invalid command")) // FIXME(sbinet) correct ERROR reason
 			return fmt.Errorf("security/plain: expected a WELCOME command from server: %w", err)
 		}
 
 		raw, err := conn.Meta.MarshalZMTP()
 		if err != nil {
-			conn.SendCmd(zmq4.CmdError, []byte("internal error")) // FIXME(sbinet) correct ERROR reason
+			_ = conn.SendCmd(zmq4.CmdError, []byte("internal error")) // FIXME(sbinet) correct ERROR reason
 			return fmt.Errorf("security/plain: could not serialize metadata: %w", err)
 		}
 
@@ -117,7 +117,7 @@ func (sec *security) Handshake(conn *zmq4.Conn, server bool) error {
 			return fmt.Errorf("security/plain: could not receive READY from server: %w", err)
 		}
 		if cmd.Name != zmq4.CmdReady {
-			conn.SendCmd(zmq4.CmdError, []byte("invalid command")) // FIXME(sbinet) correct ERROR reason
+			_ = conn.SendCmd(zmq4.CmdError, []byte("invalid command")) // FIXME(sbinet) correct ERROR reason
 			return fmt.Errorf("security/plain: expected a READY command from server: %w", err)
 		}
 

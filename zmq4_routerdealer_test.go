@@ -125,7 +125,7 @@ func TestRouterDealer(t *testing.T) {
 
 			var seenMu sync.RWMutex
 			seen := make(map[string]int)
-			grp, ctx := errgroup.WithContext(ctx)
+			grp, _ := errgroup.WithContext(ctx)
 			grp.Go(func() error {
 
 				err := router.Listen(ep)

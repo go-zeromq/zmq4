@@ -61,13 +61,6 @@ func asString(slice []byte) string {
 	return string(slice[:i])
 }
 
-func asByte(b bool) byte {
-	if b {
-		return 0x01
-	}
-	return 0x00
-}
-
 func asBool(b byte) (bool, error) {
 	switch b {
 	case 0x00:

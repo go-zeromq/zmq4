@@ -12,7 +12,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"strconv"
 	"strings"
 )
 
@@ -47,19 +46,6 @@ func EndPoint(transport string) (string, error) {
 	default:
 		panic("invalid transport: [" + transport + "]")
 	}
-}
-
-func getTCPPort() (string, error) {
-	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
-	if err != nil {
-		return "", err
-	}
-	l, err := net.ListenTCP("tcp", addr)
-	if err != nil {
-		return "", err
-	}
-	defer l.Close()
-	return strconv.Itoa(l.Addr().(*net.TCPAddr).Port), nil
 }
 
 func cleanUp(ep string) {

@@ -123,7 +123,7 @@ func TestPubSub(t *testing.T) {
 			wg1.Add(len(subs))
 			wg2.Add(len(subs))
 
-			grp, ctx := errgroup.WithContext(ctx)
+			grp, _ := errgroup.WithContext(ctx)
 			grp.Go(func() error {
 
 				err := tc.pub.Listen(ep)
@@ -225,7 +225,7 @@ func TestPubSubClosedSub(t *testing.T) {
 
 	const nmsgs = 100 // the number of messages do not matter
 
-	grp, ctx := errgroup.WithContext(ctx)
+	grp, _ := errgroup.WithContext(ctx)
 	grp.Go(func() error {
 		err := pub.Listen(ep)
 		if err != nil {

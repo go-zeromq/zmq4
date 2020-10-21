@@ -225,7 +225,7 @@ func (mw *routerMWriter) rmConn(w *Conn) {
 
 func (w *routerMWriter) write(ctx context.Context, msg Msg) error {
 	w.sem.lock()
-	grp, ctx := errgroup.WithContext(ctx)
+	grp, _ := errgroup.WithContext(ctx)
 	w.mu.Lock()
 	id := msg.Frames[0]
 	dmsg := NewMsgFrom(msg.Frames[1:]...)

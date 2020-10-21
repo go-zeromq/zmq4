@@ -64,7 +64,7 @@ func TestHandshakeReqRep(t *testing.T) {
 	rep := zmq4.NewRep(ctx, zmq4.WithSecurity(sec))
 	defer rep.Close()
 
-	grp, ctx := errgroup.WithContext(ctx)
+	grp, _ := errgroup.WithContext(ctx)
 	grp.Go(func() error {
 		err := rep.Listen(ep)
 		if err != nil {

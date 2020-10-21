@@ -167,7 +167,7 @@ func (mw *mwriter) rmConn(w *Conn) {
 
 func (w *mwriter) write(ctx context.Context, msg Msg) error {
 	w.sem.lock()
-	grp, ctx := errgroup.WithContext(ctx)
+	grp, _ := errgroup.WithContext(ctx)
 	w.mu.Lock()
 	for i := range w.ws {
 		ww := w.ws[i]

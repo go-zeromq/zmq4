@@ -58,7 +58,6 @@ func (c *conn) write(data []byte) (int, error) {
 	case <-c.wdeadline.wait():
 		return n, timeoutError{}
 	}
-	return n, nil
 }
 
 func (c *conn) Read(data []byte) (int, error) {
