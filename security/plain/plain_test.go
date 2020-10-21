@@ -18,7 +18,6 @@ import (
 	"github.com/go-zeromq/zmq4"
 	"github.com/go-zeromq/zmq4/security/plain"
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/xerrors"
 )
 
 var (
@@ -73,15 +72,15 @@ func TestHandshakeReqRep(t *testing.T) {
 	grp.Go(func() error {
 		err := rep.Listen(ep)
 		if err != nil {
-			return xerrors.Errorf("could not listen: %w", err)
+			return fmt.Errorf("could not listen: %w", err)
 		}
 
 		msg, err := rep.Recv()
 		if err != nil {
-			return xerrors.Errorf("could not recv REQ message: %w", err)
+			return fmt.Errorf("could not recv REQ message: %w", err)
 		}
 		if string(msg.Frames[0]) != "QUIT" {
-			return xerrors.Errorf("received wrong REQ message: %#v", msg)
+			return fmt.Errorf("received wrong REQ message: %#v", msg)
 		}
 		return nil
 	})
@@ -89,12 +88,12 @@ func TestHandshakeReqRep(t *testing.T) {
 	grp.Go(func() error {
 		err := req.Dial(ep)
 		if err != nil {
-			return xerrors.Errorf("could not dial: %w", err)
+			return fmt.Errorf("could not dial: %w", err)
 		}
 
 		err = req.Send(reqQuit)
 		if err != nil {
-			return xerrors.Errorf("could not send REQ message: %w", err)
+			return fmt.Errorf("could not send REQ message: %w", err)
 		}
 		return nil
 	})
@@ -116,11 +115,11 @@ func EndPoint(transport string) (string, error) {
 	case "tcp":
 		addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:0")
 		if err != nil {
-			return "", xerrors.Errorf("could not resolve TCP address: %w", err)
+			return "", fmt.Errorf("could not resolve TCP address: %w", err)
 		}
 		l, err := net.ListenTCP("tcp", addr)
 		if err != nil {
-			return "", xerrors.Errorf("could not listen to TCP addr=%q: %w", addr, err)
+			return "", fmt.Errorf("could not listen to TCP addr=%q: %w", addr, err)
 		}
 		defer l.Close()
 		return fmt.Sprintf("tcp://%s", l.Addr()), nil

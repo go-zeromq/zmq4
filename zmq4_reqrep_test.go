@@ -6,13 +6,13 @@ package zmq4_test
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/go-zeromq/zmq4"
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/xerrors"
 )
 
 var (
@@ -79,18 +79,18 @@ func TestReqRep(t *testing.T) {
 
 				err := tc.rep.Listen(ep)
 				if err != nil {
-					return xerrors.Errorf("could not listen: %w", err)
+					return fmt.Errorf("could not listen: %w", err)
 				}
 
 				if addr := tc.rep.Addr(); addr == nil {
-					return xerrors.Errorf("listener with nil Addr")
+					return fmt.Errorf("listener with nil Addr")
 				}
 
 				loop := true
 				for loop {
 					msg, err := tc.rep.Recv()
 					if err != nil {
-						return xerrors.Errorf("could not recv REQ message: %w", err)
+						return fmt.Errorf("could not recv REQ message: %w", err)
 					}
 					var rep zmq4.Msg
 					switch string(msg.Frames[0]) {
@@ -105,7 +105,7 @@ func TestReqRep(t *testing.T) {
 
 					err = tc.rep.Send(rep)
 					if err != nil {
-						return xerrors.Errorf("could not send REP message to %v: %w", msg, err)
+						return fmt.Errorf("could not send REP message to %v: %w", msg, err)
 					}
 				}
 
@@ -115,11 +115,11 @@ func TestReqRep(t *testing.T) {
 
 				err := tc.req1.Dial(ep)
 				if err != nil {
-					return xerrors.Errorf("could not dial: %w", err)
+					return fmt.Errorf("could not dial: %w", err)
 				}
 
 				if addr := tc.req1.Addr(); addr != nil {
-					return xerrors.Errorf("dialer with non-nil Addr")
+					return fmt.Errorf("dialer with non-nil Addr")
 				}
 
 				for _, msg := range []struct {
@@ -132,15 +132,15 @@ func TestReqRep(t *testing.T) {
 				} {
 					err = tc.req1.Send(msg.req)
 					if err != nil {
-						return xerrors.Errorf("could not send REQ message %v: %w", msg.req, err)
+						return fmt.Errorf("could not send REQ message %v: %w", msg.req, err)
 					}
 					rep, err := tc.req1.Recv()
 					if err != nil {
-						return xerrors.Errorf("could not recv REP message %v: %w", msg.req, err)
+						return fmt.Errorf("could not recv REP message %v: %w", msg.req, err)
 					}
 
 					if got, want := rep, msg.rep; !reflect.DeepEqual(got, want) {
-						return xerrors.Errorf("got = %v, want= %v", got, want)
+						return fmt.Errorf("got = %v, want= %v", got, want)
 					}
 				}
 
@@ -215,18 +215,18 @@ func TestMultiReqRepIssue70(t *testing.T) {
 			grp.Go(func() error {
 				err := tc.rep.Listen(ep)
 				if err != nil {
-					return xerrors.Errorf("could not listen: %w", err)
+					return fmt.Errorf("could not listen: %w", err)
 				}
 
 				if addr := tc.rep.Addr(); addr == nil {
-					return xerrors.Errorf("listener with nil Addr")
+					return fmt.Errorf("listener with nil Addr")
 				}
 
 				loop1, loop2 := true, true
 				for loop1 || loop2 {
 					msg, err := tc.rep.Recv()
 					if err != nil {
-						return xerrors.Errorf("could not recv REQ message: %w", err)
+						return fmt.Errorf("could not recv REQ message: %w", err)
 					}
 					var rep zmq4.Msg
 					switch string(msg.Frames[0]) {
@@ -248,7 +248,7 @@ func TestMultiReqRepIssue70(t *testing.T) {
 
 					err = tc.rep.Send(rep)
 					if err != nil {
-						return xerrors.Errorf("could not send REP message to %v: %w", msg, err)
+						return fmt.Errorf("could not send REP message to %v: %w", msg, err)
 					}
 				}
 				return err
@@ -257,11 +257,11 @@ func TestMultiReqRepIssue70(t *testing.T) {
 
 				err := tc.req2.Dial(ep)
 				if err != nil {
-					return xerrors.Errorf("could not dial: %w", err)
+					return fmt.Errorf("could not dial: %w", err)
 				}
 
 				if addr := tc.req2.Addr(); addr != nil {
-					return xerrors.Errorf("dialer with non-nil Addr")
+					return fmt.Errorf("dialer with non-nil Addr")
 				}
 
 				for _, msg := range []struct {
@@ -274,15 +274,15 @@ func TestMultiReqRepIssue70(t *testing.T) {
 				} {
 					err = tc.req2.Send(msg.req)
 					if err != nil {
-						return xerrors.Errorf("could not send REQ message %v: %w", msg.req, err)
+						return fmt.Errorf("could not send REQ message %v: %w", msg.req, err)
 					}
 					rep, err := tc.req2.Recv()
 					if err != nil {
-						return xerrors.Errorf("could not recv REP message %v: %w", msg.req, err)
+						return fmt.Errorf("could not recv REP message %v: %w", msg.req, err)
 					}
 
 					if got, want := rep, msg.rep; !reflect.DeepEqual(got, want) {
-						return xerrors.Errorf("got = %v, want= %v", got, want)
+						return fmt.Errorf("got = %v, want= %v", got, want)
 					}
 				}
 				return err
@@ -291,11 +291,11 @@ func TestMultiReqRepIssue70(t *testing.T) {
 
 				err := tc.req1.Dial(ep)
 				if err != nil {
-					return xerrors.Errorf("could not dial: %w", err)
+					return fmt.Errorf("could not dial: %w", err)
 				}
 
 				if addr := tc.req1.Addr(); addr != nil {
-					return xerrors.Errorf("dialer with non-nil Addr")
+					return fmt.Errorf("dialer with non-nil Addr")
 				}
 
 				for _, msg := range []struct {
@@ -308,15 +308,15 @@ func TestMultiReqRepIssue70(t *testing.T) {
 				} {
 					err = tc.req1.Send(msg.req)
 					if err != nil {
-						return xerrors.Errorf("could not send REQ message %v: %w", msg.req, err)
+						return fmt.Errorf("could not send REQ message %v: %w", msg.req, err)
 					}
 					rep, err := tc.req1.Recv()
 					if err != nil {
-						return xerrors.Errorf("could not recv REP message %v: %w", msg.req, err)
+						return fmt.Errorf("could not recv REP message %v: %w", msg.req, err)
 					}
 
 					if got, want := rep, msg.rep; !reflect.DeepEqual(got, want) {
-						return xerrors.Errorf("got = %v, want= %v", got, want)
+						return fmt.Errorf("got = %v, want= %v", got, want)
 					}
 				}
 				return err

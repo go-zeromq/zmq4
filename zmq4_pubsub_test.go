@@ -6,6 +6,8 @@ package zmq4_test
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"reflect"
 	"sort"
 	"sync"
@@ -14,7 +16,6 @@ import (
 
 	"github.com/go-zeromq/zmq4"
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/xerrors"
 )
 
 var (
@@ -127,11 +128,11 @@ func TestPubSub(t *testing.T) {
 
 				err := tc.pub.Listen(ep)
 				if err != nil {
-					return xerrors.Errorf("could not listen: %w", err)
+					return fmt.Errorf("could not listen: %w", err)
 				}
 
 				if addr := tc.pub.Addr(); addr == nil {
-					return xerrors.Errorf("listener with nil Addr")
+					return fmt.Errorf("listener with nil Addr")
 				}
 
 				wg1.Wait()
@@ -142,7 +143,7 @@ func TestPubSub(t *testing.T) {
 				for _, msg := range msgs[0] {
 					err = tc.pub.Send(msg)
 					if err != nil {
-						return xerrors.Errorf("could not send message %v: %w", msg, err)
+						return fmt.Errorf("could not send message %v: %w", msg, err)
 					}
 				}
 
@@ -155,11 +156,11 @@ func TestPubSub(t *testing.T) {
 						var err error
 						err = sub.Dial(ep)
 						if err != nil {
-							return xerrors.Errorf("could not dial: %w", err)
+							return fmt.Errorf("could not dial: %w", err)
 						}
 
 						if addr := sub.Addr(); addr != nil {
-							return xerrors.Errorf("dialer with non-nil Addr")
+							return fmt.Errorf("dialer with non-nil Addr")
 						}
 
 						wg1.Done()
@@ -167,7 +168,7 @@ func TestPubSub(t *testing.T) {
 
 						err = sub.SetOption(zmq4.OptionSubscribe, topics[isub])
 						if err != nil {
-							return xerrors.Errorf("could not subscribe to topic %q: %w", topics[isub], err)
+							return fmt.Errorf("could not subscribe to topic %q: %w", topics[isub], err)
 						}
 
 						wg2.Done()
@@ -177,10 +178,10 @@ func TestPubSub(t *testing.T) {
 						for imsg, want := range msgs {
 							msg, err := sub.Recv()
 							if err != nil {
-								return xerrors.Errorf("could not recv message %v: %w", want, err)
+								return fmt.Errorf("could not recv message %v: %w", want, err)
 							}
 							if !reflect.DeepEqual(msg, want) {
-								return xerrors.Errorf("sub[%d][msg=%d]: got = %v, want= %v", isub, imsg, msg, want)
+								return fmt.Errorf("sub[%d][msg=%d]: got = %v, want= %v", isub, imsg, msg, want)
 							}
 							nmsgs[isub]++
 						}
@@ -228,7 +229,7 @@ func TestPubSubClosedSub(t *testing.T) {
 	grp.Go(func() error {
 		err := pub.Listen(ep)
 		if err != nil {
-			return xerrors.Errorf("could not listen on end point: %+v", err)
+			return fmt.Errorf("could not listen on end point: %+v", err)
 		}
 
 		<-subReady
@@ -236,7 +237,7 @@ func TestPubSubClosedSub(t *testing.T) {
 
 		for i := 0; i < nmsgs; i++ {
 			if err := pub.Send(msg); err != nil {
-				return xerrors.Errorf("could not send message %v: %w", msg, err)
+				return fmt.Errorf("could not send message %v: %w", msg, err)
 			}
 		}
 
@@ -246,7 +247,7 @@ func TestPubSubClosedSub(t *testing.T) {
 
 		for i := 0; i < nmsgs; i++ {
 			if err := pub.Send(msg); err != nil {
-				return xerrors.Errorf("could not send message %v: %w", msg, err)
+				return fmt.Errorf("could not send message %v: %w", msg, err)
 			}
 		}
 
@@ -262,12 +263,12 @@ func TestPubSubClosedSub(t *testing.T) {
 		var err error
 		err = sub.Dial(ep)
 		if err != nil {
-			return xerrors.Errorf("could not dial: %w", err)
+			return fmt.Errorf("could not dial: %w", err)
 		}
 
 		err = sub.SetOption(zmq4.OptionSubscribe, topic)
 		if err != nil {
-			return xerrors.Errorf("could not subscribe to topic %q: %w", topic, err)
+			return fmt.Errorf("could not subscribe to topic %q: %w", topic, err)
 		}
 
 		close(subReady)
@@ -278,10 +279,10 @@ func TestPubSubClosedSub(t *testing.T) {
 				break
 			}
 			if err != nil {
-				return xerrors.Errorf("could not recv message: %w", err)
+				return fmt.Errorf("could not recv message: %w", err)
 			}
 			if !reflect.DeepEqual(rmsg, msg) {
-				return xerrors.Errorf("sub: got = %v, want= %v", rmsg, msg)
+				return fmt.Errorf("sub: got = %v, want= %v", rmsg, msg)
 			}
 		}
 
@@ -315,10 +316,10 @@ func TestPubSubMultiPart(t *testing.T) {
 		var err error
 		err = pub.Listen(ep)
 		if err != nil {
-			return xerrors.Errorf("could not listen on end point: %+v", err)
+			return fmt.Errorf("could not listen on end point: %+v", err)
 		}
 		if addr := pub.Addr(); addr == nil {
-			return xerrors.Errorf("listener with nil Addr")
+			return fmt.Errorf("listener with nil Addr")
 		}
 
 		pss.WaitForSubscriptions()
@@ -326,7 +327,7 @@ func TestPubSubMultiPart(t *testing.T) {
 
 		err = pub.SendMulti(msg)
 		if err != nil {
-			return xerrors.Errorf("could not send message %v: %w", msg, err)
+			return fmt.Errorf("could not send message %v: %w", msg, err)
 		}
 
 		return nil
@@ -336,11 +337,11 @@ func TestPubSubMultiPart(t *testing.T) {
 		var err error
 		err = sub.Dial(ep)
 		if err != nil {
-			return xerrors.Errorf("could not dial: %w", err)
+			return fmt.Errorf("could not dial: %w", err)
 		}
 
 		if addr := sub.Addr(); addr != nil {
-			return xerrors.Errorf("dialer with non-nil Addr")
+			return fmt.Errorf("dialer with non-nil Addr")
 		}
 
 		pss.DialComplete()
@@ -348,7 +349,7 @@ func TestPubSubMultiPart(t *testing.T) {
 
 		err = sub.SetOption(zmq4.OptionSubscribe, "msg")
 		if err != nil {
-			return xerrors.Errorf("could not subscribe to topic: %w", err)
+			return fmt.Errorf("could not subscribe to topic: %w", err)
 		}
 
 		pss.SubscriptionComplete()
@@ -356,10 +357,10 @@ func TestPubSubMultiPart(t *testing.T) {
 
 		newMsg, err := sub.Recv()
 		if err != nil {
-			return xerrors.Errorf("could not recv message %v: %w", msg, err)
+			return fmt.Errorf("could not recv message %v: %w", msg, err)
 		}
 		if !reflect.DeepEqual(newMsg, msg) {
-			return xerrors.Errorf("got = %v, want= %v", newMsg, msg)
+			return fmt.Errorf("got = %v, want= %v", newMsg, msg)
 		}
 		return err
 	})
@@ -459,7 +460,7 @@ func TestPubSubDeadPub(t *testing.T) {
 
 		err := pub.Listen(ep)
 		if err != nil {
-			return xerrors.Errorf("could not listen on end point: %+v", err)
+			return fmt.Errorf("could not listen on end point: %+v", err)
 		}
 
 		<-subReady
@@ -467,7 +468,7 @@ func TestPubSubDeadPub(t *testing.T) {
 
 		for i := 0; i < nmsgs; i++ {
 			if err := pub.Send(msg); err != nil {
-				return xerrors.Errorf("could not send message %v: %w", msg, err)
+				return fmt.Errorf("could not send message %v: %w", msg, err)
 			}
 		}
 		<-subDoneReading
@@ -479,12 +480,12 @@ func TestPubSubDeadPub(t *testing.T) {
 		var err error
 		err = sub.Dial(ep)
 		if err != nil {
-			return xerrors.Errorf("could not dial: %w", err)
+			return fmt.Errorf("could not dial: %w", err)
 		}
 
 		err = sub.SetOption(zmq4.OptionSubscribe, topic)
 		if err != nil {
-			return xerrors.Errorf("could not subscribe to topic %q: %w", topic, err)
+			return fmt.Errorf("could not subscribe to topic %q: %w", topic, err)
 		}
 
 		close(subReady)
@@ -492,10 +493,10 @@ func TestPubSubDeadPub(t *testing.T) {
 		for i := 0; i < nmsgs; i++ {
 			rmsg, err := sub.Recv()
 			if err != nil {
-				return xerrors.Errorf("could not recv message: %w", err)
+				return fmt.Errorf("could not recv message: %w", err)
 			}
 			if !reflect.DeepEqual(rmsg, msg) {
-				return xerrors.Errorf("sub: got = %v, want= %v", rmsg, msg)
+				return fmt.Errorf("sub: got = %v, want= %v", rmsg, msg)
 			}
 		}
 
@@ -504,7 +505,7 @@ func TestPubSubDeadPub(t *testing.T) {
 
 		_, err = sub.Recv() // make sure we aren't deadlocked
 		if err == nil {
-			return xerrors.New("expected an error")
+			return errors.New("expected an error")
 		}
 
 		return nil
@@ -544,7 +545,7 @@ func TestPubOptionHWM(t *testing.T) {
 		var err error
 		err = pub.Listen(ep)
 		if err != nil {
-			return xerrors.Errorf("could not listen on end point: %+v", err)
+			return fmt.Errorf("could not listen on end point: %+v", err)
 		}
 
 		pss.WaitForSubscriptions()
@@ -553,7 +554,7 @@ func TestPubOptionHWM(t *testing.T) {
 			msg := zmq4.NewMsgFrom([]byte("msg"), []byte(string(rune(i))))
 			err = pub.Send(msg)
 			if err != nil {
-				return xerrors.Errorf("error sending message. [%d] got: %v", i, err)
+				return fmt.Errorf("error sending message. [%d] got: %v", i, err)
 			}
 		}
 
@@ -568,7 +569,7 @@ func TestPubOptionHWM(t *testing.T) {
 		var err error
 		err = sub.Dial(ep)
 		if err != nil {
-			return xerrors.Errorf("could not dial end point: %+v", err)
+			return fmt.Errorf("could not dial end point: %+v", err)
 		}
 
 		pss.DialComplete()
@@ -576,7 +577,7 @@ func TestPubOptionHWM(t *testing.T) {
 
 		err = sub.SetOption(zmq4.OptionSubscribe, topic)
 		if err != nil {
-			return xerrors.Errorf("could not subscribe to topic %q: %w", topic, err)
+			return fmt.Errorf("could not subscribe to topic %q: %w", topic, err)
 		}
 
 		pss.SubscriptionComplete()
@@ -592,13 +593,13 @@ func TestPubOptionHWM(t *testing.T) {
 				break
 			}
 			if err != nil {
-				return xerrors.Errorf("could not recv message: %v", err)
+				return fmt.Errorf("could not recv message: %v", err)
 			}
 			nmsgs++
 		}
 
 		if nmsgs >= msgCount {
-			return xerrors.Errorf("Expected dropped messages")
+			return fmt.Errorf("Expected dropped messages")
 		}
 
 		return err
@@ -637,7 +638,7 @@ func BenchmarkPubSub(b *testing.B) {
 		var err error
 		err = pub.Listen(ep)
 		if err != nil {
-			return xerrors.Errorf("could not listen on end point: %+v", err)
+			return fmt.Errorf("could not listen on end point: %+v", err)
 		}
 
 		pss.WaitForSubscriptions()
@@ -646,7 +647,7 @@ func BenchmarkPubSub(b *testing.B) {
 		for i := 0; i < msgCount; i++ {
 			err = pub.SendMulti(msg)
 			if err != nil {
-				return xerrors.Errorf("error sending message: %v\n", err)
+				return fmt.Errorf("error sending message: %v\n", err)
 			}
 		}
 
@@ -657,7 +658,7 @@ func BenchmarkPubSub(b *testing.B) {
 		var err error
 		err = sub.Dial(ep)
 		if err != nil {
-			return xerrors.Errorf("could not dial end point: %+v", err)
+			return fmt.Errorf("could not dial end point: %+v", err)
 		}
 
 		pss.DialComplete()
@@ -665,7 +666,7 @@ func BenchmarkPubSub(b *testing.B) {
 
 		err = sub.SetOption(zmq4.OptionSubscribe, topic)
 		if err != nil {
-			return xerrors.Errorf("could not subscribe to topic %q: %w", topic, err)
+			return fmt.Errorf("could not subscribe to topic %q: %w", topic, err)
 		}
 
 		pss.SubscriptionComplete()
@@ -675,7 +676,7 @@ func BenchmarkPubSub(b *testing.B) {
 		for i := 0; i < msgCount; i++ {
 			msg, err := sub.Recv()
 			if err != nil {
-				return xerrors.Errorf("could not recv message: %v", err)
+				return fmt.Errorf("could not recv message: %v", err)
 			}
 			for _, frame := range msg.Frames {
 				siz += len(frame)

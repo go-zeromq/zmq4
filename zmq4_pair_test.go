@@ -7,13 +7,13 @@ package zmq4_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/go-zeromq/zmq4"
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/xerrors"
 )
 
 var (
@@ -89,11 +89,11 @@ func TestPair(t *testing.T) {
 
 				err := tc.srv.Listen(ep)
 				if err != nil {
-					return xerrors.Errorf("could not listen: %w", err)
+					return fmt.Errorf("could not listen: %w", err)
 				}
 
 				if addr := tc.srv.Addr(); addr == nil {
-					return xerrors.Errorf("listener with nil Addr")
+					return fmt.Errorf("listener with nil Addr")
 				}
 
 				wg1.Wait()
@@ -102,25 +102,25 @@ func TestPair(t *testing.T) {
 				for _, msg := range msgs {
 					err = tc.srv.Send(msg)
 					if err != nil {
-						return xerrors.Errorf("could not send message %v: %w", msg, err)
+						return fmt.Errorf("could not send message %v: %w", msg, err)
 					}
 					reply, err := tc.srv.Recv()
 					if err != nil {
-						return xerrors.Errorf("could not recv reply to %v: %w", msg, err)
+						return fmt.Errorf("could not recv reply to %v: %w", msg, err)
 					}
 
 					if got, want := reply, zmq4.NewMsgString("reply: "+string(msg.Bytes())); !bytes.Equal(got.Bytes(), want.Bytes()) {
-						return xerrors.Errorf("invalid cli reply for msg #%d: got=%v, want=%v", i, got, want)
+						return fmt.Errorf("invalid cli reply for msg #%d: got=%v, want=%v", i, got, want)
 					}
 				}
 
 				quit, err := tc.srv.Recv()
 				if err != nil {
-					return xerrors.Errorf("could not recv QUIT message: %w", err)
+					return fmt.Errorf("could not recv QUIT message: %w", err)
 				}
 
 				if got, want := quit, zmq4.NewMsgString("QUIT"); !bytes.Equal(got.Bytes(), want.Bytes()) {
-					return xerrors.Errorf("invalid QUIT message from cli: got=%v, want=%v", got, want)
+					return fmt.Errorf("invalid QUIT message from cli: got=%v, want=%v", got, want)
 				}
 
 				return err
@@ -130,7 +130,7 @@ func TestPair(t *testing.T) {
 
 				err := tc.cli.Dial(ep)
 				if err != nil {
-					return xerrors.Errorf("could not dial: %w", err)
+					return fmt.Errorf("could not dial: %w", err)
 				}
 
 				wg1.Done()
@@ -139,23 +139,23 @@ func TestPair(t *testing.T) {
 				for i := range msgs {
 					msg, err := tc.cli.Recv()
 					if err != nil {
-						return xerrors.Errorf("could not recv #%d msg from srv: %w", i, err)
+						return fmt.Errorf("could not recv #%d msg from srv: %w", i, err)
 					}
 					if !bytes.Equal(msg.Bytes(), msgs[i].Bytes()) {
-						return xerrors.Errorf("invalid #%d msg from srv: got=%v, want=%v",
-							msg, msgs[i],
+						return fmt.Errorf("invalid #%d msg from srv: got=%v, want=%v",
+							i, msg, msgs[i],
 						)
 					}
 
 					err = tc.cli.Send(zmq4.NewMsgString("reply: " + string(msg.Bytes())))
 					if err != nil {
-						return xerrors.Errorf("could not send message %v: %w", msg, err)
+						return fmt.Errorf("could not send message %v: %w", msg, err)
 					}
 				}
 
 				err = tc.cli.Send(zmq4.NewMsgString("QUIT"))
 				if err != nil {
-					return xerrors.Errorf("could not send QUIT message: %w", err)
+					return fmt.Errorf("could not send QUIT message: %w", err)
 				}
 
 				return err

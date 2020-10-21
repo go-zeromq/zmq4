@@ -5,9 +5,8 @@
 package zmq4
 
 import (
+	"fmt"
 	"io"
-
-	"golang.org/x/xerrors"
 )
 
 // Security is an interface for ZMTP security mechanisms
@@ -65,17 +64,17 @@ func (nullSecurity) Type() SecurityType {
 func (nullSecurity) Handshake(conn *Conn, server bool) error {
 	raw, err := conn.Meta.MarshalZMTP()
 	if err != nil {
-		return xerrors.Errorf("zmq4: could not marshal metadata: %w", err)
+		return fmt.Errorf("zmq4: could not marshal metadata: %w", err)
 	}
 
 	err = conn.SendCmd(CmdReady, raw)
 	if err != nil {
-		return xerrors.Errorf("zmq4: could not send metadata to peer: %w", err)
+		return fmt.Errorf("zmq4: could not send metadata to peer: %w", err)
 	}
 
 	cmd, err := conn.RecvCmd()
 	if err != nil {
-		return xerrors.Errorf("zmq4: could not recv metadata from peer: %w", err)
+		return fmt.Errorf("zmq4: could not recv metadata from peer: %w", err)
 	}
 
 	if cmd.Name != CmdReady {
@@ -84,7 +83,7 @@ func (nullSecurity) Handshake(conn *Conn, server bool) error {
 
 	err = conn.Peer.Meta.UnmarshalZMTP(cmd.Body)
 	if err != nil {
-		return xerrors.Errorf("zmq4: could not unmarshal peer metadata: %w", err)
+		return fmt.Errorf("zmq4: could not unmarshal peer metadata: %w", err)
 	}
 
 	return nil

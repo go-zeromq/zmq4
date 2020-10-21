@@ -6,10 +6,9 @@ package zmq4
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"sync"
-
-	"golang.org/x/xerrors"
 )
 
 // NewRep returns a new REP ZeroMQ socket.
@@ -150,7 +149,7 @@ func (r *repReader) read(ctx context.Context, msg *Msg) error {
 		}
 		pre, innerMsg := splitReq(repMsg.msg)
 		if pre == nil {
-			return xerrors.Errorf("zmq4: invalid REP message")
+			return fmt.Errorf("zmq4: invalid REP message")
 		}
 		*msg = innerMsg
 		r.state.Set(repMsg.conn, pre)

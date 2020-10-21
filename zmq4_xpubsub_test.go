@@ -6,6 +6,7 @@ package zmq4_test
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"sync"
 	"testing"
@@ -13,7 +14,6 @@ import (
 
 	"github.com/go-zeromq/zmq4"
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/xerrors"
 )
 
 var (
@@ -101,11 +101,11 @@ func TestXPubSub(t *testing.T) {
 
 				err := tc.xpub.Listen(ep)
 				if err != nil {
-					return xerrors.Errorf("could not listen: %w", err)
+					return fmt.Errorf("could not listen: %w", err)
 				}
 
 				if addr := tc.xpub.Addr(); addr == nil {
-					return xerrors.Errorf("listener with nil Addr")
+					return fmt.Errorf("listener with nil Addr")
 				}
 
 				wg1.Wait()
@@ -123,7 +123,7 @@ func TestXPubSub(t *testing.T) {
 				for _, msg := range msgs[0] {
 					err = tc.xpub.Send(msg)
 					if err != nil {
-						return xerrors.Errorf("could not send message %v: %w", msg, err)
+						return fmt.Errorf("could not send message %v: %w", msg, err)
 					}
 				}
 
@@ -136,11 +136,11 @@ func TestXPubSub(t *testing.T) {
 						var err error
 						err = sub.Dial(ep)
 						if err != nil {
-							return xerrors.Errorf("could not dial: %w", err)
+							return fmt.Errorf("could not dial: %w", err)
 						}
 
 						if addr := sub.Addr(); addr != nil {
-							return xerrors.Errorf("dialer with non-nil Addr")
+							return fmt.Errorf("dialer with non-nil Addr")
 						}
 
 						wg1.Done()
@@ -148,7 +148,7 @@ func TestXPubSub(t *testing.T) {
 
 						err = sub.SetOption(zmq4.OptionSubscribe, topics[isub])
 						if err != nil {
-							return xerrors.Errorf("could not subscribe to topic %q: %w", topics[isub], err)
+							return fmt.Errorf("could not subscribe to topic %q: %w", topics[isub], err)
 						}
 
 						wg2.Done()
@@ -158,10 +158,10 @@ func TestXPubSub(t *testing.T) {
 						for imsg, want := range msgs {
 							msg, err := sub.Recv()
 							if err != nil {
-								return xerrors.Errorf("could not recv message %v: %w", want, err)
+								return fmt.Errorf("could not recv message %v: %w", want, err)
 							}
 							if !reflect.DeepEqual(msg, want) {
-								return xerrors.Errorf("sub[%d][msg=%d]: got = %v, want= %v", isub, imsg, msg, want)
+								return fmt.Errorf("sub[%d][msg=%d]: got = %v, want= %v", isub, imsg, msg, want)
 							}
 							nmsgs[isub]++
 						}

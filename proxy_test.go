@@ -6,13 +6,13 @@ package zmq4_test
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/go-zeromq/zmq4"
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/xerrors"
 )
 
 func TestProxy(t *testing.T) {
@@ -67,7 +67,7 @@ func TestProxy(t *testing.T) {
 		defer frontIn.Close()
 		err := frontIn.Dial(epFront)
 		if err != nil {
-			return xerrors.Errorf("front-in could not dial %q: %w", epFront, err)
+			return fmt.Errorf("front-in could not dial %q: %w", epFront, err)
 		}
 
 		wg1.Done()
@@ -79,7 +79,7 @@ func TestProxy(t *testing.T) {
 			t.Logf("front-in sending %v...", msg)
 			err = frontIn.Send(msg)
 			if err != nil {
-				return xerrors.Errorf("could not send front-in %q: %w", msg, err)
+				return fmt.Errorf("could not send front-in %q: %w", msg, err)
 			}
 			t.Logf("front-in sending %v... [done]", msg)
 		}
@@ -98,7 +98,7 @@ func TestProxy(t *testing.T) {
 		defer front.Close()
 		err := front.Listen(epFront)
 		if err != nil {
-			return xerrors.Errorf("front could not listen %q: %w", epFront, err)
+			return fmt.Errorf("front could not listen %q: %w", epFront, err)
 		}
 
 		wg1.Done()
@@ -119,7 +119,7 @@ func TestProxy(t *testing.T) {
 		defer back.Close()
 		err := back.Listen(epBack)
 		if err != nil {
-			return xerrors.Errorf("back could not listen %q: %w", epBack, err)
+			return fmt.Errorf("back could not listen %q: %w", epBack, err)
 		}
 
 		wg1.Done()
@@ -140,7 +140,7 @@ func TestProxy(t *testing.T) {
 		defer backOut.Close()
 		err := backOut.Dial(epBack)
 		if err != nil {
-			return xerrors.Errorf("back-out could not dial %q: %w", epBack, err)
+			return fmt.Errorf("back-out could not dial %q: %w", epBack, err)
 		}
 
 		wg1.Done()
@@ -152,10 +152,10 @@ func TestProxy(t *testing.T) {
 			t.Logf("back-out recving %v...", want)
 			msg, err := backOut.Recv()
 			if err != nil {
-				return xerrors.Errorf("back-out could not recv: %w", err)
+				return fmt.Errorf("back-out could not recv: %w", err)
 			}
 			if msg.String() != want.String() {
-				return xerrors.Errorf("invalid message: got=%v, want=%v", msg, want)
+				return fmt.Errorf("invalid message: got=%v, want=%v", msg, want)
 			}
 			t.Logf("back-out recving %v... [done]", msg)
 		}
@@ -175,7 +175,7 @@ func TestProxy(t *testing.T) {
 		defer captOut.Close()
 		err := captOut.Listen(epCapt)
 		if err != nil {
-			return xerrors.Errorf("capt-out could not listen %q: %w", epCapt, err)
+			return fmt.Errorf("capt-out could not listen %q: %w", epCapt, err)
 		}
 
 		wg1.Done()
@@ -188,10 +188,10 @@ func TestProxy(t *testing.T) {
 			t.Logf("capt-out recving %v...", want)
 			msg, err := captOut.Recv()
 			if err != nil {
-				return xerrors.Errorf("capt-out could not recv msg: %w", err)
+				return fmt.Errorf("capt-out could not recv msg: %w", err)
 			}
 			if msg.String() != want.String() {
-				return xerrors.Errorf("capt-out: invalid message: got=%v, want=%v", msg, want)
+				return fmt.Errorf("capt-out: invalid message: got=%v, want=%v", msg, want)
 			}
 			t.Logf("capt-out recving %v... [done]", msg)
 		}
@@ -210,7 +210,7 @@ func TestProxy(t *testing.T) {
 		defer capt.Close()
 		err := capt.Dial(epCapt)
 		if err != nil {
-			return xerrors.Errorf("capt could not dial %q: %w", epCapt, err)
+			return fmt.Errorf("capt could not dial %q: %w", epCapt, err)
 		}
 
 		wg1.Done()

@@ -6,13 +6,13 @@ package inproc
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"math/rand"
 	"reflect"
 	"testing"
 
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/xerrors"
 )
 
 func TestBasicIO(t *testing.T) {
@@ -84,7 +84,7 @@ func TestRW(t *testing.T) {
 	grp.Go(func() error {
 		conn, err := lst.Accept()
 		if err != nil {
-			return xerrors.Errorf("could not accept connection: %w", err)
+			return fmt.Errorf("could not accept connection: %w", err)
 		}
 		defer conn.Close()
 
@@ -101,26 +101,26 @@ func TestRW(t *testing.T) {
 		raw := make([]byte, len("HELLO"))
 		_, err = io.ReadFull(conn, raw)
 		if err != nil {
-			return xerrors.Errorf("could not read request: %w", err)
+			return fmt.Errorf("could not read request: %w", err)
 		}
 
 		if got, want := raw, []byte("HELLO"); !reflect.DeepEqual(got, want) {
-			return xerrors.Errorf("invalid request: got=%v, want=%v", got, want)
+			return fmt.Errorf("invalid request: got=%v, want=%v", got, want)
 		}
 
 		_, err = conn.Write([]byte("HELLO"))
 		if err != nil {
-			return xerrors.Errorf("could not write reply: %w", err)
+			return fmt.Errorf("could not write reply: %w", err)
 		}
 
 		raw = make([]byte, len("QUIT"))
 		_, err = io.ReadFull(conn, raw)
 		if err != nil {
-			return xerrors.Errorf("could not read final request: %w", err)
+			return fmt.Errorf("could not read final request: %w", err)
 		}
 
 		if got, want := raw, []byte("QUIT"); !reflect.DeepEqual(got, want) {
-			return xerrors.Errorf("invalid request: got=%v, want=%v", got, want)
+			return fmt.Errorf("invalid request: got=%v, want=%v", got, want)
 		}
 
 		return nil
@@ -129,7 +129,7 @@ func TestRW(t *testing.T) {
 	grp.Go(func() error {
 		conn, err := Dial("inproc://rw-srv")
 		if err != nil {
-			return xerrors.Errorf("could not dial server: %w", err)
+			return fmt.Errorf("could not dial server: %w", err)
 		}
 		defer conn.Close()
 
@@ -145,22 +145,22 @@ func TestRW(t *testing.T) {
 
 		_, err = conn.Write([]byte("HELLO"))
 		if err != nil {
-			return xerrors.Errorf("could not send request: %w", err)
+			return fmt.Errorf("could not send request: %w", err)
 		}
 
 		raw := make([]byte, len("HELLO"))
 		_, err = io.ReadFull(conn, raw)
 		if err != nil {
-			return xerrors.Errorf("could not read reply: %w", err)
+			return fmt.Errorf("could not read reply: %w", err)
 		}
 
 		if got, want := raw, []byte("HELLO"); !reflect.DeepEqual(got, want) {
-			return xerrors.Errorf("invalid reply: got=%v, want=%v", got, want)
+			return fmt.Errorf("invalid reply: got=%v, want=%v", got, want)
 		}
 
 		_, err = conn.Write([]byte("QUIT"))
 		if err != nil {
-			return xerrors.Errorf("could not write final request: %w", err)
+			return fmt.Errorf("could not write final request: %w", err)
 		}
 
 		return nil

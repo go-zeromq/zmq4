@@ -6,10 +6,9 @@ package zmq4
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"testing"
-
-	"golang.org/x/xerrors"
 )
 
 func TestGreeting(t *testing.T) {
@@ -37,12 +36,12 @@ func TestGreeting(t *testing.T) {
 		{
 			name: "empty-buffer",
 			data: nil,
-			want: xerrors.Errorf("could not read ZMTP greeting: %w", io.EOF),
+			want: fmt.Errorf("could not read ZMTP greeting: %w", io.EOF),
 		},
 		{
 			name: "unexpected-EOF",
 			data: make([]byte, 1),
-			want: xerrors.Errorf("could not read ZMTP greeting: %w", io.ErrUnexpectedEOF),
+			want: fmt.Errorf("could not read ZMTP greeting: %w", io.ErrUnexpectedEOF),
 		},
 		{
 			name: "invalid-header",
@@ -59,7 +58,7 @@ func TestGreeting(t *testing.T) {
 				}
 				return w.Bytes()
 			}(),
-			want: xerrors.Errorf("invalid ZMTP signature header: %w", errGreeting),
+			want: fmt.Errorf("invalid ZMTP signature header: %w", errGreeting),
 		},
 		{
 			name: "invalid-footer",
@@ -76,7 +75,7 @@ func TestGreeting(t *testing.T) {
 				}
 				return w.Bytes()
 			}(),
-			want: xerrors.Errorf("invalid ZMTP signature footer: %w", errGreeting),
+			want: fmt.Errorf("invalid ZMTP signature footer: %w", errGreeting),
 		},
 		{
 			name: "higher-major-version",
@@ -125,7 +124,7 @@ func TestGreeting(t *testing.T) {
 				}
 				return w.Bytes()
 			}(),
-			want: xerrors.Errorf("invalid ZMTP version (got=%v, want=%v): %w",
+			want: fmt.Errorf("invalid ZMTP version (got=%v, want=%v): %w",
 				[2]uint8{defaultVersion[0] - 1, defaultVersion[1]},
 				defaultVersion,
 				errGreeting,

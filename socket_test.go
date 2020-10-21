@@ -6,6 +6,7 @@ package zmq4_test
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"testing"
@@ -13,7 +14,6 @@ import (
 
 	"github.com/go-zeromq/zmq4"
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/xerrors"
 )
 
 func TestInvalidConn(t *testing.T) {
@@ -37,17 +37,17 @@ func TestInvalidConn(t *testing.T) {
 	grp.Go(func() error {
 		conn, err := net.Dial("tcp", ep[len("tcp://"):])
 		if err != nil {
-			return xerrors.Errorf("could not dial %q: %w", ep, err)
+			return fmt.Errorf("could not dial %q: %w", ep, err)
 		}
 		defer conn.Close()
 		var reply = make([]byte, 64)
 		_, err = io.ReadFull(conn, reply)
 		if err != nil {
-			return xerrors.Errorf("could not read reply bytes...: %w", err)
+			return fmt.Errorf("could not read reply bytes...: %w", err)
 		}
 		_, err = conn.Write(make([]byte, 64))
 		if err != nil {
-			return xerrors.Errorf("could not send bytes...: %w", err)
+			return fmt.Errorf("could not send bytes...: %w", err)
 		}
 		time.Sleep(1 * time.Second) // FIXME(sbinet): hugly.
 		return nil
@@ -160,7 +160,7 @@ func TestConnPairs(t *testing.T) {
 			if err == nil {
 				t.Fatalf("dialed %q", ep)
 			}
-			want := xerrors.Errorf("zmq4: could not open a ZMTP connection: zmq4: could not initialize ZMTP connection: zmq4: peer=%q not compatible with %q", tc.srv.Type(), tc.wrong.Type())
+			want := fmt.Errorf("zmq4: could not open a ZMTP connection: zmq4: could not initialize ZMTP connection: zmq4: peer=%q not compatible with %q", tc.srv.Type(), tc.wrong.Type())
 			if got, want := err.Error(), want.Error(); got != want {
 				t.Fatalf("invalid error:\ngot = %v\nwant= %v", got, want)
 			}

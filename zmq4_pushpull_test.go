@@ -6,13 +6,13 @@ package zmq4_test
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/go-zeromq/zmq4"
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/xerrors"
 )
 
 var (
@@ -74,21 +74,21 @@ func TestPushPull(t *testing.T) {
 
 				err := tc.push.Listen(ep)
 				if err != nil {
-					return xerrors.Errorf("could not listen: %w", err)
+					return fmt.Errorf("could not listen: %w", err)
 				}
 
 				if addr := tc.push.Addr(); addr == nil {
-					return xerrors.Errorf("listener with nil Addr")
+					return fmt.Errorf("listener with nil Addr")
 				}
 
 				err = tc.push.Send(hello)
 				if err != nil {
-					return xerrors.Errorf("could not send %v: %w", hello, err)
+					return fmt.Errorf("could not send %v: %w", hello, err)
 				}
 
 				err = tc.push.Send(bye)
 				if err != nil {
-					return xerrors.Errorf("could not send %v: %w", bye, err)
+					return fmt.Errorf("could not send %v: %w", bye, err)
 				}
 				return err
 			})
@@ -96,29 +96,29 @@ func TestPushPull(t *testing.T) {
 
 				err := tc.pull.Dial(ep)
 				if err != nil {
-					return xerrors.Errorf("could not dial: %w", err)
+					return fmt.Errorf("could not dial: %w", err)
 				}
 
 				if addr := tc.pull.Addr(); addr != nil {
-					return xerrors.Errorf("dialer with non-nil Addr")
+					return fmt.Errorf("dialer with non-nil Addr")
 				}
 
 				msg, err := tc.pull.Recv()
 				if err != nil {
-					return xerrors.Errorf("could not recv %v: %w", hello, err)
+					return fmt.Errorf("could not recv %v: %w", hello, err)
 				}
 
 				if got, want := msg, hello; !reflect.DeepEqual(got, want) {
-					return xerrors.Errorf("recv1: got = %v, want= %v", got, want)
+					return fmt.Errorf("recv1: got = %v, want= %v", got, want)
 				}
 
 				msg, err = tc.pull.Recv()
 				if err != nil {
-					return xerrors.Errorf("could not recv %v: %w", bye, err)
+					return fmt.Errorf("could not recv %v: %w", bye, err)
 				}
 
 				if got, want := msg, bye; !reflect.DeepEqual(got, want) {
-					return xerrors.Errorf("recv2: got = %v, want= %v", got, want)
+					return fmt.Errorf("recv2: got = %v, want= %v", got, want)
 				}
 
 				return err

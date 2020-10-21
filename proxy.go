@@ -6,11 +6,11 @@ package zmq4
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"sync"
 
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/xerrors"
 )
 
 // Proxy connects a frontend socket to a backend socket.
@@ -152,7 +152,7 @@ func (p *Proxy) init(front, back, capture Socket) {
 					return nil
 				default:
 					// API error. panic.
-					panic(xerrors.Errorf("invalid control socket command: %v", cmd))
+					panic(fmt.Errorf("invalid control socket command: %v", cmd))
 				}
 			}
 		}

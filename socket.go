@@ -6,6 +6,8 @@ package zmq4
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -15,7 +17,6 @@ import (
 	"time"
 
 	"github.com/go-zeromq/zmq4/internal/inproc"
-	"golang.org/x/xerrors"
 )
 
 const (
@@ -24,9 +25,9 @@ const (
 )
 
 var (
-	errInvalidAddress = xerrors.New("zmq4: invalid address")
+	errInvalidAddress = errors.New("zmq4: invalid address")
 
-	ErrBadProperty = xerrors.New("zmq4: bad property")
+	ErrBadProperty = errors.New("zmq4: bad property")
 )
 
 // socket implements the ZeroMQ socket interface
@@ -193,7 +194,7 @@ func (sck *socket) Listen(endpoint string) error {
 	}
 
 	if err != nil {
-		return xerrors.Errorf("zmq4: could not listen to %q: %w", endpoint, err)
+		return fmt.Errorf("zmq4: could not listen to %q: %w", endpoint, err)
 	}
 	sck.listener = l
 
@@ -261,19 +262,19 @@ connect:
 			time.Sleep(sck.retry)
 			goto connect
 		}
-		return xerrors.Errorf("zmq4: could not dial to %q: %w", endpoint, err)
+		return fmt.Errorf("zmq4: could not dial to %q: %w", endpoint, err)
 	}
 
 	if conn == nil {
-		return xerrors.Errorf("zmq4: got a nil dial-conn to %q", endpoint)
+		return fmt.Errorf("zmq4: got a nil dial-conn to %q", endpoint)
 	}
 
 	zconn, err := Open(conn, sck.sec, sck.typ, sck.id, false, sck.scheduleRmConn)
 	if err != nil {
-		return xerrors.Errorf("zmq4: could not open a ZMTP connection: %w", err)
+		return fmt.Errorf("zmq4: could not open a ZMTP connection: %w", err)
 	}
 	if zconn == nil {
-		return xerrors.Errorf("zmq4: got a nil ZMTP connection to %q", endpoint)
+		return fmt.Errorf("zmq4: got a nil ZMTP connection to %q", endpoint)
 	}
 
 	go sck.connReaper()

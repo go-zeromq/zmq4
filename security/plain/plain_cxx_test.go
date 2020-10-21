@@ -8,6 +8,7 @@ package plain_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"reflect"
 	"testing"
@@ -17,7 +18,6 @@ import (
 	"github.com/go-zeromq/zmq4"
 	"github.com/go-zeromq/zmq4/security/plain"
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/xerrors"
 )
 
 func TestMain(m *testing.M) {
@@ -66,21 +66,21 @@ func TestHandshakeReqCRep(t *testing.T) {
 	grp.Go(func() error {
 		err := rep.Listen(ep)
 		if err != nil {
-			return xerrors.Errorf("could not listen: %w", err)
+			return fmt.Errorf("could not listen: %w", err)
 		}
 
 		msg, err := rep.Recv()
 		if err != nil {
-			return xerrors.Errorf("could not recv REQ message: %w", err)
+			return fmt.Errorf("could not recv REQ message: %w", err)
 		}
 
 		if !reflect.DeepEqual(msg, reqQuit) {
-			return xerrors.Errorf("got = %v, want = %v", msg, repQuit)
+			return fmt.Errorf("got = %v, want = %v", msg, repQuit)
 		}
 
 		err = rep.Send(repQuit)
 		if err != nil {
-			return xerrors.Errorf("could not send REP message: %w", err)
+			return fmt.Errorf("could not send REP message: %w", err)
 		}
 
 		return nil
@@ -89,20 +89,20 @@ func TestHandshakeReqCRep(t *testing.T) {
 	grp.Go(func() error {
 		err := req.Dial(ep)
 		if err != nil {
-			return xerrors.Errorf("could not dial: %w", err)
+			return fmt.Errorf("could not dial: %w", err)
 		}
 
 		err = req.Send(reqQuit)
 		if err != nil {
-			return xerrors.Errorf("could not send REQ message: %w", err)
+			return fmt.Errorf("could not send REQ message: %w", err)
 		}
 		msg, err := req.Recv()
 		if err != nil {
-			return xerrors.Errorf("could not recv REQ message: %w", err)
+			return fmt.Errorf("could not recv REQ message: %w", err)
 		}
 
 		if !reflect.DeepEqual(msg, repQuit) {
-			return xerrors.Errorf("got = %v, want = %v", msg, repQuit)
+			return fmt.Errorf("got = %v, want = %v", msg, repQuit)
 		}
 		return nil
 	})
@@ -135,21 +135,21 @@ func TestHandshakeCReqRep(t *testing.T) {
 	grp.Go(func() error {
 		err := rep.Listen(ep)
 		if err != nil {
-			return xerrors.Errorf("could not listen: %w", err)
+			return fmt.Errorf("could not listen: %w", err)
 		}
 
 		msg, err := rep.Recv()
 		if err != nil {
-			return xerrors.Errorf("could not recv REQ message: %w", err)
+			return fmt.Errorf("could not recv REQ message: %w", err)
 		}
 
 		if !reflect.DeepEqual(msg, reqQuit) {
-			return xerrors.Errorf("got = %v, want = %v", msg, repQuit)
+			return fmt.Errorf("got = %v, want = %v", msg, repQuit)
 		}
 
 		err = rep.Send(repQuit)
 		if err != nil {
-			return xerrors.Errorf("could not send REP message: %w", err)
+			return fmt.Errorf("could not send REP message: %w", err)
 		}
 
 		return nil
@@ -158,20 +158,20 @@ func TestHandshakeCReqRep(t *testing.T) {
 	grp.Go(func() error {
 		err := req.Dial(ep)
 		if err != nil {
-			return xerrors.Errorf("could not dial: %w", err)
+			return fmt.Errorf("could not dial: %w", err)
 		}
 
 		err = req.Send(reqQuit)
 		if err != nil {
-			return xerrors.Errorf("could not send REQ message: %w", err)
+			return fmt.Errorf("could not send REQ message: %w", err)
 		}
 		msg, err := req.Recv()
 		if err != nil {
-			return xerrors.Errorf("could not recv REQ message: %w", err)
+			return fmt.Errorf("could not recv REQ message: %w", err)
 		}
 
 		if !reflect.DeepEqual(msg, repQuit) {
-			return xerrors.Errorf("got = %v, want = %v", msg, repQuit)
+			return fmt.Errorf("got = %v, want = %v", msg, repQuit)
 		}
 		return nil
 	})
@@ -204,21 +204,21 @@ func TestHandshakeCReqCRep(t *testing.T) {
 	grp.Go(func() error {
 		err := rep.Listen(ep)
 		if err != nil {
-			return xerrors.Errorf("could not listen: %w", err)
+			return fmt.Errorf("could not listen: %w", err)
 		}
 
 		msg, err := rep.Recv()
 		if err != nil {
-			return xerrors.Errorf("could not recv REQ message: %w", err)
+			return fmt.Errorf("could not recv REQ message: %w", err)
 		}
 
 		if !reflect.DeepEqual(msg, reqQuit) {
-			return xerrors.Errorf("got = %v, want = %v", msg, repQuit)
+			return fmt.Errorf("got = %v, want = %v", msg, repQuit)
 		}
 
 		err = rep.Send(repQuit)
 		if err != nil {
-			return xerrors.Errorf("could not send REP message: %w", err)
+			return fmt.Errorf("could not send REP message: %w", err)
 		}
 
 		return nil
@@ -227,20 +227,20 @@ func TestHandshakeCReqCRep(t *testing.T) {
 	grp.Go(func() error {
 		err := req.Dial(ep)
 		if err != nil {
-			return xerrors.Errorf("could not dial: %w", err)
+			return fmt.Errorf("could not dial: %w", err)
 		}
 
 		err = req.Send(reqQuit)
 		if err != nil {
-			return xerrors.Errorf("could not send REQ message: %w", err)
+			return fmt.Errorf("could not send REQ message: %w", err)
 		}
 		msg, err := req.Recv()
 		if err != nil {
-			return xerrors.Errorf("could not recv REQ message: %w", err)
+			return fmt.Errorf("could not recv REQ message: %w", err)
 		}
 
 		if !reflect.DeepEqual(msg, repQuit) {
-			return xerrors.Errorf("got = %v, want = %v", msg, repQuit)
+			return fmt.Errorf("got = %v, want = %v", msg, repQuit)
 		}
 		return nil
 	})

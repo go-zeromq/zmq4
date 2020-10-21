@@ -6,10 +6,9 @@ package zmq4
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"sync"
-
-	"golang.org/x/xerrors"
 )
 
 // NewReq returns a new REQ ZeroMQ socket.
@@ -120,7 +119,7 @@ func (r *reqWriter) write(ctx context.Context, msg Msg) error {
 			return nil
 		}
 	}
-	return xerrors.Errorf("zmq4: no connections available: %w", err)
+	return fmt.Errorf("zmq4: no connections available: %w", err)
 }
 
 func (r *reqWriter) addConn(c *Conn) {
@@ -182,7 +181,7 @@ func (r *reqReader) Close() error {
 func (r *reqReader) read(ctx context.Context, msg *Msg) error {
 	curConn := r.state.Get()
 	if curConn == nil {
-		return xerrors.Errorf("zmq4: no connections available")
+		return fmt.Errorf("zmq4: no connections available")
 	}
 	*msg = curConn.read()
 	if msg.err != nil {

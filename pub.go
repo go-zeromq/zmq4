@@ -6,10 +6,9 @@ package zmq4
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"sync"
-
-	"golang.org/x/xerrors"
 )
 
 // Topics is an interface that wraps the basic Topics method.
@@ -57,7 +56,7 @@ func (pub *pubSocket) SendMulti(msg Msg) error {
 
 // Recv receives a complete message.
 func (*pubSocket) Recv() (Msg, error) {
-	msg := Msg{err: xerrors.Errorf("zmq4: PUB sockets can't recv messages")}
+	msg := Msg{err: fmt.Errorf("zmq4: PUB sockets can't recv messages")}
 	return msg, msg.err
 }
 

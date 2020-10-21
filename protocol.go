@@ -7,22 +7,22 @@ package zmq4
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
+	"fmt"
 	"io"
 	"strings"
-
-	"golang.org/x/xerrors"
 )
 
 var (
-	errGreeting      = xerrors.New("zmq4: invalid greeting received")
-	errSecMech       = xerrors.New("zmq4: invalid security mechanism")
-	errBadSec        = xerrors.New("zmq4: invalid or unsupported security mechanism")
-	ErrBadCmd        = xerrors.New("zmq4: invalid command name")
-	ErrBadFrame      = xerrors.New("zmq4: invalid frame")
-	errOverflow      = xerrors.New("zmq4: overflow")
-	errEmptyAppMDKey = xerrors.New("zmq4: empty application metadata key")
-	errDupAppMDKey   = xerrors.New("zmq4: duplicate application metadata key")
-	errBoolCnv       = xerrors.New("zmq4: invalid byte to bool conversion")
+	errGreeting      = errors.New("zmq4: invalid greeting received")
+	errSecMech       = errors.New("zmq4: invalid security mechanism")
+	errBadSec        = errors.New("zmq4: invalid or unsupported security mechanism")
+	ErrBadCmd        = errors.New("zmq4: invalid command name")
+	ErrBadFrame      = errors.New("zmq4: invalid frame")
+	errOverflow      = errors.New("zmq4: overflow")
+	errEmptyAppMDKey = errors.New("zmq4: empty application metadata key")
+	errDupAppMDKey   = errors.New("zmq4: duplicate application metadata key")
+	errBoolCnv       = errors.New("zmq4: invalid byte to bool conversion")
 )
 
 const (
@@ -95,21 +95,21 @@ func (g *greeting) read(r io.Reader) error {
 	var data [zmtpMsgLen]byte
 	_, err := io.ReadFull(r, data[:])
 	if err != nil {
-		return xerrors.Errorf("could not read ZMTP greeting: %w", err)
+		return fmt.Errorf("could not read ZMTP greeting: %w", err)
 	}
 
 	g.unmarshal(data[:])
 
 	if g.Sig.Header != sigHeader {
-		return xerrors.Errorf("invalid ZMTP signature header: %w", errGreeting)
+		return fmt.Errorf("invalid ZMTP signature header: %w", errGreeting)
 	}
 
 	if g.Sig.Footer != sigFooter {
-		return xerrors.Errorf("invalid ZMTP signature footer: %w", errGreeting)
+		return fmt.Errorf("invalid ZMTP signature footer: %w", errGreeting)
 	}
 
 	if !g.validate(defaultVersion) {
-		return xerrors.Errorf(
+		return fmt.Errorf(
 			"invalid ZMTP version (got=%v, want=%v): %w",
 			g.Version, defaultVersion, errGreeting,
 		)

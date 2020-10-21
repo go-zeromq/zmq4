@@ -16,7 +16,6 @@ import (
 
 	"github.com/go-zeromq/zmq4"
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/xerrors"
 )
 
 var (
@@ -131,11 +130,11 @@ func TestRouterDealer(t *testing.T) {
 
 				err := router.Listen(ep)
 				if err != nil {
-					return xerrors.Errorf("could not listen: %w", err)
+					return fmt.Errorf("could not listen: %w", err)
 				}
 
 				if addr := router.Addr(); addr == nil {
-					return xerrors.Errorf("listener with nil Addr")
+					return fmt.Errorf("listener with nil Addr")
 				}
 
 				wgd.Wait()
@@ -146,14 +145,14 @@ func TestRouterDealer(t *testing.T) {
 				for i := 0; i < len(dealers)*N+1 && fired < N; i++ {
 					msg, err := router.Recv()
 					if err != nil {
-						return xerrors.Errorf("could not recv message: %w", err)
+						return fmt.Errorf("could not recv message: %w", err)
 					}
 
 					if len(msg.Frames) == 0 {
 						seenMu.RLock()
 						str := fmt.Sprintf("%v", seen)
 						seenMu.RUnlock()
-						return xerrors.Errorf("router received empty message (test=%q, iter=%d, seen=%v)", tc.name, i, str)
+						return fmt.Errorf("router received empty message (test=%q, iter=%d, seen=%v)", tc.name, i, str)
 					}
 					id := string(msg.Frames[0])
 					seenMu.Lock()
@@ -169,11 +168,11 @@ func TestRouterDealer(t *testing.T) {
 					}
 					err = router.Send(msg)
 					if err != nil {
-						return xerrors.Errorf("could not send %v: %w", msg, err)
+						return fmt.Errorf("could not send %v: %w", msg, err)
 					}
 				}
 				if fired != N {
-					return xerrors.Errorf("did not fire everybody (fired=%d, want=%d)", fired, N)
+					return fmt.Errorf("did not fire everybody (fired=%d, want=%d)", fired, N)
 				}
 				return nil
 			})
@@ -183,11 +182,11 @@ func TestRouterDealer(t *testing.T) {
 
 						err := dealer.Dial(ep)
 						if err != nil {
-							return xerrors.Errorf("could not dial: %w", err)
+							return fmt.Errorf("could not dial: %w", err)
 						}
 
 						if addr := dealer.Addr(); addr != nil {
-							return xerrors.Errorf("dialer with non-nil Addr")
+							return fmt.Errorf("dialer with non-nil Addr")
 						}
 
 						wgd.Done()
@@ -200,19 +199,19 @@ func TestRouterDealer(t *testing.T) {
 							// tell the broker we are ready for work
 							err = dealer.Send(ready)
 							if err != nil {
-								return xerrors.Errorf("could not send %v: %w", ready, err)
+								return fmt.Errorf("could not send %v: %w", ready, err)
 							}
 
 							// get workload from broker
 							msg, err := dealer.Recv()
 							if err != nil {
-								return xerrors.Errorf("could not recv msg: %w", err)
+								return fmt.Errorf("could not recv msg: %w", err)
 							}
 							if len(msg.Frames) < 2 {
 								seenMu.RLock()
 								str := fmt.Sprintf("%v", seen)
 								seenMu.RUnlock()
-								return xerrors.Errorf("dealer-%d received invalid msg %v (test=%q, iter=%d, seen=%v)", idealer, msg, tc.name, n, str)
+								return fmt.Errorf("dealer-%d received invalid msg %v (test=%q, iter=%d, seen=%v)", idealer, msg, tc.name, n, str)
 							}
 							work := msg.Frames[1]
 							fired[idealer]++

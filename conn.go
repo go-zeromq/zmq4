@@ -7,16 +7,16 @@ package zmq4
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
+	"fmt"
 	"io"
 	"net"
 	"strings"
 	"sync"
 	"sync/atomic"
-
-	"golang.org/x/xerrors"
 )
 
-var ErrClosedConn = xerrors.New("zmq4: read/write on closed connection")
+var ErrClosedConn = errors.New("zmq4: read/write on closed connection")
 
 // Conn implements the ZeroMQ Message Transport Protocol as defined
 // in https://rfc.zeromq.org/spec:23/ZMTP/.
@@ -66,11 +66,11 @@ func (c *Conn) Write(p []byte) (int, error) {
 // Open performs a complete ZMTP handshake.
 func Open(rw net.Conn, sec Security, sockType SocketType, sockID SocketIdentity, server bool, onCloseErrorCB func(c *Conn)) (*Conn, error) {
 	if rw == nil {
-		return nil, xerrors.Errorf("zmq4: invalid nil read-writer")
+		return nil, fmt.Errorf("zmq4: invalid nil read-writer")
 	}
 
 	if sec == nil {
-		return nil, xerrors.Errorf("zmq4: invalid nil security")
+		return nil, fmt.Errorf("zmq4: invalid nil security")
 	}
 
 	conn := &Conn{
@@ -89,7 +89,7 @@ func Open(rw net.Conn, sec Security, sockType SocketType, sockID SocketIdentity,
 
 	err := conn.init(sec)
 	if err != nil {
-		return nil, xerrors.Errorf("zmq4: could not initialize ZMTP connection: %w", err)
+		return nil, fmt.Errorf("zmq4: could not initialize ZMTP connection: %w", err)
 	}
 
 	return conn, nil
@@ -101,17 +101,17 @@ func (conn *Conn) init(sec Security) error {
 
 	err = conn.greet(conn.Server)
 	if err != nil {
-		return xerrors.Errorf("zmq4: could not exchange greetings: %w", err)
+		return fmt.Errorf("zmq4: could not exchange greetings: %w", err)
 	}
 
 	err = conn.sec.Handshake(conn, conn.Server)
 	if err != nil {
-		return xerrors.Errorf("zmq4: could not perform security handshake: %w", err)
+		return fmt.Errorf("zmq4: could not perform security handshake: %w", err)
 	}
 
 	peer := SocketType(conn.Peer.Meta[sysSockType])
 	if !peer.IsCompatible(conn.typ) {
-		return xerrors.Errorf("zmq4: peer=%q not compatible with %q", peer, conn.typ)
+		return fmt.Errorf("zmq4: peer=%q not compatible with %q", peer, conn.typ)
 	}
 
 	// FIXME(sbinet): if security mechanism does not define a client/server
@@ -136,14 +136,14 @@ func (conn *Conn) greet(server bool) error {
 	err = send.write(conn.rw)
 	if err != nil {
 		conn.checkIO(err)
-		return xerrors.Errorf("zmq4: could not send greeting: %w", err)
+		return fmt.Errorf("zmq4: could not send greeting: %w", err)
 	}
 
 	var recv greeting
 	err = recv.read(conn.rw)
 	if err != nil {
 		conn.checkIO(err)
-		return xerrors.Errorf("zmq4: could not recv greeting: %w", err)
+		return fmt.Errorf("zmq4: could not recv greeting: %w", err)
 	}
 
 	peerKind := asString(recv.Mechanism[:])
@@ -153,7 +153,7 @@ func (conn *Conn) greet(server bool) error {
 
 	conn.Peer.Server, err = asBool(recv.Server)
 	if err != nil {
-		return xerrors.Errorf("zmq4: could not get peer server flag: %w", err)
+		return fmt.Errorf("zmq4: could not get peer server flag: %w", err)
 	}
 
 	return nil
@@ -189,7 +189,7 @@ func (c *Conn) SendMsg(msg Msg) error {
 		}
 		err := c.send(false, frame, flag)
 		if err != nil {
-			return xerrors.Errorf("zmq4: error sending frame %d/%d: %w", i+1, nframes, err)
+			return fmt.Errorf("zmq4: error sending frame %d/%d: %w", i+1, nframes, err)
 		}
 	}
 	return nil
@@ -202,7 +202,7 @@ func (c *Conn) RecvMsg() (Msg, error) {
 	}
 	msg := c.read()
 	if msg.err != nil {
-		return msg, xerrors.Errorf("zmq4: could not read recv msg: %w", msg.err)
+		return msg, fmt.Errorf("zmq4: could not read recv msg: %w", msg.err)
 	}
 
 	if !msg.isCmd() {
@@ -211,19 +211,19 @@ func (c *Conn) RecvMsg() (Msg, error) {
 
 	switch len(msg.Frames) {
 	case 0:
-		msg.err = xerrors.Errorf("zmq4: empty command")
+		msg.err = fmt.Errorf("zmq4: empty command")
 		return msg, msg.err
 	case 1:
 		// ok
 	default:
-		msg.err = xerrors.Errorf("zmq4: invalid length command")
+		msg.err = fmt.Errorf("zmq4: invalid length command")
 		return msg, msg.err
 	}
 
 	var cmd Cmd
 	msg.err = cmd.unmarshalZMTP(msg.Frames[0])
 	if msg.err != nil {
-		return msg, xerrors.Errorf("zmq4: could not unmarshal ZMTP recv msg: %w", msg.err)
+		return msg, fmt.Errorf("zmq4: could not unmarshal ZMTP recv msg: %w", msg.err)
 	}
 
 	switch cmd.Name {
@@ -254,7 +254,7 @@ func (c *Conn) RecvCmd() (Cmd, error) {
 
 	msg := c.read()
 	if msg.err != nil {
-		return cmd, xerrors.Errorf("zmq4: could not read recv cmd: %w", msg.err)
+		return cmd, fmt.Errorf("zmq4: could not read recv cmd: %w", msg.err)
 	}
 
 	if !msg.isCmd() {
@@ -263,18 +263,18 @@ func (c *Conn) RecvCmd() (Cmd, error) {
 
 	switch len(msg.Frames) {
 	case 0:
-		msg.err = xerrors.Errorf("zmq4: empty command")
+		msg.err = fmt.Errorf("zmq4: empty command")
 		return cmd, msg.err
 	case 1:
 		// ok
 	default:
-		msg.err = xerrors.Errorf("zmq4: invalid length command")
+		msg.err = fmt.Errorf("zmq4: invalid length command")
 		return cmd, msg.err
 	}
 
 	err := cmd.unmarshalZMTP(msg.Frames[0])
 	if err != nil {
-		return cmd, xerrors.Errorf("zmq4: could not unmarshal ZMTP recv cmd: %w", err)
+		return cmd, fmt.Errorf("zmq4: could not unmarshal ZMTP recv cmd: %w", err)
 	}
 
 	return cmd, nil
@@ -482,13 +482,13 @@ func (conn *Conn) checkIO(err error) {
 		return
 	}
 
-	if err == io.EOF || xerrors.Is(err, io.EOF) {
+	if err == io.EOF || errors.Is(err, io.EOF) {
 		conn.SetClosed()
 		return
 	}
 
 	var e net.Error
-	if xerrors.As(err, &e); e != nil && !e.Timeout() {
+	if errors.As(err, &e); e != nil && !e.Timeout() {
 		conn.SetClosed()
 	}
 }

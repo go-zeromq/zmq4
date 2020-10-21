@@ -11,8 +11,6 @@ import (
 	"log"
 	"net"
 	"strings"
-
-	"golang.org/x/xerrors"
 )
 
 // splitAddr returns the triplet (network, addr, error)
@@ -52,7 +50,7 @@ func splitAddr(v string) (network, addr string, err error) {
 		host = ep[1]
 		return "inproc", host, nil
 	default:
-		err = xerrors.Errorf("zmq4: unknown protocol %q", network)
+		err = fmt.Errorf("zmq4: unknown protocol %q", network)
 	}
 
 	return network, addr, err

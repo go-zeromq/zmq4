@@ -6,9 +6,8 @@ package zmq4
 
 import (
 	"context"
+	"fmt"
 	"net"
-
-	"golang.org/x/xerrors"
 )
 
 // NewPull returns a new PULL ZeroMQ socket.
@@ -32,14 +31,14 @@ func (pull *pullSocket) Close() error {
 // Send puts the message on the outbound send queue.
 // Send blocks until the message can be queued or the send deadline expires.
 func (*pullSocket) Send(msg Msg) error {
-	return xerrors.Errorf("zmq4: PULL sockets can't send messages")
+	return fmt.Errorf("zmq4: PULL sockets can't send messages")
 }
 
 // SendMulti puts the message on the outbound send queue.
 // SendMulti blocks until the message can be queued or the send deadline expires.
 // The message will be sent as a multipart message.
 func (pull *pullSocket) SendMulti(msg Msg) error {
-	return xerrors.Errorf("zmq4: PULL sockets can't send messages")
+	return fmt.Errorf("zmq4: PULL sockets can't send messages")
 }
 
 // Recv receives a complete message.
