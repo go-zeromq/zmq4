@@ -14,7 +14,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-zeromq/zmq4/internal/inproc"
 	"golang.org/x/xerrors"
 )
 
@@ -179,15 +178,10 @@ func (sck *socket) Listen(endpoint string) error {
 
 	var l net.Listener
 
-	switch network {
-	case "ipc":
-		l, err = net.Listen("unix", addr)
-	case "tcp":
-		l, err = net.Listen("tcp", addr)
-	case "udp":
-		l, err = net.Listen("udp", addr)
-	case "inproc":
-		l, err = inproc.Listen(addr)
+	trans, ok := drivers.get(network)
+	switch {
+	case ok:
+		l, err = trans.Listen(sck.ctx, addr)
 	default:
 		panic("zmq4: unknown protocol " + network)
 	}
@@ -239,18 +233,15 @@ func (sck *socket) Dial(endpoint string) error {
 		return err
 	}
 
-	retries := 0
-	var conn net.Conn
+	var (
+		conn      net.Conn
+		trans, ok = drivers.get(network)
+		retries   = 0
+	)
 connect:
-	switch network {
-	case "ipc":
-		conn, err = sck.dialer.DialContext(sck.ctx, "unix", addr)
-	case "tcp":
-		conn, err = sck.dialer.DialContext(sck.ctx, "tcp", addr)
-	case "udp":
-		conn, err = sck.dialer.DialContext(sck.ctx, "udp", addr)
-	case "inproc":
-		conn, err = inproc.Dial(addr)
+	switch {
+	case ok:
+		conn, err = trans.Dial(sck.ctx, &sck.dialer, addr)
 	default:
 		panic("zmq4: unknown protocol " + network)
 	}
@@ -261,7 +252,7 @@ connect:
 			time.Sleep(sck.retry)
 			goto connect
 		}
-		return xerrors.Errorf("zmq4: could not dial to %q: %w", endpoint, err)
+		return xerrors.Errorf("zmq4: could not dial to %q (retry=%v): %w", endpoint, sck.retry, err)
 	}
 
 	if conn == nil {
