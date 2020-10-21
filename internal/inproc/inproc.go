@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	mgr = context{db: make(map[string]*Listener)}
+	mgr = contextType{db: make(map[string]*Listener)}
 
 	ErrClosed      = errors.New("inproc: connection closed")
 	ErrConnRefused = errors.New("inproc: connection refused")
@@ -28,7 +28,7 @@ func init() {
 	mgr.cv.L = &mgr.mu
 }
 
-type context struct {
+type contextType struct {
 	mu sync.Mutex
 	cv sync.Cond
 	db map[string]*Listener
