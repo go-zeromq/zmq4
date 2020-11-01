@@ -21,6 +21,7 @@ var ErrClosedConn = errors.New("zmq4: read/write on closed connection")
 // Conn implements the ZeroMQ Message Transport Protocol as defined
 // in https://rfc.zeromq.org/spec:23/ZMTP/.
 type Conn struct {
+	ep     string
 	typ    SocketType
 	id     SocketIdentity
 	rw     net.Conn
@@ -64,7 +65,15 @@ func (c *Conn) Write(p []byte) (int, error) {
 // Open opens a ZMTP connection over rw with the given security, socket type and identity.
 // An optional onCloseErrorCB can be provided to inform the caller when this Conn is closed.
 // Open performs a complete ZMTP handshake.
-func Open(rw net.Conn, sec Security, sockType SocketType, sockID SocketIdentity, server bool, onCloseErrorCB func(c *Conn)) (*Conn, error) {
+func Open(
+	ep string,
+	rw net.Conn,
+	sec Security,
+	sockType SocketType,
+	sockID SocketIdentity,
+	server bool,
+	onCloseErrorCB func(c *Conn),
+) (*Conn, error) {
 	if rw == nil {
 		return nil, fmt.Errorf("zmq4: invalid nil read-writer")
 	}
@@ -74,6 +83,7 @@ func Open(rw net.Conn, sec Security, sockType SocketType, sockID SocketIdentity,
 	}
 
 	conn := &Conn{
+		ep:             ep,
 		typ:            sockType,
 		id:             sockID,
 		rw:             rw,

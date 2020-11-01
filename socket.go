@@ -90,6 +90,7 @@ func newSocket(ctx context.Context, sockType SocketType, opts ...Option) *socket
 		sck.log = log.New(os.Stderr, "zmq4: ", 0)
 	}
 
+	go sck.connReaper()
 	return sck
 }
 
@@ -124,8 +125,9 @@ func (sck *socket) Close() error {
 		defer sck.listener.Close()
 	}
 
-	sck.mu.RLock()
-	defer sck.mu.RUnlock()
+	// state change, write lock!
+	sck.mu.Lock()
+	defer sck.mu.Unlock()
 
 	var err error
 	for _, conn := range sck.conns {
@@ -181,25 +183,22 @@ func (sck *socket) Listen(endpoint string) error {
 	var l net.Listener
 
 	trans, ok := drivers.get(network)
-	switch {
-	case ok:
-		l, err = trans.Listen(sck.ctx, addr)
-	default:
-		panic("zmq4: unknown protocol " + network)
+	if !ok {
+		return ErrUnknownTransport
 	}
 
+	l, err = trans.Listen(sck.ctx, addr)
 	if err != nil {
 		return fmt.Errorf("zmq4: could not listen to %q: %w", endpoint, err)
 	}
 	sck.listener = l
 
-	go sck.accept()
-	go sck.connReaper()
+	go sck.accept(endpoint)
 
 	return nil
 }
 
-func (sck *socket) accept() {
+func (sck *socket) accept(ep string) {
 	ctx, cancel := context.WithCancel(sck.ctx)
 	defer cancel()
 	for {
@@ -214,10 +213,10 @@ func (sck *socket) accept() {
 				continue
 			}
 
-			zconn, err := Open(conn, sck.sec, sck.typ, sck.id, true, sck.scheduleRmConn)
+			zconn, err := Open(ep, conn, sck.sec, sck.typ, sck.id, true, sck.scheduleRmConn)
 			if err != nil {
 				// FIXME(sbinet): maybe bubble up this error to application code?
-				sck.log.Printf("could not open a ZMTP connection with %q: %+v", sck.ep, err)
+				sck.log.Printf("could not open a ZMTP connection with %q: %+v", ep, err)
 				continue
 			}
 
@@ -234,7 +233,7 @@ func (sck *socket) Dial(endpoint string) error {
 }
 
 // DialContext connects a remote endpoint to the Socket.
-// Uses the sockets timeout.
+// Uses the contexts timeout.
 func (sck *socket) DialContext(ctx context.Context, endpoint string) error {
 	sck.ep = endpoint
 
@@ -278,13 +277,14 @@ connect:
 		return fmt.Errorf("zmq4: got a nil ZMTP connection to %q", endpoint)
 	}
 
-	go sck.connReaper()
 	sck.addConn(zconn)
 	return nil
 }
 
 func (sck *socket) addConn(c *Conn) {
 	sck.mu.Lock()
+	defer sck.mu.Unlock()
+
 	sck.conns = append(sck.conns, c)
 	uuid, ok := c.Peer.Meta[sysSockID]
 	if !ok {
@@ -298,7 +298,6 @@ func (sck *socket) addConn(c *Conn) {
 	if sck.w != nil {
 		sck.w.addConn(c)
 	}
-	sck.mu.Unlock()
 }
 
 func (sck *socket) rmConn(c *Conn) {
