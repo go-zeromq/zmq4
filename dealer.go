@@ -54,6 +54,11 @@ func (dealer *dealerSocket) Dial(ep string) error {
 	return dealer.sck.Dial(ep)
 }
 
+// Dial connects a remote endpoint to the Socket.
+func (dealer *dealerSocket) DialContext(ctx context.Context, ep string) error {
+	return dealer.sck.DialContext(ctx, ep)
+}
+
 // Type returns the type of this Socket (PUB, SUB, ...)
 func (dealer *dealerSocket) Type() SocketType {
 	return dealer.sck.Type()

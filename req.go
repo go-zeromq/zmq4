@@ -69,6 +69,11 @@ func (req *reqSocket) Dial(ep string) error {
 	return req.sck.Dial(ep)
 }
 
+// DialContext connects a remote endpoint to the Socket.
+func (req *reqSocket) DialContext(ctx context.Context, ep string) error {
+	return req.sck.DialContext(ctx, ep)
+}
+
 // Type returns the type of this Socket (PUB, SUB, ...)
 func (req *reqSocket) Type() SocketType {
 	return req.sck.Type()

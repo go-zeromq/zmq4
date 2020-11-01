@@ -71,6 +71,11 @@ func (rep *repSocket) Dial(ep string) error {
 	return rep.sck.Dial(ep)
 }
 
+// DialContext connects a remote endpoint to the Socket.
+func (rep *repSocket) DialContext(ctx context.Context, ep string) error {
+	return rep.sck.DialContext(ctx, ep)
+}
+
 // Type returns the type of this Socket (PUB, SUB, ...)
 func (rep *repSocket) Type() SocketType {
 	return rep.sck.Type()

@@ -7,7 +7,10 @@
 // For more informations, see http://zeromq.org.
 package zmq4
 
-import "net"
+import (
+	"context"
+	"net"
+)
 
 // Socket represents a ZeroMQ socket.
 type Socket interface {
@@ -31,6 +34,9 @@ type Socket interface {
 
 	// Dial connects a remote endpoint to the Socket.
 	Dial(ep string) error
+
+	// Dial connects a remote endpoint to the Socket.
+	DialContext(ctx context.Context, ep string) error
 
 	// Type returns the type of this Socket (PUB, SUB, ...)
 	Type() SocketType

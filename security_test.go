@@ -87,7 +87,8 @@ func TestNullHandshakeReqRep(t *testing.T) {
 	})
 
 	grp.Go(func() error {
-		err := req.Dial(ep)
+		// err := req.Dial(ep)
+		err := req.DialContext(ctx, ep)
 		if err != nil {
 			return fmt.Errorf("could not dial: %w", err)
 		}
@@ -101,6 +102,38 @@ func TestNullHandshakeReqRep(t *testing.T) {
 
 	if err := grp.Wait(); err != nil {
 		t.Fatalf("error: %+v", err)
+	}
+}
+
+func TestNullHandshakeRRFail(t *testing.T) {
+
+	sec := nullSecurity{}
+	ctx, timeout := context.WithTimeout(context.Background(), 1*time.Second)
+	defer timeout()
+
+	ep := "ipc://ipc-req-rep-null-sec"
+	cleanUp(ep)
+
+	req := NewReq(ctx, WithSecurity(sec), WithLogger(Devnull))
+	defer req.Close()
+
+	rep := NewRep(ctx, WithSecurity(sec), WithLogger(Devnull))
+	defer rep.Close()
+
+	grp, _ := errgroup.WithContext(ctx)
+	grp.Go(func() error {
+		err := req.DialContext(ctx, ep)
+		if err != nil {
+			return fmt.Errorf("could not dial: %w", err)
+		}
+		return nil
+	})
+
+	// make Dial above fail
+	time.Sleep(1050 * time.Millisecond)
+
+	if err := grp.Wait(); err == nil {
+		t.Error("error: timeout not detected")
 	}
 }
 

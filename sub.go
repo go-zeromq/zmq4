@@ -58,11 +58,12 @@ func (sub *subSocket) Listen(ep string) error {
 
 // Dial connects a remote endpoint to the Socket.
 func (sub *subSocket) Dial(ep string) error {
-	err := sub.sck.Dial(ep)
-	if err != nil {
-		return err
-	}
-	return nil
+	return sub.sck.Dial(ep)
+}
+
+// DialContext connects a remote endpoint to the Socket.
+func (sub *subSocket) DialContext(ctx context.Context, ep string) error {
+	return sub.sck.DialContext(ctx, ep)
 }
 
 // Type returns the type of this Socket (PUB, SUB, ...)

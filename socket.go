@@ -18,14 +18,16 @@ import (
 )
 
 const (
-	defaultRetry   = 250 * time.Millisecond
-	defaultTimeout = 5 * time.Minute
+	defaultRetry = 250 * time.Millisecond
+	// defaultTimeout = 5 * time.Minute
+	defaultTimeout = 15 * time.Second
 )
 
 var (
 	errInvalidAddress = errors.New("zmq4: invalid address")
 
-	ErrBadProperty = errors.New("zmq4: bad property")
+	ErrBadProperty      = errors.New("zmq4: bad property")
+	ErrUnknownTransport = errors.New("zmq4: unknown transport")
 )
 
 // socket implements the ZeroMQ socket interface
@@ -224,8 +226,16 @@ func (sck *socket) accept() {
 	}
 }
 
-// Dial connects a remote endpoint to the Socket.
+// Dial connects a remote endpoint to the socket using default timeout.
 func (sck *socket) Dial(endpoint string) error {
+	ctx, cancel := context.WithTimeout(sck.ctx, sck.timeout())
+	defer cancel()
+	return sck.DialContext(ctx, endpoint)
+}
+
+// DialContext connects a remote endpoint to the Socket.
+// Uses the sockets timeout.
+func (sck *socket) DialContext(ctx context.Context, endpoint string) error {
 	sck.ep = endpoint
 
 	network, addr, err := splitAddr(endpoint)
@@ -236,23 +246,24 @@ func (sck *socket) Dial(endpoint string) error {
 	var (
 		conn      net.Conn
 		trans, ok = drivers.get(network)
-		retries   = 0
 	)
-connect:
-	switch {
-	case ok:
-		conn, err = trans.Dial(sck.ctx, &sck.dialer, addr)
-	default:
-		panic("zmq4: unknown protocol " + network)
+	if !ok {
+		return ErrUnknownTransport
 	}
 
+connect:
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		// fall through
+	}
+	conn, err = trans.Dial(ctx, &sck.dialer, addr)
 	if err != nil {
-		if retries < 10 {
-			retries++
-			time.Sleep(sck.retry)
-			goto connect
-		}
-		return fmt.Errorf("zmq4: could not dial to %q (retry=%v): %w", endpoint, sck.retry, err)
+		td := sck.retry
+		// do the wait
+		time.Sleep(td)
+		goto connect
 	}
 
 	if conn == nil {
