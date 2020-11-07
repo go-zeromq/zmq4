@@ -81,7 +81,7 @@ func TestIssue99(t *testing.T) {
 
 	wg.Wait()
 
-	if len(outMsg.Frames) != len(inMsg.Frames) {
-		t.Error("message length mismatch")
+	if want, got := len(outMsg.Frames), len(inMsg.Frames); want != got {
+		t.Fatalf("message length mismatch: got=%d, want=%d", got, want)
 	}
 }
