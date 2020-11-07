@@ -2,34 +2,36 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package zmq4
+package zmq4_test
 
 import (
 	"context"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/go-zeromq/zmq4"
 )
 
 var (
 	wg     sync.WaitGroup
-	outMsg Msg
-	inMsg  Msg
+	outMsg zmq4.Msg
+	inMsg  zmq4.Msg
 )
 
-func requester(t *testing.T) {
+func requester(t *testing.T, ep string) {
 
-	req := NewReq(context.Background())
+	req := zmq4.NewReq(context.Background())
 	defer req.Close()
 	defer wg.Done()
 
-	err := req.Dial("tcp://localhost:5559")
+	err := req.Dial(ep)
 	if err != nil {
 		t.Fatalf("could not dial: %v", err)
 	}
 
 	// Test message w/ 3 frames
-	outMsg = NewMsgFromString([]string{"ZERO", "Hello!", "World!"})
+	outMsg = zmq4.NewMsgFromString([]string{"ZERO", "Hello!", "World!"})
 	err = req.Send(outMsg)
 	if err != nil {
 		t.Fatalf("failed to send: %v", err)
@@ -41,14 +43,13 @@ func requester(t *testing.T) {
 	}
 }
 
-func responder(t *testing.T) {
+func responder(t *testing.T, ep string) {
 
-	//  Socket to talk to clients
-	rep := NewRep(context.Background())
+	rep := zmq4.NewRep(context.Background())
 	defer rep.Close()
 	defer wg.Done()
 
-	err := rep.Listen("tcp://*:5559")
+	err := rep.Listen(ep)
 	if err != nil {
 		t.Fatalf("could not dial: %v", err)
 	}
@@ -69,8 +70,13 @@ func responder(t *testing.T) {
 
 func TestIssue99(t *testing.T) {
 	wg.Add(2)
-	go requester(t)
-	go responder(t)
+	ep, err := EndPoint("tcp")
+	if err != nil {
+		t.Fatalf("could not find endpoint: %v", err)
+	}
+
+	go requester(t, ep)
+	go responder(t, ep)
 	wg.Wait()
 	if len(outMsg.Frames) != len(inMsg.Frames) {
 		t.Error("message length mismatch")
