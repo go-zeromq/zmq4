@@ -22,7 +22,7 @@ func TestIssue99(t *testing.T) {
 
 	ep, err := EndPoint("tcp")
 	if err != nil {
-		t.Fatalf("could not find endpoint: %v", err)
+		t.Errorf("could not find endpoint: %v", err)
 	}
 
 	requester := func() {
@@ -33,19 +33,19 @@ func TestIssue99(t *testing.T) {
 
 		err := req.Dial(ep)
 		if err != nil {
-			t.Fatalf("could not dial: %v", err)
+			t.Errorf("could not dial: %v", err)
 		}
 
 		// Test message w/ 3 frames
 		outMsg = zmq4.NewMsgFromString([]string{"ZERO", "Hello!", "World!"})
 		err = req.Send(outMsg)
 		if err != nil {
-			t.Fatalf("failed to send: %v", err)
+			t.Errorf("failed to send: %v", err)
 		}
 
 		inMsg, err = req.Recv()
 		if err != nil {
-			t.Fatalf("failed to recv: %v", err)
+			t.Errorf("failed to recv: %v", err)
 		}
 	}
 
@@ -57,19 +57,19 @@ func TestIssue99(t *testing.T) {
 
 		err := rep.Listen(ep)
 		if err != nil {
-			t.Fatalf("could not dial: %v", err)
+			t.Errorf("could not dial: %v", err)
 		}
 
 		//  Wait for next request from client
 		msg, err := rep.Recv()
 		if err != nil {
-			t.Fatalf("could not recv request: %v", err)
+			t.Errorf("could not recv request: %v", err)
 		}
 
 		//  Send reply back to client
 		err = rep.Send(msg)
 		if err != nil {
-			t.Fatalf("could not send reply: %v", err)
+			t.Errorf("could not send reply: %v", err)
 		}
 		time.Sleep(2 * time.Millisecond)
 	}
