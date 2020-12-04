@@ -33,7 +33,8 @@ func TestIssue99(t *testing.T) {
 
 		err := req.Dial(ep)
 		if err != nil {
-			t.Errorf("could not dial: %v", err)
+			t.Errorf("could not dial: %+v", err)
+			return
 		}
 
 		// Test message w/ 3 frames
