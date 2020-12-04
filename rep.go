@@ -55,9 +55,6 @@ func (rep *repSocket) Recv() (Msg, error) {
 	defer cancel()
 	var msg Msg
 	err := rep.sck.r.read(ctx, &msg)
-	if err == nil && len(msg.Frames) > 1 {
-		msg.Frames = msg.Frames[1:]
-	}
 	return msg, err
 }
 
