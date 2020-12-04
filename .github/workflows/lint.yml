@@ -17,10 +17,10 @@ jobs:
           sudo apt-get update -qq -y
           sudo apt-get install -y libsodium-dev libczmq-dev
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v1
+        uses: golangci/golangci-lint-action@v2
         with:
           # Required: the version of golangci-lint is required and must
           # be specified without a patch version:
           # we always use the latest patch version.
-          version: v1.28
+          version: v1.29
           args: --timeout=10m
