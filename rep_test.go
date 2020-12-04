@@ -40,7 +40,8 @@ func TestIssue99(t *testing.T) {
 		outMsg = zmq4.NewMsgFromString([]string{"ZERO", "Hello!", "World!"})
 		err = req.Send(outMsg)
 		if err != nil {
-			t.Errorf("failed to send: %v", err)
+			t.Errorf("failed to send: %+v", err)
+			return
 		}
 
 		inMsg, err = req.Recv()
