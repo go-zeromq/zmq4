@@ -63,7 +63,8 @@ func TestIssue99(t *testing.T) {
 		//  Wait for next request from client
 		msg, err := rep.Recv()
 		if err != nil {
-			t.Errorf("could not recv request: %v", err)
+			t.Errorf("could not recv request: %+v", err)
+			return
 		}
 
 		//  Send reply back to client
