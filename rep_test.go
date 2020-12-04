@@ -17,6 +17,7 @@ func TestIssue99(t *testing.T) {
 		wg     sync.WaitGroup
 		outMsg zmq4.Msg
 		inMsg  zmq4.Msg
+		ok     = make(chan int)
 	)
 
 	ep, err := EndPoint("tcp")
@@ -26,6 +27,7 @@ func TestIssue99(t *testing.T) {
 
 	requester := func() {
 		defer wg.Done()
+		defer close(ok)
 
 		req := zmq4.NewReq(context.Background())
 		defer req.Close()
@@ -76,6 +78,7 @@ func TestIssue99(t *testing.T) {
 			t.Errorf("could not send reply: %+v", err)
 			return
 		}
+		<-ok
 	}
 
 	wg.Add(2)
