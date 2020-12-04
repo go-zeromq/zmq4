@@ -45,7 +45,8 @@ func TestIssue99(t *testing.T) {
 
 		inMsg, err = req.Recv()
 		if err != nil {
-			t.Errorf("failed to recv: %v", err)
+			t.Errorf("failed to recv: %+v", err)
+			return
 		}
 	}
 
