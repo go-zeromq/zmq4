@@ -8,7 +8,6 @@ import (
 	"context"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/go-zeromq/zmq4"
 )
@@ -26,10 +25,10 @@ func TestIssue99(t *testing.T) {
 	}
 
 	requester := func() {
+		defer wg.Done()
 
 		req := zmq4.NewReq(context.Background())
 		defer req.Close()
-		defer wg.Done()
 
 		err := req.Dial(ep)
 		if err != nil {
@@ -53,10 +52,10 @@ func TestIssue99(t *testing.T) {
 	}
 
 	responder := func() {
+		defer wg.Done()
 
 		rep := zmq4.NewRep(context.Background())
 		defer rep.Close()
-		defer wg.Done()
 
 		err := rep.Listen(ep)
 		if err != nil {
@@ -77,7 +76,6 @@ func TestIssue99(t *testing.T) {
 			t.Errorf("could not send reply: %+v", err)
 			return
 		}
-		time.Sleep(2 * time.Millisecond)
 	}
 
 	wg.Add(2)
