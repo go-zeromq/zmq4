@@ -57,7 +57,8 @@ func TestIssue99(t *testing.T) {
 
 		err := rep.Listen(ep)
 		if err != nil {
-			t.Errorf("could not dial: %v", err)
+			t.Errorf("could not dial: %+v", err)
+			return
 		}
 
 		//  Wait for next request from client
