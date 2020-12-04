@@ -69,7 +69,8 @@ func TestIssue99(t *testing.T) {
 		//  Send reply back to client
 		err = rep.Send(msg)
 		if err != nil {
-			t.Errorf("could not send reply: %v", err)
+			t.Errorf("could not send reply: %+v", err)
+			return
 		}
 		time.Sleep(2 * time.Millisecond)
 	}
