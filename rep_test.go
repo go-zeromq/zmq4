@@ -22,7 +22,7 @@ func TestIssue99(t *testing.T) {
 
 	ep, err := EndPoint("tcp")
 	if err != nil {
-		t.Errorf("could not find endpoint: %v", err)
+		t.Fatalf("could not find endpoint: %+v", err)
 	}
 
 	requester := func() {
