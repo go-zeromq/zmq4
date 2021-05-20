@@ -172,3 +172,51 @@ func TestConnPairs(t *testing.T) {
 		})
 	}
 }
+
+func TestConnReaperDeadlock(t *testing.T) {
+	// Should avoid deadlock when multiple clients are closed rapidly.
+
+	ep := must(EndPoint("tcp"))
+	defer cleanUp(ep)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Bind the server.
+	srv := zmq4.NewRouter(ctx, zmq4.WithLogger(zmq4.Devnull))
+	if err := srv.Listen(ep); err != nil {
+		t.Fatalf("could not listen on %q: %+v", ep, err)
+	}
+	defer srv.Close()
+
+	// Connect 10 clients.
+	var clients []zmq4.Socket
+	for i := 0; i < 10; i++ {
+		id := fmt.Sprint("client-", i)
+		c := zmq4.NewReq(ctx, zmq4.WithLogger(zmq4.Devnull), zmq4.WithID(zmq4.SocketIdentity(id)))
+		if err := c.Dial(ep); err != nil {
+			t.Fatalf("could not dial %q: %+v", ep, err)
+		}
+		clients = append(clients, c)
+	}
+
+	// Disconnect 5 of them _from the client side_. The server does not know
+	// the client is gone until it tries to send a message below.
+	for i := 0; i < 5; i++ {
+		clients[i].Close()
+	}
+
+	// Now try to send a message from the server to all 10 clients.
+	msg := zmq4.NewMsgFrom(nil, nil, []byte("payload"))
+	for i := range clients {
+		id := fmt.Sprint("client-", i)
+		msg.Frames[0] = []byte(id)
+		if err := srv.Send(msg); err != nil {
+			t.Logf("Send to %s failed: %+v\n", id, err)
+		}
+	}
+
+	for i := 5; i < 10; i++ {
+		clients[i].Close()
+	}
+}

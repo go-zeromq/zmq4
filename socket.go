@@ -50,8 +50,8 @@ type socket struct {
 	listener net.Listener
 	dialer   net.Dialer
 
-	closedConns chan *Conn
-	quit        chan struct{}
+	closedConns []*Conn
+	reaperCond  *sync.Cond
 }
 
 func newDefaultSocket(ctx context.Context, sockType SocketType) *socket {
@@ -60,19 +60,18 @@ func newDefaultSocket(ctx context.Context, sockType SocketType) *socket {
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	return &socket{
-		typ:         sockType,
-		retry:       defaultRetry,
-		sec:         nullSecurity{},
-		ids:         make(map[string]*Conn),
-		conns:       nil,
-		r:           newQReader(ctx),
-		w:           newMWriter(ctx),
-		props:       make(map[string]interface{}),
-		ctx:         ctx,
-		cancel:      cancel,
-		dialer:      net.Dialer{Timeout: defaultTimeout},
-		closedConns: make(chan *Conn),
-		quit:        make(chan struct{}),
+		typ:        sockType,
+		retry:      defaultRetry,
+		sec:        nullSecurity{},
+		ids:        make(map[string]*Conn),
+		conns:      nil,
+		r:          newQReader(ctx),
+		w:          newMWriter(ctx),
+		props:      make(map[string]interface{}),
+		ctx:        ctx,
+		cancel:     cancel,
+		dialer:     net.Dialer{Timeout: defaultTimeout},
+		reaperCond: sync.NewCond(&sync.Mutex{}),
 	}
 }
 
@@ -116,7 +115,7 @@ func (sck *socket) topics() []string {
 // Close closes the open Socket
 func (sck *socket) Close() error {
 	sck.cancel()
-	close(sck.quit)
+	sck.reaperCond.Signal()
 
 	if sck.listener != nil {
 		defer sck.listener.Close()
@@ -316,10 +315,10 @@ func (sck *socket) rmConn(c *Conn) {
 }
 
 func (sck *socket) scheduleRmConn(c *Conn) {
-	select {
-	case sck.closedConns <- c:
-	case <-sck.quit:
-	}
+	sck.reaperCond.L.Lock()
+	sck.closedConns = append(sck.closedConns, c)
+	sck.reaperCond.Signal()
+	sck.reaperCond.L.Unlock()
 }
 
 // Type returns the type of this Socket (PUB, SUB, ...)
@@ -359,12 +358,18 @@ func (sck *socket) timeout() time.Duration {
 
 func (sck *socket) connReaper() {
 	for {
-		select {
-		case conn := <-sck.closedConns:
-			sck.rmConn(conn)
-		case <-sck.quit:
+		sck.reaperCond.L.Lock()
+		for len(sck.closedConns) == 0 && sck.ctx.Err() == nil {
+			sck.reaperCond.Wait()
+		}
+		if sck.ctx.Err() != nil {
 			return
 		}
+		for _, c := range sck.closedConns {
+			sck.rmConn(c)
+		}
+		sck.closedConns = nil
+		sck.reaperCond.L.Unlock()
 	}
 }
 
