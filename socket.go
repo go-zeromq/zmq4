@@ -357,19 +357,22 @@ func (sck *socket) timeout() time.Duration {
 }
 
 func (sck *socket) connReaper() {
+	sck.reaperCond.L.Lock()
+	defer sck.reaperCond.L.Unlock()
+
 	for {
-		sck.reaperCond.L.Lock()
 		for len(sck.closedConns) == 0 && sck.ctx.Err() == nil {
 			sck.reaperCond.Wait()
 		}
+
 		if sck.ctx.Err() != nil {
 			return
 		}
+
 		for _, c := range sck.closedConns {
 			sck.rmConn(c)
 		}
 		sck.closedConns = nil
-		sck.reaperCond.L.Unlock()
 	}
 }
 
