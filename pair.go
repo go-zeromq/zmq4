@@ -54,6 +54,11 @@ func (pair *pairSocket) Dial(ep string) error {
 	return pair.sck.Dial(ep)
 }
 
+// DialContext connects a remote endpoint to the Socket.
+func (pair *pairSocket) DialContext(ctx context.Context, ep string) error {
+	return pair.sck.DialContext(ctx, ep)
+}
+
 // Type returns the type of this Socket (PUB, SUB, ...)
 func (pair *pairSocket) Type() SocketType {
 	return pair.sck.Type()

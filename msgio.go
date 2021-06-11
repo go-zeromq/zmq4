@@ -50,7 +50,7 @@ func newQReader(ctx context.Context) *qreader {
 }
 
 func (q *qreader) Close() error {
-	q.mu.RLock()
+	q.mu.Lock()
 	var err error
 	var grp errgroup.Group
 	for i := range q.rs {
@@ -58,7 +58,7 @@ func (q *qreader) Close() error {
 	}
 	err = grp.Wait()
 	q.rs = nil
-	q.mu.RUnlock()
+	q.mu.Unlock()
 	return err
 }
 

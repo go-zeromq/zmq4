@@ -70,6 +70,11 @@ func (pub *pubSocket) Dial(ep string) error {
 	return pub.sck.Dial(ep)
 }
 
+// DialContext connects a remote endpoint to the Socket.
+func (pub *pubSocket) DialContext(ctx context.Context, ep string) error {
+	return pub.sck.DialContext(ctx, ep)
+}
+
 // Type returns the type of this Socket (PUB, SUB, ...)
 func (pub *pubSocket) Type() SocketType {
 	return pub.sck.Type()

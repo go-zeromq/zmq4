@@ -63,6 +63,11 @@ func (router *routerSocket) Dial(ep string) error {
 	return router.sck.Dial(ep)
 }
 
+// DialContext connects a remote endpoint to the Socket.
+func (router *routerSocket) DialContext(ctx context.Context, ep string) error {
+	return router.sck.DialContext(ctx, ep)
+}
+
 // Type returns the type of this Socket (PUB, SUB, ...)
 func (router *routerSocket) Type() SocketType {
 	return router.sck.Type()

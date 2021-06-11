@@ -56,6 +56,11 @@ func (push *pushSocket) Dial(ep string) error {
 	return push.sck.Dial(ep)
 }
 
+// DialContext connects a remote endpoint to the Socket.
+func (push *pushSocket) DialContext(ctx context.Context, ep string) error {
+	return push.sck.DialContext(ctx, ep)
+}
+
 // Type returns the type of this Socket (PUB, SUB, ...)
 func (push *pushSocket) Type() SocketType {
 	return push.sck.Type()

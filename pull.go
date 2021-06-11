@@ -56,6 +56,11 @@ func (pull *pullSocket) Dial(ep string) error {
 	return pull.sck.Dial(ep)
 }
 
+// DialContext connects a remote endpoint to the Socket.
+func (pull *pullSocket) DialContext(ctx context.Context, ep string) error {
+	return pull.sck.DialContext(ctx, ep)
+}
+
 // Type returns the type of this Socket (PUB, SUB, ...)
 func (pull *pullSocket) Type() SocketType {
 	return pull.sck.Type()

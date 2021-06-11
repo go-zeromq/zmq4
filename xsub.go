@@ -54,6 +54,11 @@ func (xsub *xsubSocket) Dial(ep string) error {
 	return xsub.sck.Dial(ep)
 }
 
+// DialContext connects a remote endpoint to the Socket.
+func (xsub *xsubSocket) DialContext(ctx context.Context, ep string) error {
+	return xsub.sck.DialContext(ctx, ep)
+}
+
 // Type returns the type of this Socket (PUB, SUB, ...)
 func (xsub *xsubSocket) Type() SocketType {
 	return xsub.sck.Type()
