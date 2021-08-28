@@ -12,6 +12,11 @@
 
 See [zeromq.org](http://zeromq.org) for more informations.
 
+## Development
+
+`zmq4` needs a caring maintainer.
+I (`sbinet`) have not much time to dedicate anymore to this project (as `$WORK` doesn't need it anymore).
+
 ## License
 
 `zmq4` is released under the `BSD-3` license.
