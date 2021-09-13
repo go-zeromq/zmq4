@@ -8,6 +8,7 @@ import (
 	"context"
 	"net"
 	"sort"
+	"strings"
 	"sync"
 )
 
@@ -48,7 +49,17 @@ func (sub *subSocket) SendMulti(msg Msg) error {
 
 // Recv receives a complete message.
 func (sub *subSocket) Recv() (Msg, error) {
-	return sub.sck.Recv()
+	// If we're not subscribed to this message, we keep looping until we get one we are subscribed to, or an empty message or an error.
+	for {
+		msg, err := sub.sck.Recv()
+		if err != nil || len(msg.Frames) == 0 || string(msg.Frames[0]) == "" {
+			return msg, err
+		}
+		t := string(msg.Frames[0])
+		if sub.subscribed(t) {
+			return msg, err
+		}
+	}
 }
 
 // Listen connects a local endpoint to the Socket.
@@ -58,11 +69,7 @@ func (sub *subSocket) Listen(ep string) error {
 
 // Dial connects a remote endpoint to the Socket.
 func (sub *subSocket) Dial(ep string) error {
-	err := sub.sck.Dial(ep)
-	if err != nil {
-		return err
-	}
-	return nil
+	return sub.sck.Dial(ep)
 }
 
 // Type returns the type of this Socket (PUB, SUB, ...)
@@ -138,7 +145,24 @@ func (sub *subSocket) subscribe(topic string, v int) {
 	sub.mu.Unlock()
 }
 
+func (sub *subSocket) subscribed(topic string) bool {
+	sub.mu.RLock()
+	defer sub.mu.RUnlock()
+	if _, ok := sub.topics[""]; ok {
+		return true
+	}
+	if _, ok := sub.topics[topic]; ok {
+		return true
+	}
+	for k := range sub.topics {
+		if strings.HasPrefix(topic, k) {
+			return true
+		}
+	}
+	return false
+}
+
 var (
 	_ Socket = (*subSocket)(nil)
-	_ Topics = (*subSocket)(nil)
+	//_ Topics = (*subSocket)(nil)
 )

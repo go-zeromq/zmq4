@@ -102,6 +102,13 @@ func (p *Proxy) init(front, back, capture Socket) {
 		}
 	)
 
+	// Subscribe all. If we don't do this, the sub socket will drop all messages.
+	//  It has no effect for other socket types.
+	if err := front.SetOption(OptionSubscribe, ""); err != nil {
+		log.Fatalf("Subscribe error: %v\n", err)
+		return
+	}
+
 	// workers makes sure all goroutines are launched and scheduled.
 	var workers sync.WaitGroup
 	workers.Add(len(pipes) + 1)
