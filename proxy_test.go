@@ -259,6 +259,7 @@ func TestProxy(t *testing.T) {
 	})
 
 	grp.Go(func() error {
+		var err error
 		wg1.Wait() // sockets ready
 		proxy, err = zmq4.NewProxy(ctx, front, back, capt)
 		if err != nil {
