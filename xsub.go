@@ -14,15 +14,18 @@ import (
 // NewXSub returns a new XSUB ZeroMQ socket.
 // The returned socket value is initially unbound.
 func NewXSub(ctx context.Context, opts ...Option) Socket {
-	xsub := &xsubSocket{newSocket(ctx, XSub, opts...), sync.RWMutex{}, make(map[string]struct{})}
+	xsub := &xsubSocket{
+		sck: newSocket(ctx, XSub, opts...), 
+		topics: make(map[string]struct{}),
+	}
 	xsub.sck.r = newQReader(xsub.sck.ctx)
-	xsub.topics = make(map[string]struct{})
 	return xsub
 }
 
 // xsubSocket is a XSUB ZeroMQ socket.
 type xsubSocket struct {
 	sck *socket
+
 	mu     sync.RWMutex
 	topics map[string]struct{}
 }
@@ -105,8 +108,8 @@ func (xsub *xsubSocket) SetOption(name string, value interface{}) error {
 
 	case OptionUnsubscribe:
 		k := value.(string)
-		topic = append([]byte{0}, k...)
 		xsub.subscribe(k, 0)
+		topic = append([]byte{0}, k...)
 
 	default:
 		return ErrBadProperty

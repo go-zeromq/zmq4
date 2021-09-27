@@ -12,6 +12,12 @@ import (
 	"sync"
 )
 
+// Topics is an interface that wraps the basic Topics method.
+type Topics interface {
+	// Topics returns the sorted list of topics a socket is subscribed to.
+	Topics() []string
+}
+
 // NewSub returns a new SUB ZeroMQ socket.
 // The returned socket value is initially unbound.
 func NewSub(ctx context.Context, opts ...Option) Socket {
@@ -164,5 +170,5 @@ func (sub *subSocket) subscribed(topic string) bool {
 
 var (
 	_ Socket = (*subSocket)(nil)
-	//_ Topics = (*subSocket)(nil)
+	_ Topics = (*subSocket)(nil)
 )
