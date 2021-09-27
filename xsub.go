@@ -123,6 +123,10 @@ func (xsub *xsubSocket) SetOption(name string, value interface{}) error {
 	return err
 }
 
+func (xpub *xpubSocket) Topics() []string {
+        return xpub.sck.topics()
+}
+
 func (xsub *xsubSocket) subscribe(topic string, v int) {
 	xsub.mu.Lock()
 	switch v {
@@ -153,4 +157,5 @@ func (xsub *xsubSocket) subscribed(topic string) bool {
 
 var (
 	_ Socket = (*xsubSocket)(nil)
+	_ Topics = (*xsubSocket)(nil)
 )

@@ -103,6 +103,10 @@ func (pub *pubSocket) SetOption(name string, value interface{}) error {
 	return nil
 }
 
+func (xpub *xpubSocket) Topics() []string {
+        return xpub.sck.topics()
+}
+
 // pubQReader is a queued-message reader.
 type pubQReader struct {
 	ctx context.Context
@@ -294,4 +298,5 @@ var (
 	_ rpool  = (*pubQReader)(nil)
 	_ wpool  = (*pubMWriter)(nil)
 	_ Socket = (*pubSocket)(nil)
+	_ Topics = (*pubSocket)(nil)
 )
