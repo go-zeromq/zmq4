@@ -260,7 +260,10 @@ func TestProxy(t *testing.T) {
 
 	grp.Go(func() error {
 		wg1.Wait() // sockets ready
-		proxy, _ = zmq4.NewProxy(ctx, front, back, capt)
+		proxy, err = zmq4.NewProxy(ctx, front, back, capt)
+		if err != nil {
+			return err
+		}
 		t.Logf("proxy ready")
 		wg2.Done()
 		err := proxy.Run()
