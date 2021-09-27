@@ -49,9 +49,8 @@ func NewProxy(ctx context.Context, front, back, capture Socket) (*Proxy, error) 
 	}
 	if err := proxy.init(front, back, capture); err != nil {
 		return nil, err
-	} else {
-		return nil, err
 	}
+	return &proxy, nil
 }
 
 func (p *Proxy) Pause()  { p.cmds <- proxyPause }
