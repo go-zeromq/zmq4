@@ -267,7 +267,7 @@ func TestProxy(t *testing.T) {
 		}
 		t.Logf("proxy ready")
 		wg2.Done()
-		err := proxy.Run()
+		err = proxy.Run()
 		t.Logf("proxy done: err=%+v", err)
 		return err
 	})
