@@ -123,8 +123,8 @@ func (xsub *xsubSocket) SetOption(name string, value interface{}) error {
 	return err
 }
 
-func (xpub *xpubSocket) Topics() []string {
-        return xpub.sck.topics()
+func (xpub *xsubSocket) Topics() []string {
+        return xsub.sck.topics()
 }
 
 func (xsub *xsubSocket) subscribe(topic string, v int) {

@@ -103,8 +103,8 @@ func (pub *pubSocket) SetOption(name string, value interface{}) error {
 	return nil
 }
 
-func (xpub *xpubSocket) Topics() []string {
-        return xpub.sck.topics()
+func (xpub *pubSocket) Topics() []string {
+        return pub.sck.topics()
 }
 
 // pubQReader is a queued-message reader.
