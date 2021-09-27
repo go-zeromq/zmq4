@@ -318,7 +318,12 @@ func TestProxyStop(t *testing.T) {
 
 	var errc = make(chan error)
 	go func() {
-		errc <- zmq4.NewProxy(ctx, front, back, nil).Run()
+		proxy, err := zmq4.NewProxy(ctx, front, back, nil)
+		if err != nil {
+			errc <- err
+		} else {
+			errc <- proxy.Run()
+		}
 	}()
 
 	go func() {
