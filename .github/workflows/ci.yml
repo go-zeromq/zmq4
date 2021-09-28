@@ -27,16 +27,25 @@ jobs:
       with:
         go-version: ${{ matrix.go-version }}
  
+    - name: Checkout code
+      uses: actions/checkout@v2
+
     - name: Cache-Go
       uses: actions/cache@v1
       with:
-        path: ~/go/pkg/mod
+        # In order:
+        # * Module download cache
+        # * Build cache (Linux)
+        # * Build cache (Mac)
+        # * Build cache (Windows)
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+          ~/Library/Caches/go-build
+          '%LocalAppData%\go-build'
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
- 
-    - name: Checkout code
-      uses: actions/checkout@v2
 
     - name: Install Linux packages
       if: matrix.platform == 'ubuntu-latest'
