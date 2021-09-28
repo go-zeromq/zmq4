@@ -3,8 +3,8 @@ go_import_path: github.com/go-zeromq/zmq4
 sudo: true
 language: go
 go:
+  - 1.17.x
   - 1.16.x
-  - 1.15.x
   - master
 os:
   - linux
