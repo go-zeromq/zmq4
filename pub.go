@@ -103,8 +103,9 @@ func (pub *pubSocket) SetOption(name string, value interface{}) error {
 	return nil
 }
 
-func (xpub *pubSocket) Topics() []string {
-        return pub.sck.topics()
+func (pub *pubSocket) Topics() []string {
+	// pub sockets don't have any subscribed topics, so return an empty list.
+        return []string {}
 }
 
 // pubQReader is a queued-message reader.
