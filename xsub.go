@@ -7,6 +7,7 @@ package zmq4
 import (
 	"context"
 	"net"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -123,8 +124,15 @@ func (xsub *xsubSocket) SetOption(name string, value interface{}) error {
 	return err
 }
 
-func (xpub *xsubSocket) Topics() []string {
-        return xsub.sck.topics()
+func (xsub *xsubSocket) Topics() []string {
+	xsub.mu.RLock()
+	var topics = make([]string, 0, len(xsub.topics))
+	for topic := range xsub.topics {
+		topics = append(topics, topic)
+	}
+	xsub.mu.RUnlock()
+	sort.Strings(topics)
+	return topics
 }
 
 func (xsub *xsubSocket) subscribe(topic string, v int) {
