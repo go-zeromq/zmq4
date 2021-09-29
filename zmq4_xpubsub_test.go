@@ -144,10 +144,12 @@ func TestXPubSub(t *testing.T) {
 							return fmt.Errorf("could not subscribe to topic %q: %w", topics[isub], err)
 						}
 
-						got := sub.(zmq4.Topics).Topics()
+						topic, ok := sub.(zmq4.Topics)
 						want := []string{topics[isub]}
-						if !reflect.DeepEqual(got, want) {
-							t.Fatalf("Missing or wrong topics.\ngot= %q\nwant=%q", got, want)
+						if ok {
+							if got := topic.Topics(); !reflect.DeepEqual(got, want) {
+								t.Fatalf("Missing or wrong topics.\ngot= %q\nwant=%q", got, want)
+							}
 						}
 
 						wg2.Done()

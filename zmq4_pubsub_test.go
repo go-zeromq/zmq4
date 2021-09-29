@@ -411,10 +411,12 @@ func TestTopics(t *testing.T) {
 		}
 		time.Sleep(500 * time.Millisecond)
 
-		got := sub.(zmq4.Topics).Topics()
+		topic, ok := sub.(zmq4.Topics)
 		want := []string{topics[isub]}
-		if !reflect.DeepEqual(got, want) {
-			t.Fatalf("Missing or wrong topics.\ngot= %q\nwant=%q", got, want)
+		if ok {
+			if got := topic.Topics(); !reflect.DeepEqual(got, want) {
+				t.Fatalf("Missing or wrong topics.\ngot= %q\nwant=%q", got, want)
+			}
 		}
 	}
 }
