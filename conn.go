@@ -11,8 +11,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"strings"
-	"sync"
 	"sync/atomic"
 )
 
