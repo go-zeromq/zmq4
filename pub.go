@@ -173,7 +173,7 @@ func (q *pubQReader) rmConn(r *Conn) {
 }
 
 func (q *pubQReader) read(ctx context.Context, msg *Msg) error {
-	q.sem.lock()
+	q.sem.lock(ctx)
 	select {
 	case <-ctx.Done():
 	case *msg = <-q.c:
