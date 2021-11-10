@@ -143,7 +143,7 @@ func (q *routerQReader) rmConn(r *Conn) {
 }
 
 func (q *routerQReader) read(ctx context.Context, msg *Msg) error {
-	q.sem.lock()
+	q.sem.lock(ctx)
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -224,7 +224,7 @@ func (mw *routerMWriter) rmConn(w *Conn) {
 }
 
 func (w *routerMWriter) write(ctx context.Context, msg Msg) error {
-	w.sem.lock()
+	w.sem.lock(ctx)
 	grp, _ := errgroup.WithContext(ctx)
 	w.mu.Lock()
 	id := msg.Frames[0]
