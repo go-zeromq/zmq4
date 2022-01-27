@@ -280,11 +280,11 @@ func (sck *socket) addConn(c *Conn) {
 		c.Peer.Meta[sysSockID] = uuid
 	}
 	sck.ids[uuid] = c
-	if sck.r != nil {
-		sck.r.addConn(c)
-	}
 	if sck.w != nil {
 		sck.w.addConn(c)
+	}
+	if sck.r != nil {
+		sck.r.addConn(c)
 	}
 	sck.mu.Unlock()
 }
