@@ -114,10 +114,10 @@ func newRepReader(ctx context.Context, state *repState) *repReader {
 }
 
 func (r *repReader) addConn(c *Conn) {
-	go r.listen(r.ctx, c)
 	r.mu.Lock()
 	r.conns = append(r.conns, c)
 	r.mu.Unlock()
+	go r.listen(r.ctx, c)
 }
 
 func (r *repReader) rmConn(conn *Conn) {
