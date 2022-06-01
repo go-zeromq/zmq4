@@ -24,6 +24,7 @@ func main() {
 
 func helloserver() error {
 	ctx := context.Background()
+	// Socket to talk to clients
 	socket := zmq.NewRep(ctx)
 	defer socket.Close()
 	if err := socket.Listen("tcp://*:5555"); err != nil {
@@ -35,8 +36,9 @@ func helloserver() error {
 		if err != nil {
 			return fmt.Errorf("receiving: %w", err)
 		}
-		println("Received ", msg.String())
+		fmt.Println("Received ", msg)
 
+		// Do some 'work'
 		time.Sleep(time.Second)
 
 		reply := fmt.Sprintf("World")
