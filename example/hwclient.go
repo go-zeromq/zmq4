@@ -17,12 +17,12 @@ import (
 )
 
 func main() {
-	if err := helloclient(); err != nil {
-		log.Fatalf("helloclient: %v", err)
+	if err := hwclient(); err != nil {
+		log.Fatalf("hwclient: %v", err)
 	}
 }
 
-func helloclient() error {
+func hwclient() error {
 	ctx := context.Background()
 	socket := zmq.NewReq(ctx, zmq.WithDialerRetry(time.Second))
 	defer socket.Close()
