@@ -17,12 +17,12 @@ import (
 )
 
 func main() {
-	if err := helloserver(); err != nil {
-		log.Fatalf("helloserver: %w", err)
+	if err := hwserver(); err != nil {
+		log.Fatalf("hwserver: %w", err)
 	}
 }
 
-func helloserver() error {
+func hwserver() error {
 	ctx := context.Background()
 	// Socket to talk to clients
 	socket := zmq.NewRep(ctx)
