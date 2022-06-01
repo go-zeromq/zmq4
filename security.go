@@ -58,9 +58,10 @@ func (nullSecurity) Type() SecurityType {
 // Handshake implements the ZMTP security handshake according to
 // this security mechanism.
 // see:
-//  https://rfc.zeromq.org/spec:23/ZMTP/
-//  https://rfc.zeromq.org/spec:24/ZMTP-PLAIN/
-//  https://rfc.zeromq.org/spec:25/ZMTP-CURVE/
+//
+//	https://rfc.zeromq.org/spec:23/ZMTP/
+//	https://rfc.zeromq.org/spec:24/ZMTP-PLAIN/
+//	https://rfc.zeromq.org/spec:25/ZMTP-CURVE/
 func (nullSecurity) Handshake(conn *Conn, server bool) error {
 	raw, err := conn.Meta.MarshalZMTP()
 	if err != nil {

@@ -93,7 +93,8 @@ func (msg Msg) Clone() Msg {
 }
 
 // Cmd is a ZMTP Cmd as per:
-//  https://rfc.zeromq.org/spec:23/ZMTP/#formal-grammar
+//
+//	https://rfc.zeromq.org/spec:23/ZMTP/#formal-grammar
 type Cmd struct {
 	Name string
 	Body []byte
@@ -126,7 +127,8 @@ func (cmd *Cmd) marshalZMTP() ([]byte, error) {
 }
 
 // ZMTP commands as per:
-//  https://rfc.zeromq.org/spec:23/ZMTP/#commands
+//
+//	https://rfc.zeromq.org/spec:23/ZMTP/#commands
 const (
 	CmdCancel      = "CANCEL"
 	CmdError       = "ERROR"

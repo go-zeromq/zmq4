@@ -89,7 +89,8 @@ func (sck SocketType) IsCompatible(peer SocketType) bool {
 
 // SocketIdentity is the ZMTP metadata socket identity.
 // See:
-//  https://rfc.zeromq.org/spec:23/ZMTP/.
+//
+//	https://rfc.zeromq.org/spec:23/ZMTP/.
 type SocketIdentity []byte
 
 func (id SocketIdentity) String() string {

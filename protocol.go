@@ -217,7 +217,8 @@ func (md *Metadata) UnmarshalZMTP(p []byte) error {
 
 // Property describes a Conn metadata's entry.
 // The on-wire respresentation of Property is specified by:
-//  https://rfc.zeromq.org/spec:23/ZMTP/
+//
+//	https://rfc.zeromq.org/spec:23/ZMTP/
 type Property struct {
 	K string
 	V string
