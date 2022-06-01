@@ -59,5 +59,11 @@ jobs:
     - name: Test Linux
       run: |
         ./.ci/code-coverage.sh
+    - name: static-check
+      uses: dominikh/staticcheck-action@v1.2.0
+      with:
+        install-go: false
+        cache-key: ${{ matrix.platform }}
+        version: "2022.1"
     - name: Upload-Coverage
       uses: codecov/codecov-action@v1
