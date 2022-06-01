@@ -10,9 +10,10 @@ package main
 import (
 	"context"
 	"fmt"
-	zmq "github.com/go-zeromq/zmq4"
 	"log"
 	"time"
+
+	zmq "github.com/go-zeromq/zmq4"
 )
 
 func main() {
