@@ -11,6 +11,9 @@ import (
 	"fmt"
 	"io"
 	"strings"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 var (
@@ -206,7 +209,7 @@ func (md *Metadata) UnmarshalZMTP(p []byte) error {
 		}
 		i += n
 
-		name := strings.Title(kv.K)
+		name := toTitle(kv.K)
 		(*md)[name] = kv.V
 	}
 	return nil
@@ -228,7 +231,7 @@ func (prop Property) Read(data []byte) (n int, err error) {
 
 	data[n] = byte(klen)
 	n++
-	n += copy(data[n:n+klen], strings.Title(prop.K))
+	n += copy(data[n:n+klen], toTitle(prop.K))
 	binary.BigEndian.PutUint32(data[n:n+4], uint32(vlen))
 	n += 4
 	n += copy(data[n:n+vlen], prop.V)
@@ -242,7 +245,7 @@ func (prop *Property) Write(data []byte) (n int, err error) {
 		return n, io.ErrUnexpectedEOF
 	}
 
-	prop.K = strings.Title(string(data[n : n+klen]))
+	prop.K = toTitle(string(data[n : n+klen]))
 	n += klen
 
 	v := binary.BigEndian.Uint32(data[n : n+4])
@@ -266,3 +269,7 @@ type flag byte
 func (fl flag) hasMore() bool   { return fl&hasMoreBitFlag == hasMoreBitFlag }
 func (fl flag) isLong() bool    { return fl&isLongBitFlag == isLongBitFlag }
 func (fl flag) isCommand() bool { return fl&isCommandBitFlag == isCommandBitFlag }
+
+func toTitle(s string) string {
+	return cases.Title(language.Und, cases.NoLower).String(s)
+}
