@@ -5,10 +5,10 @@
 package zmq4
 
 import (
-	"io/ioutil"
+	"io"
 	"log"
 )
 
 var (
-	Devnull = log.New(ioutil.Discard, "zmq4: ", 0)
+	Devnull = log.New(io.Discard, "zmq4: ", 0)
 )
