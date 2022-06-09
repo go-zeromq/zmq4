@@ -30,12 +30,13 @@ var (
 
 // socket implements the ZeroMQ socket interface
 type socket struct {
-	ep    string // socket end-point
-	typ   SocketType
-	id    SocketIdentity
-	retry time.Duration
-	sec   Security
-	log   *log.Logger
+	ep        string // socket end-point
+	typ       SocketType
+	id        SocketIdentity
+	retry     time.Duration
+	sec       Security
+	log       *log.Logger
+	subTopics func() []string
 
 	mu    sync.RWMutex
 	ids   map[string]*Conn // ZMTP connection IDs
@@ -273,6 +274,7 @@ connect:
 
 func (sck *socket) addConn(c *Conn) {
 	sck.mu.Lock()
+	defer sck.mu.Unlock()
 	sck.conns = append(sck.conns, c)
 	uuid, ok := c.Peer.Meta[sysSockID]
 	if !ok {
@@ -286,7 +288,12 @@ func (sck *socket) addConn(c *Conn) {
 	if sck.r != nil {
 		sck.r.addConn(c)
 	}
-	sck.mu.Unlock()
+	// resend subscriptions for topics if there are any
+	if sck.subTopics != nil {
+		for _, topic := range sck.subTopics() {
+			_ = sck.Send(NewMsg(append([]byte{1}, topic...)))
+		}
+	}
 }
 
 func (sck *socket) rmConn(c *Conn) {

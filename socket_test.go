@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sync"
 	"testing"
 	"time"
 
@@ -218,5 +219,44 @@ func TestConnReaperDeadlock(t *testing.T) {
 
 	for i := 5; i < 10; i++ {
 		clients[i].Close()
+	}
+}
+
+func TestSocketSendSubscriptionOnConnect(t *testing.T) {
+	endpoint := "inproc://test-resub"
+	message := "test"
+
+	sub := zmq4.NewSub(context.Background())
+	defer sub.Close()
+	pub := zmq4.NewPub(context.Background())
+	defer pub.Close()
+	sub.SetOption(zmq4.OptionSubscribe, message)
+	if err := sub.Listen(endpoint); err != nil {
+		t.Fatalf("Sub Dial failed: %v", err)
+	}
+	if err := pub.Dial(endpoint); err != nil {
+		t.Fatalf("Pub Dial failed: %v", err)
+	}
+	wg := new(sync.WaitGroup)
+	defer wg.Wait()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			pub.Send(zmq4.NewMsgFromString([]string{message}))
+			if ctx.Err() != nil {
+				return
+			}
+			time.Sleep(1 * time.Millisecond)
+		}
+	}()
+	msg, err := sub.Recv()
+	if err != nil {
+		t.Fatalf("Recv failed: %v", err)
+	}
+	if string(msg.Frames[0]) != message {
+		t.Fatalf("invalid message received: got '%s', wanted '%s'", msg.Frames[0], message)
 	}
 }

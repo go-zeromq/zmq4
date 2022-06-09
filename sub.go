@@ -16,6 +16,7 @@ import (
 func NewSub(ctx context.Context, opts ...Option) Socket {
 	sub := &subSocket{sck: newSocket(ctx, Sub, opts...)}
 	sub.sck.r = newQReader(sub.sck.ctx)
+	sub.sck.subTopics = sub.Topics
 	sub.topics = make(map[string]struct{})
 	return sub
 }
