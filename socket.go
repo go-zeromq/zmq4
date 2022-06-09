@@ -181,16 +181,12 @@ func (sck *socket) Listen(endpoint string) error {
 		return err
 	}
 
-	var l net.Listener
-
 	trans, ok := drivers.get(network)
-	switch {
-	case ok:
-		l, err = trans.Listen(sck.ctx, addr)
-	default:
-		panic("zmq4: unknown protocol " + network)
+	if !ok {
+		return UnknownTransportError{Name: network}
 	}
 
+	l, err := trans.Listen(sck.ctx, addr)
 	if err != nil {
 		return fmt.Errorf("zmq4: could not listen to %q: %w", endpoint, err)
 	}
@@ -243,14 +239,12 @@ func (sck *socket) Dial(endpoint string) error {
 		trans, ok = drivers.get(network)
 		retries   = 0
 	)
-connect:
-	switch {
-	case ok:
-		conn, err = trans.Dial(sck.ctx, &sck.dialer, addr)
-	default:
-		panic("zmq4: unknown protocol " + network)
+	if !ok {
+		return UnknownTransportError{Name: network}
 	}
 
+connect:
+	conn, err = trans.Dial(sck.ctx, &sck.dialer, addr)
 	if err != nil {
 		// retry if retry count is lower than maximum retry count and context has not been canceled
 		if (sck.maxRetries == -1 || retries < sck.maxRetries) && sck.ctx.Err() == nil {

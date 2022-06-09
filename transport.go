@@ -13,6 +13,18 @@ import (
 	"github.com/go-zeromq/zmq4/transport"
 )
 
+// UnknownTransportError records an error when trying to
+// use an unknown transport.
+type UnknownTransportError struct {
+	Name string
+}
+
+func (ute UnknownTransportError) Error() string {
+	return fmt.Sprintf("zmq4: unknown transport %q", ute.Name)
+}
+
+var _ error = (*UnknownTransportError)(nil)
+
 // Transports returns the sorted list of currently registered transports.
 func Transports() []string {
 	return drivers.names()
