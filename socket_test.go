@@ -6,6 +6,7 @@ package zmq4_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/go-zeromq/zmq4"
+	"github.com/go-zeromq/zmq4/transport"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -258,5 +260,65 @@ func TestSocketSendSubscriptionOnConnect(t *testing.T) {
 	}
 	if string(msg.Frames[0]) != message {
 		t.Fatalf("invalid message received: got '%s', wanted '%s'", msg.Frames[0], message)
+	}
+}
+
+type transportMock struct {
+	dialCalledCount int
+	errOnDial       bool
+	conn            net.Conn
+}
+
+func (t *transportMock) Dial(ctx context.Context, dialer transport.Dialer, addr string) (net.Conn, error) {
+	t.dialCalledCount++
+	if t.errOnDial {
+		return nil, errors.New("test error")
+	}
+	return t.conn, nil
+}
+
+func (t *transportMock) Listen(ctx context.Context, addr string) (net.Listener, error) {
+	return nil, nil
+}
+
+func (t *transportMock) Addr(ep string) (addr string, err error) {
+	return "", nil
+}
+
+func TestConnMaxRetries(t *testing.T) {
+	retryCount := 123
+	socket := zmq4.NewSub(context.Background(), zmq4.WithDialerRetry(time.Microsecond), zmq4.WithDialerMaxRetries(retryCount))
+	transport := &transportMock{errOnDial: true}
+	transportName := "test-maxretries"
+	zmq4.RegisterTransport(transportName, transport)
+	err := socket.Dial(transportName + "://test")
+
+	if err == nil {
+		t.Fatal("expected error")
+	}
+
+	if transport.dialCalledCount != retryCount+1 {
+		t.Fatalf("Dial called %d times, expected %d", transport.dialCalledCount, retryCount+1)
+	}
+}
+
+func TestConnMaxRetriesInfinite(t *testing.T) {
+	timeout := time.Millisecond
+	retryTime := time.Nanosecond
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	socket := zmq4.NewSub(ctx, zmq4.WithDialerRetry(retryTime), zmq4.WithDialerMaxRetries(-1))
+	transport := &transportMock{errOnDial: true}
+	transportName := "test-infiniteretries"
+	zmq4.RegisterTransport(transportName, transport)
+	err := socket.Dial(transportName + "://test")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+
+	atLeastExpectedRetries := 100
+	if transport.dialCalledCount < atLeastExpectedRetries {
+		t.Fatalf("Dial called %d times, expected  at least %d", transport.dialCalledCount, atLeastExpectedRetries)
 	}
 }

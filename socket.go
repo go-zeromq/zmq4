@@ -18,8 +18,9 @@ import (
 )
 
 const (
-	defaultRetry   = 250 * time.Millisecond
-	defaultTimeout = 5 * time.Minute
+	defaultRetry      = 250 * time.Millisecond
+	defaultTimeout    = 5 * time.Minute
+	defaultMaxRetries = 10
 )
 
 var (
@@ -30,13 +31,14 @@ var (
 
 // socket implements the ZeroMQ socket interface
 type socket struct {
-	ep        string // socket end-point
-	typ       SocketType
-	id        SocketIdentity
-	retry     time.Duration
-	sec       Security
-	log       *log.Logger
-	subTopics func() []string
+	ep         string // socket end-point
+	typ        SocketType
+	id         SocketIdentity
+	retry      time.Duration
+	maxRetries int
+	sec        Security
+	log        *log.Logger
+	subTopics  func() []string
 
 	mu    sync.RWMutex
 	ids   map[string]*Conn // ZMTP connection IDs
@@ -63,6 +65,7 @@ func newDefaultSocket(ctx context.Context, sockType SocketType) *socket {
 	return &socket{
 		typ:        sockType,
 		retry:      defaultRetry,
+		maxRetries: defaultMaxRetries,
 		sec:        nullSecurity{},
 		ids:        make(map[string]*Conn),
 		conns:      nil,
@@ -247,7 +250,8 @@ connect:
 	}
 
 	if err != nil {
-		if retries < 10 {
+		// retry if retry count is lower than maximum retry count and context has not been canceled
+		if (sck.maxRetries == -1 || retries < sck.maxRetries) && sck.ctx.Err() == nil {
 			retries++
 			time.Sleep(sck.retry)
 			goto connect
