@@ -239,7 +239,7 @@ func TestSocketSendSubscriptionOnConnect(t *testing.T) {
 	if err := pub.Dial(endpoint); err != nil {
 		t.Fatalf("Pub Dial failed: %v", err)
 	}
-	wg := new(sync.WaitGroup)
+	var wg sync.WaitGroup
 	defer wg.Wait()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -321,4 +321,71 @@ func TestConnMaxRetriesInfinite(t *testing.T) {
 	if transport.dialCalledCount < atLeastExpectedRetries {
 		t.Fatalf("Dial called %d times, expected  at least %d", transport.dialCalledCount, atLeastExpectedRetries)
 	}
+}
+
+func TestSocketAutomaticReconnect(t *testing.T) {
+	ep, err := EndPoint("tcp")
+	if err != nil {
+		t.Fatalf("could not find endpoint: %+v", err)
+	}
+	message := "test"
+
+	var wg sync.WaitGroup
+	defer wg.Wait()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	sendMessages := func(socket zmq4.Socket) {
+		wg.Add(1)
+		go func(t *testing.T) {
+			defer wg.Done()
+			for {
+				socket.Send(zmq4.NewMsgFromString([]string{message}))
+				if ctx.Err() != nil {
+					return
+				}
+				time.Sleep(1 * time.Millisecond)
+			}
+		}(t)
+	}
+
+	sub := zmq4.NewSub(context.Background(), zmq4.WithAutomaticReconnect(true))
+	defer sub.Close()
+	sub.SetOption(zmq4.OptionSubscribe, message)
+	pub := zmq4.NewPub(context.Background())
+	if err := pub.Listen(ep); err != nil {
+		t.Fatalf("Pub Dial failed: %v", err)
+	}
+	if err := sub.Dial(ep); err != nil {
+		t.Fatalf("Sub Dial failed: %v", err)
+	}
+
+	sendMessages(pub)
+
+	checkConnectionWorking := func(socket zmq4.Socket) {
+		for {
+			msg, err := socket.Recv()
+			if errors.Is(err, io.EOF) {
+				continue
+			}
+			if err != nil {
+				t.Fatalf("Recv failed: %v", err)
+			}
+			if string(msg.Frames[0]) != message {
+				t.Fatalf("invalid message received: got '%s', wanted '%s'", msg.Frames[0], message)
+			}
+			return
+		}
+	}
+
+	checkConnectionWorking(sub)
+	pub.Close()
+
+	pub2 := zmq4.NewPub(context.Background())
+	defer pub2.Close()
+	if err := pub2.Listen(ep); err != nil {
+		t.Fatalf("Sub Listen failed: %v", err)
+	}
+	sendMessages(pub2)
+	checkConnectionWorking(sub)
 }
