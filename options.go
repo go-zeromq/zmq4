@@ -51,6 +51,14 @@ func WithLogger(msg *log.Logger) Option {
 	}
 }
 
+// WithDialerMaxRetries configures the maximum number of retries
+// when dialing an endpoint (-1 means infinite retries).
+func WithDialerMaxRetries(maxRetries int) Option {
+	return func(s *socket) {
+		s.maxRetries = maxRetries
+	}
+}
+
 /*
 // TODO(sbinet)
 
