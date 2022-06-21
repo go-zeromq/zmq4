@@ -31,14 +31,15 @@ var (
 
 // socket implements the ZeroMQ socket interface
 type socket struct {
-	ep         string // socket end-point
-	typ        SocketType
-	id         SocketIdentity
-	retry      time.Duration
-	maxRetries int
-	sec        Security
-	log        *log.Logger
-	subTopics  func() []string
+	ep            string // socket end-point
+	typ           SocketType
+	id            SocketIdentity
+	retry         time.Duration
+	maxRetries    int
+	sec           Security
+	log           *log.Logger
+	subTopics     func() []string
+	autoReconnect bool
 
 	mu    sync.RWMutex
 	ids   map[string]*Conn // ZMTP connection IDs
@@ -53,8 +54,9 @@ type socket struct {
 	listener net.Listener
 	dialer   net.Dialer
 
-	closedConns []*Conn
-	reaperCond  *sync.Cond
+	closedConns   []*Conn
+	reaperCond    *sync.Cond
+	reaperStarted bool
 }
 
 func newDefaultSocket(ctx context.Context, sockType SocketType) *socket {
@@ -271,7 +273,10 @@ connect:
 		return fmt.Errorf("zmq4: got a nil ZMTP connection to %q", endpoint)
 	}
 
-	go sck.connReaper()
+	if !sck.reaperStarted {
+		go sck.connReaper()
+		sck.reaperStarted = true
+	}
 	sck.addConn(zconn)
 	return nil
 }
@@ -330,6 +335,10 @@ func (sck *socket) scheduleRmConn(c *Conn) {
 	sck.closedConns = append(sck.closedConns, c)
 	sck.reaperCond.Signal()
 	sck.reaperCond.L.Unlock()
+
+	if sck.autoReconnect {
+		sck.Dial(sck.ep)
+	}
 }
 
 // Type returns the type of this Socket (PUB, SUB, ...)
