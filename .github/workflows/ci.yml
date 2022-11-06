@@ -40,7 +40,11 @@ jobs:
       - name: Test Linux
         run: ./.ci/code-coverage.sh
 
-      - name: Run staticcheck
+      - name: Verify code formatting
+        run: |
+          test -z $(gofmt -l .)
+
+      - name: Run linter
         uses: dominikh/staticcheck-action@v1
         with:
           install-go: false
