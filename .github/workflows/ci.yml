@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 env:
   GOPROXY: "https://proxy.golang.org"
@@ -12,7 +12,6 @@ env:
   TAGS: "-tags=czmq4"
 
 jobs:
-
   build:
     name: Build
     strategy:
@@ -22,48 +21,48 @@ jobs:
         #platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
-    - name: Install Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: ${{ matrix.go-version }}
- 
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Install Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go-version }}
 
-    - name: Cache-Go
-      uses: actions/cache@v3
-      with:
-        # In order:
-        # * Module download cache
-        # * Build cache (Linux)
-        # * Build cache (Mac)
-        # * Build cache (Windows)
-        path: |
-          ~/go/pkg/mod
-          ~/.cache/go-build
-          ~/Library/Caches/go-build
-          '%LocalAppData%\go-build'
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Install Linux packages
-      if: matrix.platform == 'ubuntu-latest'
-      run: |
-        sudo apt-get update -qq -y
-        sudo apt-get install -y libsodium-dev libczmq-dev
-    
-    - name: Build-Linux-64b
-      run: |
-        GOARCH=amd64 go install -v $TAGS ./...       
-    - name: Test Linux
-      run: |
-        ./.ci/code-coverage.sh
-    - name: static-check
-      uses: dominikh/staticcheck-action@v1.2.0
-      with:
-        install-go: false
-        cache-key: ${{ matrix.platform }}
-        version: "2022.1"
-    - name: Upload-Coverage
-      uses: codecov/codecov-action@v1
+      - name: Cache-Go
+        uses: actions/cache@v3
+        with:
+          # In order:
+          # * Module download cache
+          # * Build cache (Linux)
+          # * Build cache (Mac)
+          # * Build cache (Windows)
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+            ~/Library/Caches/go-build
+            '%LocalAppData%\go-build'
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Install Linux packages
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          sudo apt-get update -qq -y
+          sudo apt-get install -y libsodium-dev libczmq-dev
+
+      - name: Build-Linux-64b
+        run: |
+          GOARCH=amd64 go install -v $TAGS ./...
+      - name: Test Linux
+        run: |
+          ./.ci/code-coverage.sh
+      - name: static-check
+        uses: dominikh/staticcheck-action@v1.2.0
+        with:
+          install-go: false
+          cache-key: ${{ matrix.platform }}
+          version: "2022.1"
+      - name: Upload-Coverage
+        uses: codecov/codecov-action@v1
