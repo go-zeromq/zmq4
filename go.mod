@@ -1,6 +1,6 @@
 module github.com/go-zeromq/zmq4
 
-go 1.17
+go 1.19
 
 require (
 	github.com/go-zeromq/goczmq/v4 v4.2.2
