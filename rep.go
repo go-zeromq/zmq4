@@ -258,6 +258,8 @@ func (r *repWriter) rmConn(conn *Conn) {
 func (r *repWriter) write(ctx context.Context, msg Msg) error {
 	conn, preamble := r.state.Get()
 	select {
+	case <-ctx.Done():
+		return ctx.Err()
 	case <-r.ctx.Done(): // repWriter.run() terminates on this, sendCh <- will not complete
 		return r.ctx.Err()
 	case r.sendCh <- repSendPayload{conn, preamble, msg}:
