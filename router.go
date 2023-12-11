@@ -10,7 +10,7 @@ import (
 	"net"
 	"sync"
 
-	"golang.org/x/sync/errgroup"
+	"github.com/go-zeromq/zmq4/internal/errorgrp"
 )
 
 // NewRouter returns a new ROUTER ZeroMQ socket.
@@ -225,7 +225,7 @@ func (mw *routerMWriter) rmConn(w *Conn) {
 
 func (w *routerMWriter) write(ctx context.Context, msg Msg) error {
 	w.sem.lock(ctx)
-	grp, _ := errgroup.WithContext(ctx)
+	grp, _ := errorgrp.WithContext2(ctx)
 	w.mu.Lock()
 	id := msg.Frames[0]
 	dmsg := NewMsgFrom(msg.Frames[1:]...)

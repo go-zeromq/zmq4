@@ -9,6 +9,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/go-zeromq/zmq4/internal/errorgrp"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -167,7 +168,7 @@ func (mw *mwriter) rmConn(w *Conn) {
 
 func (w *mwriter) write(ctx context.Context, msg Msg) error {
 	w.sem.lock(ctx)
-	grp, _ := errgroup.WithContext(ctx)
+	grp, _ := errorgrp.WithContext2(ctx)
 	w.mu.Lock()
 	for i := range w.ws {
 		ww := w.ws[i]

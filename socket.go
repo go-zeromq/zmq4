@@ -40,6 +40,7 @@ type socket struct {
 	log           *log.Logger
 	subTopics     func() []string
 	autoReconnect bool
+	Timeout       time.Duration
 
 	mu    sync.RWMutex
 	conns []*Conn // ZMTP connections
@@ -67,6 +68,7 @@ func newDefaultSocket(ctx context.Context, sockType SocketType) *socket {
 		typ:        sockType,
 		retry:      defaultRetry,
 		maxRetries: defaultMaxRetries,
+		Timeout:    defaultTimeout,
 		sec:        nullSecurity{},
 		conns:      nil,
 		r:          newQReader(ctx),
@@ -366,8 +368,7 @@ func (sck *socket) SetOption(name string, value interface{}) error {
 }
 
 func (sck *socket) timeout() time.Duration {
-	// FIXME(sbinet): extract from options
-	return defaultTimeout
+	return sck.Timeout
 }
 
 func (sck *socket) connReaper() {
