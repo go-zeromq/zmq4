@@ -94,7 +94,7 @@ func (g *Group) wrap(f func() error) func() error {
 
 		// Create return channel
 		// and call func f
-		ch := make(chan error, 1)
+		ch := make(chan error)
 		go func() {
 			ch <- f()
 		}()
