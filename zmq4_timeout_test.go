@@ -1,3 +1,6 @@
+// Copyright 2023 The go-zeromq Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 package zmq4
 
 import (
@@ -26,9 +29,9 @@ func TestPushTimeout(t *testing.T) {
 		select {
 		case <-ctx.Done():
 			// The ctx limits overall time of execution
-			// If it gets canceled, that meains tests failed
+			// If it gets canceled, that meain tests failed
 			// as write to socket did not genereate timeout error
-			t.FailNow()
+			t.Fatalf("test failed before being able to generate timeout error: %+v", ctx.Err())
 		default:
 		}
 
@@ -37,7 +40,7 @@ func TestPushTimeout(t *testing.T) {
 			continue
 		}
 		if err != context.DeadlineExceeded {
-			t.FailNow()
+			t.Fatalf("expected a context.DeadlineExceeded error, got=%+v", err)
 		}
 		break
 	}

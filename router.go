@@ -10,7 +10,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/go-zeromq/zmq4/internal/errorgrp"
+	"golang.org/x/sync/errgroup"
 )
 
 // NewRouter returns a new ROUTER ZeroMQ socket.
@@ -35,7 +35,7 @@ func (router *routerSocket) Close() error {
 // Send puts the message on the outbound send queue.
 // Send blocks until the message can be queued or the send deadline expires.
 func (router *routerSocket) Send(msg Msg) error {
-	ctx, cancel := context.WithTimeout(router.sck.ctx, router.sck.timeout())
+	ctx, cancel := context.WithTimeout(router.sck.ctx, router.sck.Timeout())
 	defer cancel()
 	return router.sck.w.write(ctx, msg)
 }
@@ -225,7 +225,7 @@ func (mw *routerMWriter) rmConn(w *Conn) {
 
 func (w *routerMWriter) write(ctx context.Context, msg Msg) error {
 	w.sem.lock(ctx)
-	grp, _ := errorgrp.WithContext2(ctx)
+	grp, _ := errgroup.WithContext(ctx)
 	w.mu.Lock()
 	id := msg.Frames[0]
 	dmsg := NewMsgFrom(msg.Frames[1:]...)

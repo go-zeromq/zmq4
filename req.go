@@ -35,7 +35,7 @@ func (req *reqSocket) Close() error {
 // Send puts the message on the outbound send queue.
 // Send blocks until the message can be queued or the send deadline expires.
 func (req *reqSocket) Send(msg Msg) error {
-	ctx, cancel := context.WithTimeout(req.sck.ctx, req.sck.timeout())
+	ctx, cancel := context.WithTimeout(req.sck.ctx, req.sck.Timeout())
 	defer cancel()
 	return req.sck.w.write(ctx, msg)
 }
@@ -45,7 +45,7 @@ func (req *reqSocket) Send(msg Msg) error {
 // The message will be sent as a multipart message.
 func (req *reqSocket) SendMulti(msg Msg) error {
 	msg.multipart = true
-	ctx, cancel := context.WithTimeout(req.sck.ctx, req.sck.timeout())
+	ctx, cancel := context.WithTimeout(req.sck.ctx, req.sck.Timeout())
 	defer cancel()
 	return req.sck.w.write(ctx, msg)
 }

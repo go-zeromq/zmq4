@@ -47,7 +47,7 @@ func WithDialerTimeout(timeout time.Duration) Option {
 // WithTimeout sets the timeout value for socket operations
 func WithTimeout(timeout time.Duration) Option {
 	return func(s *socket) {
-		s.Timeout = timeout
+		s.timeout = timeout
 	}
 }
 

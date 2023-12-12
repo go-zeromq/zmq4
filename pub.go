@@ -39,7 +39,7 @@ func (pub *pubSocket) Close() error {
 // Send puts the message on the outbound send queue.
 // Send blocks until the message can be queued or the send deadline expires.
 func (pub *pubSocket) Send(msg Msg) error {
-	ctx, cancel := context.WithTimeout(pub.sck.ctx, pub.sck.timeout())
+	ctx, cancel := context.WithTimeout(pub.sck.ctx, pub.sck.Timeout())
 	defer cancel()
 	return pub.sck.w.write(ctx, msg)
 }
@@ -49,7 +49,7 @@ func (pub *pubSocket) Send(msg Msg) error {
 // The message will be sent as a multipart message.
 func (pub *pubSocket) SendMulti(msg Msg) error {
 	msg.multipart = true
-	ctx, cancel := context.WithTimeout(pub.sck.ctx, pub.sck.timeout())
+	ctx, cancel := context.WithTimeout(pub.sck.ctx, pub.sck.Timeout())
 	defer cancel()
 	return pub.sck.w.write(ctx, msg)
 }

@@ -1,0 +1,111 @@
+// Copyright 2023 The go-zeromq Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package errgroup is bit more advanced than golang.org/x/sync/errgroup.
+// Major difference is that when error group is created with WithContext
+// the parent context would implicitly cancel all functions called by Go method.
+package errgroup
+
+import (
+	"context"
+
+	"golang.org/x/sync/errgroup"
+)
+
+// The Group is superior errgroup.Group which aborts whole group
+// execution when parent context is cancelled
+type Group struct {
+	grp *errgroup.Group
+	ctx context.Context
+}
+
+// WithContext creates Group and store inside parent context
+// so the Go method would respect parent context cancellation
+func WithContext(ctx context.Context) (*Group, context.Context) {
+	grp, child_ctx := errgroup.WithContext(ctx)
+	return &Group{grp: grp, ctx: ctx}, child_ctx
+}
+
+// Go runs the provided f function in a dedicated goroutine and waits for its
+// completion or for the parent context cancellation.
+func (g *Group) Go(f func() error) {
+	g.init()
+
+	if g.ctx == nil {
+		g.grp.Go(f)
+		return
+	}
+
+	g.grp.Go(g.wrap(f))
+}
+
+// Wait blocks until all function calls from the Go method have returned, then
+// returns the first non-nil error (if any) from them.
+// If the error group was created via WithContext then the Wait returns error
+// of cancelled parent context prior any functions calls complete.
+func (g *Group) Wait() error {
+	g.init()
+	return g.grp.Wait()
+}
+
+// SetLimit limits the number of active goroutines in this group to at most n.
+// A negative value indicates no limit.
+//
+// Any subsequent call to the Go method will block until it can add an active
+// goroutine without exceeding the configured limit.
+//
+// The limit must not be modified while any goroutines in the group are active.
+func (g *Group) SetLimit(n int) {
+	g.init()
+	g.grp.SetLimit(n)
+}
+
+// TryGo calls the given function in a new goroutine only if the number of
+// active goroutines in the group is currently below the configured limit.
+//
+// The return value reports whether the goroutine was started.
+func (g *Group) TryGo(f func() error) bool {
+	g.init()
+	if g.ctx == nil {
+		return g.grp.TryGo(f)
+	}
+
+	return g.grp.TryGo(g.wrap(f))
+}
+
+// The init method provides backward compatibility to x/sync/errgroup.Group
+// when developers can create error group by i.e. ```eg := &errgroup.Group{}```
+func (g *Group) init() {
+	if g.grp == nil {
+		g.grp = &errgroup.Group{}
+	}
+}
+
+func (g *Group) wrap(f func() error) func() error {
+	return func() error {
+		// If parent context is canceled,
+		// just return its error and do not call func f
+		select {
+		case <-g.ctx.Done():
+			return g.ctx.Err()
+		default:
+		}
+
+		// Create return channel
+		// and call func f
+		ch := make(chan error, 1)
+		go func() {
+			ch <- f()
+		}()
+
+		// Wait func f complete or
+		// parent context to be cancelled,
+		select {
+		case err := <-ch:
+			return err
+		case <-g.ctx.Done():
+			return g.ctx.Err()
+		}
+	}
+}
