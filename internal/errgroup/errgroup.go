@@ -92,9 +92,12 @@ func (g *Group) wrap(f func() error) func() error {
 		default:
 		}
 
-		// Create return channel
-		// and call func f
-		ch := make(chan error)
+		// Create return channel and call func f
+		// Buffered channel is used as the following select
+		// may be exiting by context cancellation
+		// and in such case the write to channel can be block
+		// and cause the go routine leak
+		ch := make(chan error, 1)
 		go func() {
 			ch <- f()
 		}()
