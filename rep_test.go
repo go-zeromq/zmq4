@@ -134,6 +134,7 @@ func TestCancellation(t *testing.T) {
 
 		defer wg.Done()
 		repCtx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		rep := zmq4.NewRep(repCtx)
 		defer rep.Close()
 
