@@ -149,11 +149,11 @@ func (q *pubQReader) Close() error {
 }
 
 func (q *pubQReader) addConn(r *Conn) {
-	go q.listen(q.ctx, r)
 	q.mu.Lock()
 	q.sem.enable()
 	q.rs = append(q.rs, r)
 	q.mu.Unlock()
+	go q.listen(q.ctx, r)
 }
 
 func (q *pubQReader) rmConn(r *Conn) {

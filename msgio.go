@@ -64,11 +64,11 @@ func (q *qreader) Close() error {
 }
 
 func (q *qreader) addConn(r *Conn) {
-	go q.listen(q.ctx, r)
 	q.mu.Lock()
 	q.sem.enable()
 	q.rs = append(q.rs, r)
 	q.mu.Unlock()
+	go q.listen(q.ctx, r)
 }
 
 func (q *qreader) rmConn(r *Conn) {
