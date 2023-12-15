@@ -40,6 +40,7 @@ type socket struct {
 	log           *log.Logger
 	subTopics     func() []string
 	autoReconnect bool
+	timeout       time.Duration
 
 	mu    sync.RWMutex
 	conns []*Conn // ZMTP connections
@@ -67,6 +68,7 @@ func newDefaultSocket(ctx context.Context, sockType SocketType) *socket {
 		typ:        sockType,
 		retry:      defaultRetry,
 		maxRetries: defaultMaxRetries,
+		timeout:    defaultTimeout,
 		sec:        nullSecurity{},
 		conns:      nil,
 		r:          newQReader(ctx),
@@ -147,7 +149,7 @@ func (sck *socket) Close() error {
 // Send puts the message on the outbound send queue.
 // Send blocks until the message can be queued or the send deadline expires.
 func (sck *socket) Send(msg Msg) error {
-	ctx, cancel := context.WithTimeout(sck.ctx, sck.timeout())
+	ctx, cancel := context.WithTimeout(sck.ctx, sck.Timeout())
 	defer cancel()
 	return sck.w.write(ctx, msg)
 }
@@ -157,7 +159,7 @@ func (sck *socket) Send(msg Msg) error {
 // The message will be sent as a multipart message.
 func (sck *socket) SendMulti(msg Msg) error {
 	msg.multipart = true
-	ctx, cancel := context.WithTimeout(sck.ctx, sck.timeout())
+	ctx, cancel := context.WithTimeout(sck.ctx, sck.Timeout())
 	defer cancel()
 	return sck.w.write(ctx, msg)
 }
@@ -365,9 +367,8 @@ func (sck *socket) SetOption(name string, value interface{}) error {
 	return nil
 }
 
-func (sck *socket) timeout() time.Duration {
-	// FIXME(sbinet): extract from options
-	return defaultTimeout
+func (sck *socket) Timeout() time.Duration {
+	return sck.timeout
 }
 
 func (sck *socket) connReaper() {

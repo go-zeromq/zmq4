@@ -34,7 +34,7 @@ func (rep *repSocket) Close() error {
 // Send puts the message on the outbound send queue.
 // Send blocks until the message can be queued or the send deadline expires.
 func (rep *repSocket) Send(msg Msg) error {
-	ctx, cancel := context.WithTimeout(rep.sck.ctx, rep.sck.timeout())
+	ctx, cancel := context.WithTimeout(rep.sck.ctx, rep.sck.Timeout())
 	defer cancel()
 	return rep.sck.w.write(ctx, msg)
 }
@@ -44,7 +44,7 @@ func (rep *repSocket) Send(msg Msg) error {
 // The message will be sent as a multipart message.
 func (rep *repSocket) SendMulti(msg Msg) error {
 	msg.multipart = true
-	ctx, cancel := context.WithTimeout(rep.sck.ctx, rep.sck.timeout())
+	ctx, cancel := context.WithTimeout(rep.sck.ctx, rep.sck.Timeout())
 	defer cancel()
 	return rep.sck.w.write(ctx, msg)
 }

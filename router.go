@@ -35,7 +35,7 @@ func (router *routerSocket) Close() error {
 // Send puts the message on the outbound send queue.
 // Send blocks until the message can be queued or the send deadline expires.
 func (router *routerSocket) Send(msg Msg) error {
-	ctx, cancel := context.WithTimeout(router.sck.ctx, router.sck.timeout())
+	ctx, cancel := context.WithTimeout(router.sck.ctx, router.sck.Timeout())
 	defer cancel()
 	return router.sck.w.write(ctx, msg)
 }
@@ -119,11 +119,11 @@ func (q *routerQReader) Close() error {
 }
 
 func (q *routerQReader) addConn(r *Conn) {
-	go q.listen(q.ctx, r)
 	q.mu.Lock()
 	q.sem.enable()
 	q.rs = append(q.rs, r)
 	q.mu.Unlock()
+	go q.listen(q.ctx, r)
 }
 
 func (q *routerQReader) rmConn(r *Conn) {

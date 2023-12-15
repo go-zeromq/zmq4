@@ -44,6 +44,13 @@ func WithDialerTimeout(timeout time.Duration) Option {
 	}
 }
 
+// WithTimeout sets the timeout value for socket operations
+func WithTimeout(timeout time.Duration) Option {
+	return func(s *socket) {
+		s.timeout = timeout
+	}
+}
+
 // WithLogger sets a dedicated log.Logger for the socket.
 func WithLogger(msg *log.Logger) Option {
 	return func(s *socket) {

@@ -9,6 +9,7 @@ import (
 	"io"
 	"sync"
 
+	errgrp "github.com/go-zeromq/zmq4/internal/errgroup"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -63,11 +64,11 @@ func (q *qreader) Close() error {
 }
 
 func (q *qreader) addConn(r *Conn) {
-	go q.listen(q.ctx, r)
 	q.mu.Lock()
 	q.sem.enable()
 	q.rs = append(q.rs, r)
 	q.mu.Unlock()
+	go q.listen(q.ctx, r)
 }
 
 func (q *qreader) rmConn(r *Conn) {
@@ -167,7 +168,7 @@ func (mw *mwriter) rmConn(w *Conn) {
 
 func (w *mwriter) write(ctx context.Context, msg Msg) error {
 	w.sem.lock(ctx)
-	grp, _ := errgroup.WithContext(ctx)
+	grp, _ := errgrp.WithContext(ctx)
 	w.mu.Lock()
 	for i := range w.ws {
 		ww := w.ws[i]
