@@ -11,7 +11,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -388,7 +387,7 @@ func (sck *socket) connReaper() {
 		// Clone the known closed connections to avoid data race
 		// and remove those under reaper unlocked.
 		// That would be resoling deadlock from #149 simpler way.
-		cc := slices.Clone(sck.closedConns)
+		cc := append([]*Conn{}, sck.closedConns...) // clone
 		sck.closedConns = nil
 		sck.reaperCond.L.Unlock()
 		for _, c := range cc {
