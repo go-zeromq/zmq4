@@ -28,29 +28,26 @@ func TestConnReaperDeadlock2(t *testing.T) {
 	}
 	defer srv.Close()
 
-	// Connect clients.
-	// Use same client ID so the srv.Send will hold mutex
-	// for longer time
-	var clients []Socket
-	id := "client-x"
-	for i := 0; i < 10; i++ {
-		c := NewReq(ctx, WithLogger(Devnull), WithID(SocketIdentity(id)))
-		if err := c.Dial(ep); err != nil {
-			t.Fatalf("could not dial %q: %+v", ep, err)
-		}
-		clients = append(clients, c)
-	}
-
-	// Modify clients connection sockets in server
+	// Add modified clients connection to server
 	// so any send to client will trigger context switch
 	// and be failing.
-	// Idea is that while srv.Send is progresing,
+	// Idea is that while srv.Send is progressing,
 	// the connection will be closed and assigned
-	// for connection reaper.
+	// for connection reaper, and reaper will try to remove those
+	id := "client-x"
+	srv.sck.mu.Lock()
 	rmw := srv.sck.w.(*routerMWriter)
-	for i := range rmw.ws {
-		rmw.ws[i].rw = &sockSendEof{rmw.ws[i].rw}
+	for i := 0; i < 10; i++ {
+		w := &Conn{}
+		w.Peer.Meta = make(Metadata)
+		w.Peer.Meta[sysSockID] = id
+		w.rw = &sockSendEof{}
+		w.onCloseErrorCB = srv.sck.scheduleRmConn
+		// Do not to call srv.addConn as we dont want to have listener on this fake socket
+		rmw.addConn(w)
+		srv.sck.conns = append(srv.sck.conns, w)
 	}
+	srv.sck.mu.Unlock()
 
 	// Now try to send a message from the server to all clients.
 	msg := NewMsgFrom(nil, nil, []byte("payload"))
@@ -58,20 +55,43 @@ func TestConnReaperDeadlock2(t *testing.T) {
 	if err := srv.Send(msg); err != nil {
 		t.Logf("Send to %s failed: %+v\n", id, err)
 	}
-
-	for i := range clients {
-		clients[i].Close()
-	}
 }
 
 type sockSendEof struct {
-	net.Conn
 }
 
 func (r *sockSendEof) Write(b []byte) (n int, err error) {
 	runtime.Gosched()
 	time.Sleep(1 * time.Second)
 	return 0, io.EOF
+}
+
+func (r *sockSendEof) Read(b []byte) (int, error) {
+	return 0, nil
+}
+
+func (r *sockSendEof) Close() error {
+	return nil
+}
+
+func (r *sockSendEof) LocalAddr() net.Addr {
+	return nil
+}
+
+func (r *sockSendEof) RemoteAddr() net.Addr {
+	return nil
+}
+
+func (r *sockSendEof) SetDeadline(t time.Time) error {
+	return nil
+}
+
+func (r *sockSendEof) SetReadDeadline(t time.Time) error {
+	return nil
+}
+
+func (r *sockSendEof) SetWriteDeadline(t time.Time) error {
+	return nil
 }
 
 func must(str string, err error) string {
