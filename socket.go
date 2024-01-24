@@ -384,10 +384,16 @@ func (sck *socket) connReaper() {
 			return
 		}
 
-		for _, c := range sck.closedConns {
+		// Clone the known closed connections to avoid data race
+		// and remove those under reaper unlocked.
+		// That should fix the deadlock reported in #149.
+		cc := append([]*Conn{}, sck.closedConns...) // clone
+		sck.closedConns = sck.closedConns[:0]
+		sck.reaperCond.L.Unlock()
+		for _, c := range cc {
 			sck.rmConn(c)
 		}
-		sck.closedConns = nil
+		sck.reaperCond.L.Lock()
 	}
 }
 
