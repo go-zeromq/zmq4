@@ -11,12 +11,6 @@ import (
 	"sync"
 )
 
-// Topics is an interface that wraps the basic Topics method.
-type Topics interface {
-	// Topics returns the sorted list of topics a socket is subscribed to.
-	Topics() []string
-}
-
 // NewPub returns a new PUB ZeroMQ socket.
 // The returned socket value is initially unbound.
 func NewPub(ctx context.Context, opts ...Option) Socket {
@@ -109,9 +103,9 @@ func (pub *pubSocket) SetOption(name string, value interface{}) error {
 	return nil
 }
 
-// Topics returns the sorted list of topics a socket is subscribed to.
 func (pub *pubSocket) Topics() []string {
-	return pub.sck.topics()
+	// pub sockets don't have any subscribed topics, so return an empty list.
+        return []string {}
 }
 
 // pubQReader is a queued-message reader.
@@ -194,26 +188,9 @@ func (q *pubQReader) listen(ctx context.Context, r *Conn) {
 			if msg.err != nil {
 				return
 			}
-			switch {
-			case q.topic(msg):
-				r.subscribe(msg)
-			default:
-				q.c <- msg
-			}
+			q.c <- msg
 		}
 	}
-}
-
-func (q *pubQReader) topic(msg Msg) bool {
-	if len(msg.Frames) != 1 {
-		return false
-	}
-	frame := msg.Frames[0]
-	if len(frame) == 0 {
-		return false
-	}
-	topic := frame[0]
-	return topic == 0 || topic == 1
 }
 
 type pubMWriter struct {
@@ -309,15 +286,12 @@ func (w *pubMWriter) write(ctx context.Context, msg Msg) error {
 }
 
 func (w *pubMWriter) sendMsg(msg Msg) {
-	topic := string(msg.Frames[0])
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	// TODO(inphi): distribute messages across subscribers at once
 	for i := range w.ws {
 		ww := w.ws[i]
-		if ww.subscribed(topic) {
-			_ = ww.SendMsg(msg)
-		}
+		_ = ww.SendMsg(msg)
 	}
 }
 

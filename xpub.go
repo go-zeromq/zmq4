@@ -78,7 +78,8 @@ func (xpub *xpubSocket) SetOption(name string, value interface{}) error {
 }
 
 func (xpub *xpubSocket) Topics() []string {
-	return xpub.sck.topics()
+	// xpub sockets don't have any subscriptions, so return an empty list.
+	return []string {}
 }
 
 var (
