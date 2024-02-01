@@ -25,6 +25,9 @@ type Security interface {
 	// Encrypt writes the encrypted form of data to w.
 	Encrypt(w io.Writer, data []byte) (int, error)
 
+	// Encrypt body before send calculates headers
+	EncryptBody(data []byte) ([]byte, error)
+
 	// Decrypt writes the decrypted form of data to w.
 	Decrypt(w io.Writer, data []byte) (int, error)
 }
@@ -93,6 +96,11 @@ func (nullSecurity) Handshake(conn *Conn, server bool) error {
 // Encrypt writes the encrypted form of data to w.
 func (nullSecurity) Encrypt(w io.Writer, data []byte) (int, error) {
 	return w.Write(data)
+}
+
+// Encrypt body before send calculates headers.
+func (nullSecurity) EncryptBody(data []byte) ([]byte, error) {
+	return data, nil
 }
 
 // Decrypt writes the decrypted form of data to w.

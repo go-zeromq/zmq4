@@ -329,6 +329,13 @@ func (c *Conn) sendMulti(msg Msg) error {
 }
 
 func (c *Conn) send(isCommand bool, body []byte, flag byte) error {
+	// Encrypt body
+	body, err := c.sec.EncryptBody(body); 
+	if err != nil {
+		c.checkIO(err)
+		return err
+	}
+	
 	// Long flag
 	size := len(body)
 	isLong := size > 255
