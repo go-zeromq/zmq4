@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package reaper
+package leaks_test
 
 import (
 	"context"
@@ -17,7 +17,7 @@ import (
 
 // TestReaper does multiple rapid Dial/Close to check that connection reaper goroutines are not leaking.
 // In is in own package as goleak detects also threads from values created during init().
-func TestReaper(t *testing.T) {
+func TestReaperLeak1(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
 	mu := &sync.Mutex{}
