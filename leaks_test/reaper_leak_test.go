@@ -16,7 +16,7 @@ import (
 )
 
 // TestReaper does multiple rapid Dial/Close to check that connection reaper goroutines are not leaking.
-// In is in own package as goleak detects also threads from values created during init().
+// TestReaper is in a dedicated package as goleak detects also goroutines from values created during init().
 func TestReaperLeak1(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
