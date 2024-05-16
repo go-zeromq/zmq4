@@ -4,8 +4,7 @@ go 1.21
 
 require (
 	github.com/go-zeromq/goczmq/v4 v4.2.2
-	golang.org/x/sync v0.3.0
-	golang.org/x/text v0.13.0
+	go.uber.org/goleak v1.3.0
+	golang.org/x/sync v0.7.0
+	golang.org/x/text v0.15.0
 )
-
-require go.uber.org/goleak v1.3.0 // indirect
