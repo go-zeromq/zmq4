@@ -120,8 +120,12 @@ func (sck *socket) topics() []string {
 
 // Close closes the open Socket
 func (sck *socket) Close() error {
+	// The Lock around Signal ensures the connReaper is running
+	// and is in sck.reaperCond.Wait()
+	sck.reaperCond.L.Lock()
 	sck.cancel()
 	sck.reaperCond.Signal()
+	sck.reaperCond.L.Unlock()
 
 	if sck.listener != nil {
 		defer sck.listener.Close()
@@ -193,7 +197,11 @@ func (sck *socket) Listen(endpoint string) error {
 	sck.listener = l
 
 	go sck.accept()
-	go sck.connReaper()
+	if !sck.reaperStarted {
+		sck.reaperCond.L.Lock()
+		go sck.connReaper()
+		sck.reaperStarted = true
+	}
 
 	return nil
 }
@@ -268,6 +276,7 @@ connect:
 	}
 
 	if !sck.reaperStarted {
+		sck.reaperCond.L.Lock()
 		go sck.connReaper()
 		sck.reaperStarted = true
 	}
@@ -372,7 +381,11 @@ func (sck *socket) Timeout() time.Duration {
 }
 
 func (sck *socket) connReaper() {
-	sck.reaperCond.L.Lock()
+	// We are not locking here sck.reaperCond.L.Lock()
+	// as it should be locked prior starting connReaper as goroutine
+	// That would ensure that sck.reaperCond.Signal()
+	// would be delivered only when reaper goroutine is really started
+	// and is in sck.reaperCond.Wait()
 	defer sck.reaperCond.L.Unlock()
 
 	for {
