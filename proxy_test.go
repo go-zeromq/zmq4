@@ -259,11 +259,15 @@ func TestProxy(t *testing.T) {
 	})
 
 	grp.Go(func() error {
+		var err error
 		wg1.Wait() // sockets ready
-		proxy = zmq4.NewProxy(ctx, front, back, capt)
+		proxy, err = zmq4.NewProxy(ctx, front, back, capt)
+		if err != nil {
+			return err
+		}
 		t.Logf("proxy ready")
 		wg2.Done()
-		err := proxy.Run()
+		err = proxy.Run()
 		t.Logf("proxy done: err=%+v", err)
 		return err
 	})
@@ -314,7 +318,12 @@ func TestProxyStop(t *testing.T) {
 
 	var errc = make(chan error)
 	go func() {
-		errc <- zmq4.NewProxy(ctx, front, back, nil).Run()
+		proxy, err := zmq4.NewProxy(ctx, front, back, nil)
+		if err != nil {
+			errc <- err
+		} else {
+			errc <- proxy.Run()
+		}
 	}()
 
 	go func() {

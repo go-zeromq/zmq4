@@ -7,18 +7,28 @@ package zmq4
 import (
 	"context"
 	"net"
+	"sort"
+	"strings"
+	"sync"
 )
 
 // NewXSub returns a new XSUB ZeroMQ socket.
 // The returned socket value is initially unbound.
 func NewXSub(ctx context.Context, opts ...Option) Socket {
-	xsub := &xsubSocket{newSocket(ctx, XSub, opts...)}
+	xsub := &xsubSocket{
+		sck: newSocket(ctx, XSub, opts...), 
+		topics: make(map[string]struct{}),
+	}
+	xsub.sck.r = newQReader(xsub.sck.ctx)
 	return xsub
 }
 
 // xsubSocket is a XSUB ZeroMQ socket.
 type xsubSocket struct {
 	sck *socket
+
+	mu     sync.RWMutex
+	topics map[string]struct{}
 }
 
 // Close closes the open Socket
@@ -41,7 +51,17 @@ func (xsub *xsubSocket) SendMulti(msg Msg) error {
 
 // Recv receives a complete message.
 func (xsub *xsubSocket) Recv() (Msg, error) {
-	return xsub.sck.Recv()
+	// If we're not subscribed to this message, we keep looping until we get one we are subscribed to, or an error or empty message.
+	for {
+		msg, err := xsub.sck.Recv()
+		if err != nil || len(msg.Frames) == 0 || string(msg.Frames[0]) == "" {
+			return msg, err
+		}
+		t := string(msg.Frames[0])
+		if xsub.subscribed(t) {
+			return msg, err
+		}
+	}
 }
 
 // Listen connects a local endpoint to the Socket.
@@ -72,9 +92,78 @@ func (xsub *xsubSocket) GetOption(name string) (interface{}, error) {
 
 // SetOption is used to set an option for a socket.
 func (xsub *xsubSocket) SetOption(name string, value interface{}) error {
-	return xsub.sck.SetOption(name, value)
+	err := xsub.sck.SetOption(name, value)
+	if err != nil {
+		return err
+	}
+
+	var (
+		topic []byte
+	)
+
+	switch name {
+	case OptionSubscribe:
+		k := value.(string)
+		xsub.subscribe(k, 1)
+		topic = append([]byte{1}, k...)
+
+	case OptionUnsubscribe:
+		k := value.(string)
+		xsub.subscribe(k, 0)
+		topic = append([]byte{0}, k...)
+
+	default:
+		return ErrBadProperty
+	}
+
+	xsub.sck.mu.RLock()
+	if len(xsub.sck.conns) > 0 {
+		err = xsub.Send(NewMsg(topic))
+	}
+	xsub.sck.mu.RUnlock()
+	return err
+}
+
+func (xsub *xsubSocket) Topics() []string {
+	xsub.mu.RLock()
+	var topics = make([]string, 0, len(xsub.topics))
+	for topic := range xsub.topics {
+		topics = append(topics, topic)
+	}
+	xsub.mu.RUnlock()
+	sort.Strings(topics)
+	return topics
+}
+
+func (xsub *xsubSocket) subscribe(topic string, v int) {
+	xsub.mu.Lock()
+	switch v {
+	case 0:
+		delete(xsub.topics, topic)
+	case 1:
+		xsub.topics[topic] = struct{}{}
+	}
+	xsub.mu.Unlock()
+}
+
+func (xsub *xsubSocket) subscribed(topic string) bool {
+	xsub.mu.RLock()
+	defer xsub.mu.RUnlock()
+	if _, ok := xsub.topics[""]; ok {
+		return true
+	}
+	if _, ok := xsub.topics[topic]; ok {
+		return true
+	}
+	for k := range xsub.topics {
+		if strings.HasPrefix(topic, k) {
+			return true
+		}
+	}
+	return false
 }
 
 var (
 	_ Socket = (*xsubSocket)(nil)
+	_ Topics = (*xsubSocket)(nil)
 )

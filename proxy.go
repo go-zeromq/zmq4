@@ -40,15 +40,17 @@ const (
 //
 // Before creating a Proxy, users must set any socket options,
 // and Listen or Dial both frontend and backend sockets.
-func NewProxy(ctx context.Context, front, back, capture Socket) *Proxy {
+func NewProxy(ctx context.Context, front, back, capture Socket) (*Proxy, error) {
 	grp, ctx := errgroup.WithContext(ctx)
 	proxy := Proxy{
 		ctx:  ctx,
 		grp:  grp,
 		cmds: make(chan proxyCmd),
 	}
-	proxy.init(front, back, capture)
-	return &proxy
+	if err := proxy.init(front, back, capture); err != nil {
+		return nil, err
+	}
+	return &proxy, nil
 }
 
 func (p *Proxy) Pause()  { p.cmds <- proxyPause }
@@ -61,7 +63,7 @@ func (p *Proxy) Run() error {
 	return p.grp.Wait()
 }
 
-func (p *Proxy) init(front, back, capture Socket) {
+func (p *Proxy) init(front, back, capture Socket) error {
 	canRecv := func(sck Socket) bool {
 		switch sck.Type() {
 		case Push:
@@ -101,6 +103,12 @@ func (p *Proxy) init(front, back, capture Socket) {
 			},
 		}
 	)
+
+	// Subscribe all. If we don't do this, the sub socket will drop all messages.
+	//  It has no effect for other socket types.
+	if err := front.SetOption(OptionSubscribe, ""); err != nil {
+		return err
+	}
 
 	// workers makes sure all goroutines are launched and scheduled.
 	var workers sync.WaitGroup
@@ -160,4 +168,5 @@ func (p *Proxy) init(front, back, capture Socket) {
 
 	// wait for all worker routines to be scheduled.
 	workers.Wait()
+	return nil
 }

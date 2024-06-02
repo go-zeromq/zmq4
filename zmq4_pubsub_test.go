@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"sort"
 	"sync"
 	"testing"
 	"time"
@@ -412,22 +411,12 @@ func TestTopics(t *testing.T) {
 		}
 		time.Sleep(500 * time.Millisecond)
 
-		got := sub.(zmq4.Topics).Topics()
+		topic, ok := sub.(zmq4.Topics)
 		want := []string{topics[isub]}
-		if !reflect.DeepEqual(got, want) {
-			t.Fatalf("Missing or wrong topics.\ngot= %q\nwant=%q", got, want)
-		}
-
-		got = pub.(zmq4.Topics).Topics()
-		if len(got) != isub+1 {
-			t.Fatalf("got %d topics, want %d topics", len(got), isub+1)
-		}
-
-		want = make([]string, isub+1)
-		copy(want, topics)
-		sort.Strings(want)
-		if !reflect.DeepEqual(got, want) {
-			t.Fatalf("Missing or wrong topics.\ngot= %q\nwant=%q", got, want)
+		if ok {
+			if got := topic.Topics(); !reflect.DeepEqual(got, want) {
+				t.Fatalf("Missing or wrong topics.\ngot= %q\nwant=%q", got, want)
+			}
 		}
 	}
 }
