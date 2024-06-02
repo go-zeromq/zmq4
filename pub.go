@@ -241,8 +241,9 @@ func (w *pubMWriter) Close() error {
 	defer w.mu.Unlock()
 
 	for conn := range w.subscribers {
-		w.rmConn(conn)
+		_ = conn.Close()
 	}
+	w.subscribers = nil
 	return nil
 }
 
@@ -281,7 +282,7 @@ func (w *pubMWriter) write(ctx context.Context, msg Msg) error {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case channel <- msg: // will block if the channel is full
+		case channel <- msg: // proceeds to default case if the channel is full (msg will be discarded)
 		default:
 		}
 	}
