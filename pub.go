@@ -240,8 +240,9 @@ func (w *pubMWriter) Close() error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	for conn := range w.subscribers {
+	for conn, channel := range w.subscribers {
 		_ = conn.Close()
+		close(channel)
 	}
 	w.subscribers = nil
 	return nil
