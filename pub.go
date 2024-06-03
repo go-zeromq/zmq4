@@ -255,7 +255,10 @@ func (mw *pubMWriter) addConn(w *Conn) {
 	mw.subscribers[w] = c
 	go func() {
 		for {
-			msg := <-c
+			msg, ok := <-c
+			if !ok {
+				break
+			}
 			topic := string(msg.Frames[0])
 			if w.subscribed(topic) {
 				_ = w.SendMsg(msg)
@@ -268,9 +271,10 @@ func (mw *pubMWriter) rmConn(w *Conn) {
 	mw.mu.Lock()
 	defer mw.mu.Unlock()
 
-	if _, ok := mw.subscribers[w]; ok {
+	if channel, ok := mw.subscribers[w]; ok {
 		_ = w.Close()
 		delete(mw.subscribers, w)
+		close(channel)
 	}
 }
 
