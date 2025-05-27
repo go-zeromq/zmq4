@@ -5,7 +5,6 @@
 package zmq4
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -21,25 +20,6 @@ func TestNullSecurity(t *testing.T) {
 	sec := nullSecurity{}
 	if got, want := sec.Type(), NullSecurity; got != want {
 		t.Fatalf("got=%v, want=%v", got, want)
-	}
-
-	data := []byte("hello world")
-	wenc := new(bytes.Buffer)
-	if _, err := sec.Encrypt(wenc, data); err != nil {
-		t.Fatalf("error encrypting data: %+v", err)
-	}
-
-	if !bytes.Equal(wenc.Bytes(), data) {
-		t.Fatalf("error encrypted data.\ngot = %q\nwant= %q\n", wenc.Bytes(), data)
-	}
-
-	wdec := new(bytes.Buffer)
-	if _, err := sec.Decrypt(wdec, wenc.Bytes()); err != nil {
-		t.Fatalf("error decrypting data: %+v", err)
-	}
-
-	if !bytes.Equal(wdec.Bytes(), data) {
-		t.Fatalf("error decrypted data.\ngot = %q\nwant= %q\n", wdec.Bytes(), data)
 	}
 }
 

@@ -6,7 +6,6 @@ package zmq4
 
 import (
 	"fmt"
-	"io"
 )
 
 // Security is an interface for ZMTP security mechanisms
@@ -21,12 +20,14 @@ type Security interface {
 	//  https://rfc.zeromq.org/spec:24/ZMTP-PLAIN/
 	//  https://rfc.zeromq.org/spec:25/ZMTP-CURVE/
 	Handshake(conn *Conn, server bool) error
+}
 
+type SecurityEncryption interface {
 	// Encrypt writes the encrypted form of data to w.
-	Encrypt(w io.Writer, data []byte) (int, error)
+	Encrypt(conn *Conn, data []byte, more bool) ([]byte, error)
 
 	// Decrypt writes the decrypted form of data to w.
-	Decrypt(w io.Writer, data []byte) (int, error)
+	Decrypt(conn *Conn, data []byte) ([]byte, bool, error)
 }
 
 // SecurityType denotes types of ZMTP security mechanisms
@@ -88,16 +89,6 @@ func (nullSecurity) Handshake(conn *Conn, server bool) error {
 	}
 
 	return nil
-}
-
-// Encrypt writes the encrypted form of data to w.
-func (nullSecurity) Encrypt(w io.Writer, data []byte) (int, error) {
-	return w.Write(data)
-}
-
-// Decrypt writes the decrypted form of data to w.
-func (nullSecurity) Decrypt(w io.Writer, data []byte) (int, error) {
-	return w.Write(data)
 }
 
 var (

@@ -5,7 +5,6 @@
 package zmq4
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -28,8 +27,9 @@ type Conn struct {
 	Server bool
 	Meta   Metadata
 	Peer   struct {
-		Server bool
-		Meta   Metadata
+		Server   bool
+		Meta     Metadata
+		NonceIdx uint64
 	}
 
 	mu     sync.RWMutex
@@ -37,6 +37,9 @@ type Conn struct {
 
 	closed         int32
 	onCloseErrorCB func(c *Conn)
+
+	NonceIdx  uint64
+	SharedKey *[32]byte
 }
 
 func (c *Conn) Close() error {
@@ -59,6 +62,14 @@ func (c *Conn) Write(p []byte) (int, error) {
 	n, err := c.rw.Write(p)
 	c.checkIO(err)
 	return n, err
+}
+
+func (c *Conn) LocalAddr() net.Addr {
+	return c.rw.LocalAddr()
+}
+
+func (c *Conn) RemoteAddr() net.Addr {
+	return c.rw.RemoteAddr()
 }
 
 // Open opens a ZMTP connection over rw with the given security, socket type and identity.
@@ -169,7 +180,7 @@ func (c *Conn) SendCmd(name string, body []byte) error {
 	if err != nil {
 		return err
 	}
-	return c.send(true, buf, 0)
+	return c.send(true, buf, false)
 }
 
 // SendMsg sends a ZMTP message over the wire.
@@ -183,11 +194,11 @@ func (c *Conn) SendMsg(msg Msg) error {
 
 	nframes := len(msg.Frames)
 	for i, frame := range msg.Frames {
-		var flag byte
+		var more bool
 		if i < nframes-1 {
-			flag ^= hasMoreBitFlag
+			more = true
 		}
-		err := c.send(false, frame, flag)
+		err := c.send(false, frame, more)
 		if err != nil {
 			return fmt.Errorf("zmq4: error sending frame %d/%d: %w", i+1, nframes, err)
 		}
@@ -286,8 +297,18 @@ func (c *Conn) sendMulti(msg Msg) error {
 	nframes := len(msg.Frames)
 	for i, frame := range msg.Frames {
 		var flag byte
+		var more bool
 		if i < nframes-1 {
 			flag ^= hasMoreBitFlag
+			more = true
+		}
+
+		if sec, ok := c.sec.(SecurityEncryption); ok {
+			encrypt, err := sec.Encrypt(c, frame, more)
+			if err != nil {
+				return err
+			}
+			frame = encrypt
 		}
 
 		size := len(frame)
@@ -308,16 +329,7 @@ func (c *Conn) sendMulti(msg Msg) error {
 			hdr[1] = uint8(size)
 		}
 
-		switch c.sec.Type() {
-		case NullSecurity:
-			buffers = append(buffers, hdr[:hsz], frame)
-		default:
-			var secBuf bytes.Buffer
-			if _, err := c.sec.Encrypt(&secBuf, frame); err != nil {
-				return err
-			}
-			buffers = append(buffers, hdr[:hsz], secBuf.Bytes())
-		}
+		buffers = append(buffers, hdr[:hsz], frame)
 	}
 
 	if _, err := buffers.WriteTo(c.rw); err != nil {
@@ -328,7 +340,21 @@ func (c *Conn) sendMulti(msg Msg) error {
 	return nil
 }
 
-func (c *Conn) send(isCommand bool, body []byte, flag byte) error {
+func (c *Conn) send(isCommand bool, body []byte, more bool) error {
+	var flag byte
+
+	// commands should not be encrypted.
+	if sec, ok := c.sec.(SecurityEncryption); ok && !isCommand {
+		encrypt, err := sec.Encrypt(c, body, more)
+		if err != nil {
+			c.checkIO(err)
+			return err
+		}
+		body = encrypt
+	} else if more {
+		flag ^= hasMoreBitFlag
+	}
+
 	// Long flag
 	size := len(body)
 	isLong := size > 255
@@ -358,7 +384,7 @@ func (c *Conn) send(isCommand bool, body []byte, flag byte) error {
 		return err
 	}
 
-	if _, err := c.sec.Encrypt(c.rw, body); err != nil {
+	if _, err := c.rw.Write(body); err != nil {
 		c.checkIO(err)
 		return err
 	}
@@ -427,11 +453,16 @@ func (c *Conn) read() Msg {
 			continue
 		}
 
-		buf := new(bytes.Buffer)
-		if _, msg.err = c.sec.Decrypt(buf, body); msg.err != nil {
-			return msg
+		if sec, ok := c.sec.(SecurityEncryption); ok && !isCmd {
+			decrypt, more, err := sec.Decrypt(c, body)
+			if err != nil {
+				msg.err = err
+				return msg
+			}
+			body = decrypt
+			hasMore = more
 		}
-		msg.Frames = append(msg.Frames, buf.Bytes())
+		msg.Frames = append(msg.Frames, body)
 	}
 	if isCmd {
 		msg.Type = CmdMsg
