@@ -54,6 +54,16 @@ const (
 	maxInt    = int(maxUint >> 1)
 	maxUint64 = ^uint64(0)
 	maxInt64  = int64(maxUint64 >> 1)
+
+	// maxFrameSize caps the body length we are willing to allocate for a single
+	// ZMTP frame. The upstream guard only rejected sizes > maxInt64 (~9.2e18),
+	// but Go's makeslice panics with "len out of range" for any size above
+	// runtime.maxAlloc (~2^48 on 64-bit). A truncated/corrupt frame header can
+	// decode to a uint64 in (maxAlloc, maxInt64] which passed the old guard and
+	// crashed the process via make([]byte, size). 1GiB is well below maxAlloc
+	// (so make cannot panic) and far larger than any legitimate LB frame, so any
+	// frame claiming a larger body is treated as corrupt (errOverflow).
+	maxFrameSize uint64 = 1 << 30
 )
 
 func asString(slice []byte) string {
