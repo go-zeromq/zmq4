@@ -6,6 +6,7 @@ package zmq4
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"sync"
 
@@ -100,6 +101,19 @@ func (q *qreader) read(ctx context.Context, msg *Msg) error {
 func (q *qreader) listen(ctx context.Context, r *Conn) {
 	defer q.rmConn(r)
 	defer r.Close()
+	// Defense-in-depth: a malformed/truncated frame could panic inside r.read()
+	// (e.g. a bogus body size, despite the maxFrameSize guard). Upstream had no
+	// recover here, so such a panic crashed the whole process. Convert any panic
+	// into an error message so the consumer's Recv returns an error instead of
+	// the process dying.
+	defer func() {
+		if p := recover(); p != nil {
+			select {
+			case q.c <- Msg{err: fmt.Errorf("zmq4: reader panicked: %v", p)}:
+			default:
+			}
+		}
+	}()
 
 	for {
 		msg := r.read()

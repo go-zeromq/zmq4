@@ -408,7 +408,7 @@ func (c *Conn) read() Msg {
 			size = binary.BigEndian.Uint64(longHdr[:])
 		}
 
-		if size > uint64(maxInt64) {
+		if size > maxFrameSize {
 			msg.err = errOverflow
 			return msg
 		}
