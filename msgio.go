@@ -106,8 +106,7 @@ func (q *qreader) listen(ctx context.Context, r *Conn) {
 		select {
 		case <-ctx.Done():
 			return
-		default:
-			q.c <- msg
+		case q.c <- msg:
 			if msg.err != nil {
 				return
 			}
