@@ -221,8 +221,18 @@ func (sck *socket) accept() {
 				continue
 			}
 
-			zconn, err := Open(conn, sck.sec, sck.typ, sck.id, true, sck.scheduleRmConn)
+			// A peer that never finishes its handshake must not block
+			// the accept loop indefinitely.
+			var zconn *Conn
+			if err = conn.SetDeadline(time.Now().Add(sck.Timeout())); err == nil {
+				zconn, err = Open(conn, sck.sec, sck.typ, sck.id, true, sck.scheduleRmConn)
+			}
+			if err == nil {
+				// The timeout covers the handshake, not subsequent messages.
+				err = conn.SetDeadline(time.Time{})
+			}
 			if err != nil {
+				conn.Close()
 				// FIXME(sbinet): maybe bubble up this error to application code?
 				sck.log.Printf("could not open a ZMTP connection with %q: %+v", sck.ep, err)
 				continue
