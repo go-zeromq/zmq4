@@ -110,11 +110,11 @@ func (r *reqWriter) write(ctx context.Context, msg Msg) error {
 	defer r.mu.Unlock()
 	var err error
 	for i := 0; i < len(r.conns); i++ {
-		cur := i + r.nextConn%len(r.conns)
+		cur := (i + r.nextConn) % len(r.conns)
 		conn := r.conns[cur]
 		err = conn.SendMsg(msg)
 		if err == nil {
-			r.nextConn = cur + 1%len(r.conns)
+			r.nextConn = (cur + 1) % len(r.conns)
 			r.state.Set(conn)
 			return nil
 		}
