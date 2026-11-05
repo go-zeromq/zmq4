@@ -8,6 +8,8 @@ import (
 	"context"
 	"fmt"
 	"net"
+
+	errgrp "github.com/go-zeromq/zmq4/internal/errgroup"
 )
 
 // NewPush returns a new PUSH ZeroMQ socket.
@@ -15,6 +17,7 @@ import (
 func NewPush(ctx context.Context, opts ...Option) Socket {
 	push := &pushSocket{newSocket(ctx, Push, opts...)}
 	push.sck.r = nil
+	push.sck.w = &pushWriter{mwriter: newMWriter(push.sck.ctx)}
 	return push
 }
 
@@ -80,3 +83,31 @@ func (push *pushSocket) SetOption(name string, value interface{}) error {
 var (
 	_ Socket = (*pushSocket)(nil)
 )
+
+// pushWriter distributes complete messages among the connected PULL peers.
+type pushWriter struct {
+	*mwriter
+	nextConn int
+}
+
+func (w *pushWriter) write(ctx context.Context, msg Msg) error {
+	w.sem.lock(ctx)
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	if len(w.ws) == 0 {
+		return fmt.Errorf("zmq4: no connections available")
+	}
+	cur := w.nextConn % len(w.ws)
+	w.nextConn = (cur + 1) % len(w.ws)
+	conn := w.ws[cur]
+	grp, _ := errgrp.WithContext(ctx)
+	grp.Go(func() error {
+		return conn.SendMsg(msg)
+	})
+	return grp.Wait()
+}
