@@ -256,13 +256,17 @@ func (mw *pubMWriter) addConn(w *Conn) {
 	mw.subscribers[w] = c
 	go func() {
 		for {
-			msg, ok := <-c
-			if !ok {
-				break
-			}
-			topic := string(msg.Frames[0])
-			if w.subscribed(topic) {
-				_ = w.SendMsg(msg)
+			select {
+			case <-mw.ctx.Done():
+				return
+			case msg, ok := <-c:
+				if !ok {
+					return
+				}
+				topic := string(msg.Frames[0])
+				if w.subscribed(topic) {
+					_ = w.SendMsg(msg)
+				}
 			}
 		}
 	}()
