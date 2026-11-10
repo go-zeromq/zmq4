@@ -5,6 +5,7 @@
 package zmq4
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"errors"
@@ -18,12 +19,16 @@ import (
 
 var ErrClosedConn = errors.New("zmq4: read/write on closed connection")
 
+// readBufferSize is the size of a connection's read buffer.
+const readBufferSize = 64 << 10
+
 // Conn implements the ZeroMQ Message Transport Protocol as defined
 // in https://rfc.zeromq.org/spec:23/ZMTP/.
 type Conn struct {
 	typ    SocketType
 	id     SocketIdentity
 	rw     net.Conn
+	r      *bufio.Reader // reads rw, so a frame's header and body are not one system call each
 	sec    Security
 	Server bool
 	Meta   Metadata
@@ -47,7 +52,7 @@ func (c *Conn) Read(p []byte) (int, error) {
 	if c.Closed() {
 		return 0, ErrClosedConn
 	}
-	n, err := io.ReadFull(c.rw, p)
+	n, err := io.ReadFull(c.r, p)
 	c.checkIO(err)
 	return n, err
 }
@@ -77,6 +82,7 @@ func Open(rw net.Conn, sec Security, sockType SocketType, sockID SocketIdentity,
 		typ:            sockType,
 		id:             sockID,
 		rw:             rw,
+		r:              bufio.NewReaderSize(rw, readBufferSize),
 		sec:            sec,
 		Server:         server,
 		Meta:           make(Metadata),
@@ -140,7 +146,7 @@ func (conn *Conn) greet(server bool) error {
 	}
 
 	var recv greeting
-	err = recv.read(conn.rw)
+	err = recv.read(conn.r)
 	if err != nil {
 		conn.checkIO(err)
 		return fmt.Errorf("zmq4: could not recv greeting: %w", err)
@@ -285,38 +291,16 @@ func (c *Conn) sendMulti(msg Msg) error {
 
 	nframes := len(msg.Frames)
 	for i, frame := range msg.Frames {
-		var flag byte
-		if i < nframes-1 {
-			flag ^= hasMoreBitFlag
-		}
-
-		size := len(frame)
-		isLong := size > 255
-		if isLong {
-			flag ^= isLongBitFlag
-		}
-
-		var (
-			hdr = [8 + 1]byte{flag}
-			hsz int
-		)
-		if isLong {
-			hsz = 9
-			binary.BigEndian.PutUint64(hdr[1:], uint64(size))
-		} else {
-			hsz = 2
-			hdr[1] = uint8(size)
-		}
-
+		hdr := frameHeader(len(frame), i < nframes-1)
 		switch c.sec.Type() {
 		case NullSecurity:
-			buffers = append(buffers, hdr[:hsz], frame)
+			buffers = append(buffers, hdr, frame)
 		default:
 			var secBuf bytes.Buffer
 			if _, err := c.sec.Encrypt(&secBuf, frame); err != nil {
 				return err
 			}
-			buffers = append(buffers, hdr[:hsz], secBuf.Bytes())
+			buffers = append(buffers, hdr, secBuf.Bytes())
 		}
 	}
 
@@ -326,6 +310,53 @@ func (c *Conn) sendMulti(msg Msg) error {
 	}
 
 	return nil
+}
+
+// sendMsgs sends msgs, in order, in a single write, so a peer that has fallen
+// behind is caught up with one system call rather than one per message. The
+// bytes on the wire are those SendMsg would write for each in turn. Under a
+// security mechanism other than NULL each message is sent on its own.
+func (c *Conn) sendMsgs(msgs []Msg) error {
+	if c.Closed() {
+		return ErrClosedConn
+	}
+	if c.sec.Type() != NullSecurity {
+		for _, msg := range msgs {
+			if err := c.SendMsg(msg); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	var buffers net.Buffers
+	for _, msg := range msgs {
+		nframes := len(msg.Frames)
+		for i, frame := range msg.Frames {
+			buffers = append(buffers, frameHeader(len(frame), i < nframes-1), frame)
+		}
+	}
+	if _, err := buffers.WriteTo(c.rw); err != nil {
+		c.checkIO(err)
+		return err
+	}
+	return nil
+}
+
+// frameHeader returns the ZMTP header of a message frame of size bytes,
+// flagged as having more frames after it when more is set.
+func frameHeader(size int, more bool) []byte {
+	var flag byte
+	if more {
+		flag ^= hasMoreBitFlag
+	}
+	if size > 255 {
+		hdr := make([]byte, 9)
+		hdr[0] = flag ^ isLongBitFlag
+		binary.BigEndian.PutUint64(hdr[1:], uint64(size))
+		return hdr
+	}
+	return []byte{flag, uint8(size)}
 }
 
 func (c *Conn) send(isCommand bool, body []byte, flag byte) error {
@@ -380,7 +411,7 @@ func (c *Conn) read() Msg {
 	for hasMore {
 
 		// Read out the header
-		_, msg.err = io.ReadFull(c.rw, header[:])
+		_, msg.err = io.ReadFull(c.r, header[:])
 		if msg.err != nil {
 			c.checkIO(msg.err)
 			return msg
@@ -399,7 +430,7 @@ func (c *Conn) read() Msg {
 			// We already have the first byte, so assign it, and then read the rest
 			longHdr[0] = header[1]
 
-			_, msg.err = io.ReadFull(c.rw, longHdr[1:])
+			_, msg.err = io.ReadFull(c.r, longHdr[1:])
 			if msg.err != nil {
 				c.checkIO(msg.err)
 				return msg
@@ -414,7 +445,7 @@ func (c *Conn) read() Msg {
 		}
 
 		body := make([]byte, size)
-		_, msg.err = io.ReadFull(c.rw, body)
+		_, msg.err = io.ReadFull(c.r, body)
 		if msg.err != nil {
 			c.checkIO(msg.err)
 			return msg
