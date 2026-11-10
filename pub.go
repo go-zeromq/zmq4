@@ -16,6 +16,10 @@ const (
 	DefaultSendHwm = 1000
 )
 
+// maxSendBatch is the most queued messages a PUB socket writes to one
+// subscriber at once.
+const maxSendBatch = 512
+
 // Topics is an interface that wraps the basic Topics method.
 type Topics interface {
 	// Topics returns the sorted list of topics a socket is subscribed to.
@@ -255,15 +259,37 @@ func (mw *pubMWriter) addConn(w *Conn) {
 	c := make(chan Msg, mw.hwm.Load())
 	mw.subscribers[w] = c
 	go func() {
-		for {
-			msg, ok := <-c
-			if !ok {
-				break
+		batch := make([]Msg, 0, maxSendBatch)
+		for msg := range c {
+			// Take whatever else is already queued as well, so a subscriber
+			// that has fallen behind is caught up in one write rather than
+			// one per message.
+			batch = append(batch, msg)
+		drain:
+			for len(batch) < maxSendBatch {
+				select {
+				case msg, ok := <-c:
+					if !ok {
+						break drain
+					}
+					batch = append(batch, msg)
+				default:
+					break drain
+				}
 			}
-			topic := string(msg.Frames[0])
-			if w.subscribed(topic) {
-				_ = w.SendMsg(msg)
+
+			n := 0
+			for _, msg := range batch {
+				if w.subscribed(string(msg.Frames[0])) {
+					batch[n] = msg
+					n++
+				}
 			}
+			if n > 0 {
+				_ = w.sendMsgs(batch[:n])
+			}
+			clear(batch)
+			batch = batch[:0]
 		}
 	}()
 }

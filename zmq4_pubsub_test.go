@@ -528,6 +528,10 @@ func TestPubOptionHWM(t *testing.T) {
 
 	msgCount := 100
 	hwm := 10
+	// Large enough that the messages overflow the connection's socket
+	// buffers while the subscriber is not reading, so the publisher's queue
+	// fills and drops however quickly it is written out.
+	payload := make([]byte, 1<<20)
 	if err := pub.SetOption(zmq4.OptionHWM, hwm); err != nil {
 		t.Fatalf("unable to set HWM")
 	}
@@ -551,7 +555,7 @@ func TestPubOptionHWM(t *testing.T) {
 		pss.WaitForSubscriptions()
 
 		for i := 1; i <= msgCount; i++ {
-			msg := zmq4.NewMsgFrom([]byte("msg"), []byte(string(rune(i))))
+			msg := zmq4.NewMsgFrom([]byte("msg"), payload)
 			err = pub.Send(msg)
 			if err != nil {
 				return fmt.Errorf("error sending message. [%d] got: %v", i, err)
