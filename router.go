@@ -159,15 +159,14 @@ func (q *routerQReader) listen(ctx context.Context, r *Conn) {
 	id := []byte(r.Peer.Meta[sysSockID])
 	for {
 		msg := r.read()
+		if msg.err != nil {
+			return
+		}
+		msg.Frames = append([][]byte{id}, msg.Frames...)
 		select {
 		case <-ctx.Done():
 			return
-		default:
-			if msg.err != nil {
-				return
-			}
-			msg.Frames = append([][]byte{id}, msg.Frames...)
-			q.c <- msg
+		case q.c <- msg:
 		}
 	}
 }
