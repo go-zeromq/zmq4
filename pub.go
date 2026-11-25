@@ -201,7 +201,11 @@ func (q *pubQReader) listen(ctx context.Context, r *Conn) {
 			case q.topic(msg):
 				r.subscribe(msg)
 			default:
-				q.c <- msg
+				select {
+				case <-ctx.Done():
+					return
+				case q.c <- msg:
+				}
 			}
 		}
 	}

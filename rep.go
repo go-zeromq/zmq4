@@ -160,14 +160,13 @@ func (r *repReader) listen(ctx context.Context, conn *Conn) {
 
 	for {
 		msg := conn.read()
+		if msg.err != nil {
+			return
+		}
 		select {
 		case <-ctx.Done():
 			return
-		default:
-			if msg.err != nil {
-				return
-			}
-			r.msgCh <- repMsg{conn, msg}
+		case r.msgCh <- repMsg{conn, msg}:
 		}
 	}
 }
